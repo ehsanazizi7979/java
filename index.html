@@ -1,0 +1,1065 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A simple chapter-by-chapter study companion for Spring Start Here and Spring Security in Action, with original book figures and adapted examples.">
+<title>Spring Field Notes — A simple guide to two books</title>
+<style>
+:root{--ink:#17312a;--deep:#102b25;--deep2:#193a30;--green:#337b58;--mint:#ddeddd;--lime:#b9df91;--paper:#f5f5ed;--line:#dce3d9;--muted:#66776c;--orange:#dc8a60;--white:#fff;--shadow:0 10px 40px rgba(30,58,43,.055);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper);font-synthesis:none;}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;line-height:1.6}a{color:inherit;text-decoration:none}button,input{font:inherit}button{cursor:pointer}img{max-width:100%;height:auto}code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}p code,li code{background:#eff3ec;color:#285a43;padding:.11em .34em;border-radius:4px;font-size:.89em;overflow-wrap:anywhere}strong{font-weight:700}[hidden]{display:none!important}:focus-visible{outline:3px solid #e3a65d;outline-offset:3px}.skip-link{position:fixed;top:8px;left:8px;transform:translateY(-150%);background:white;color:#102b25;padding:10px 14px;z-index:1000;border-radius:6px}.skip-link:focus{transform:none}
+.layout{display:grid;grid-template-columns:278px minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;background:var(--deep);color:#e9f0e5;padding:27px 20px 18px;overflow-y:auto;display:flex;flex-direction:column;scrollbar-color:#527365 transparent;scrollbar-width:thin}.brand{display:flex;align-items:center;gap:11px;padding:0 5px 27px}.brand-mark{width:39px;height:39px;display:grid;place-items:center;background:#c1e5a9;color:var(--deep);border-radius:12px;flex:none}.brand-title{font-family:Georgia,serif;font-size:19px;font-weight:700;letter-spacing:-.4px;line-height:1}.brand-title small{display:block;font:600 9px/1.2 ui-sans-serif,system-ui,sans-serif;letter-spacing:.18em;color:#a9c0af;margin-top:6px}.side-divider{height:1px;background:#365247;margin-bottom:23px}.search-label{font-size:10px;letter-spacing:.14em;font-weight:700;color:#a8bdb0;display:block;margin:0 0 9px 4px;text-transform:uppercase}.search-box{display:flex;align-items:center;gap:8px;background:#29473c;border:1px solid #456557;border-radius:9px;padding:0 10px;color:#c1d5c7}.search-box:focus-within{border-color:#b9df91;box-shadow:0 0 0 2px rgba(185,223,145,.18)}.search-box svg{flex:none}.search-box input{color:#f6faf4;background:none;border:0;outline:0;width:100%;min-width:0;height:42px;font-size:13px}.search-box input::placeholder{color:#b3c6b8}.clear-search{border:0;background:none;color:#dcebdd;font-size:19px;line-height:1;padding:3px}.side-hint{font-size:11px;color:#9cb1a4;margin:7px 4px 20px;line-height:1.45}.index-container>summary{display:none}.index-heading{color:#91aa9b;font-weight:700;letter-spacing:.16em;font-size:10px;margin:3px 4px 10px}.side-overview{display:block;border-radius:8px;padding:9px 10px;font-size:13px;color:#e3eee2;background:#29483b;font-weight:600;margin-bottom:11px}.side-overview span{margin-right:9px;color:#badfaa}.nav-group{border-top:1px solid #365247;padding:3px 0}.nav-group summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:12px 6px;color:#edf5e9;font-size:13px;font-weight:650;line-height:1.35}.nav-group summary::-webkit-details-marker,.index-container>summary::-webkit-details-marker{display:none}.nav-group summary small{display:block;color:#93ad9d;font-size:9px;letter-spacing:.14em;margin-bottom:3px}.chevron{font-size:20px;color:#98b7a4;transition:transform .2s}.nav-group[open] .chevron{transform:rotate(180deg)}.nav-group ol{list-style:none;padding:0 0 10px;margin:0}.nav-group li a{display:flex;gap:8px;padding:6px 8px;border-radius:6px;font-size:12px;line-height:1.38;color:#b8cbbd}.nav-group li a:hover,.nav-group li a.active{background:#29483b;color:#fff}.nav-group li a>span{color:#7eaa8a;font-size:10px;min-width:19px;padding-top:2px;font-weight:700}.side-footer{font-size:10px;color:#91ac9b;margin-top:auto;padding:24px 5px 0;letter-spacing:.04em}
+main{min-width:0}.shell{max-width:1100px;margin:0 auto;padding:30px clamp(25px,5vw,66px) 90px}.topbar{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d5dfd4;padding-bottom:18px;gap:15px}.topbar-left,.topbar-right{font-size:10px;letter-spacing:.16em;font-weight:750;color:#536d5a}.topbar-right{color:#5a6e5c}.hero{display:grid;grid-template-columns:minmax(0,1fr) 280px;align-items:center;gap:24px;min-height:360px;padding:49px 0 36px}.eyebrow{display:inline-flex;align-items:center;gap:8px;color:#3d7853;font-size:10px;letter-spacing:.15em;font-weight:800;text-transform:uppercase}.eyebrow:before{content:"";width:7px;height:7px;border-radius:50%;background:#73a967}.hero h1{font-family:Georgia,"Times New Roman",serif;font-weight:500;font-size:clamp(47px,5.4vw,74px);letter-spacing:-.052em;line-height:1.04;margin:19px 0 20px}.hero h1 em{font-weight:400;color:#528a60}.hero p{max-width:510px;font-size:16px;line-height:1.75;color:#607366;margin:0}.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}.button{display:inline-flex;align-items:center;justify-content:center;gap:14px;border-radius:8px;padding:11px 16px;font-weight:700;font-size:12px;transition:background .15s,transform .15s}.button:hover{transform:translateY(-1px)}.button-dark{background:#183e30;color:#fff}.button-dark:hover{background:#275d43}.button-light{border:1px solid #c8d7c9;background:#f9fbf6;color:#234b36}.button-light:hover{background:#e6f0e4}.cover-stack{position:relative;height:265px;margin:0 6px}.cover-orbit{position:absolute;width:247px;height:247px;border:1px solid #c6d7c6;border-radius:50%;top:8px;right:1px}.cover-orbit:after{content:"";position:absolute;inset:17px;border:1px dashed #d0ddcf;border-radius:50%}.cover{position:absolute;display:flex;flex-direction:column;justify-content:space-between;border-radius:7px 13px 13px 7px;box-shadow:0 15px 30px rgba(27,62,38,.16);width:148px;height:193px;padding:17px;line-height:1;top:41px}.cover:before{content:"";position:absolute;top:0;bottom:0;left:6px;border-left:1px solid rgba(255,255,255,.25)}.cover-one{background:#b3dba5;color:#173f2c;left:8px;transform:rotate(-10deg)}.cover-two{background:#224f3b;color:#eff8e9;right:10px;transform:rotate(9deg)}.cover small{font-size:8px;font-weight:800;letter-spacing:.13em}.cover b{font-family:Georgia,serif;font-size:20px;line-height:1.06;font-weight:500}.cover .cover-line{width:28px;height:3px;background:currentColor;opacity:.6}.cover-icon{font-size:25px;opacity:.75}.stats{display:flex;align-items:center;gap:0;border-top:1px solid #d5dfd4;border-bottom:1px solid #d5dfd4;padding:19px 0}.stat{display:flex;align-items:baseline;gap:8px;padding-right:28px;margin-right:28px;border-right:1px solid #d5dfd4}.stat:last-child{border:0;margin:0;padding:0}.stat strong{font:500 23px/1 Georgia,serif;color:#244e36}.stat span{font-size:11px;font-weight:650;color:#586e5e;white-space:nowrap}
+.overview{padding:48px 0 19px}.section-kicker{font-size:10px;font-weight:800;letter-spacing:.16em;color:#60836b;text-transform:uppercase;margin:0 0 8px}.overview-header{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:21px}.overview h2,.glossary h2,.end-note h2{font-family:Georgia,serif;font-size:32px;letter-spacing:-.035em;line-height:1.1;font-weight:500;margin:0}.overview-header p{margin:0;color:#5b705e;font-size:12px}.book-cards{display:grid;grid-template-columns:1fr 1fr;gap:15px}.book-card{min-width:0;position:relative;background:#fff;border:1px solid #dbe5da;border-radius:15px;padding:21px 22px 19px;box-shadow:var(--shadow);transition:transform .16s,border-color .16s}.book-card:hover{transform:translateY(-3px);border-color:#a6c5ab}.book-card-top{display:flex;justify-content:space-between;align-items:center}.book-badge{font-size:10px;letter-spacing:.13em;color:#50735a;font-weight:800}.book-arrow{font-size:20px;color:#538261}.book-card h3{font:500 23px/1.15 Georgia,serif;letter-spacing:-.02em;margin:23px 0 7px}.book-card p{font-size:12px;color:#5b705e;margin:0;line-height:1.55}.book-card-bottom{display:flex;gap:8px;align-items:center;margin-top:23px;font-size:10px;font-weight:700;color:#496d51}.book-card-bottom span{background:#eff6eb;border-radius:20px;padding:4px 8px}.intro-note{margin:21px 0 0;color:#5a6e5c;font-size:12px;line-height:1.65;max-width:900px}.intro-note a{text-decoration:underline;text-underline-offset:3px}.results{margin:25px 0 0;padding:16px 18px;border:1px solid #cddfca;background:#e9f3e6;border-radius:10px;font-weight:650;color:#315e40;font-size:13px}.empty-results{padding:24px 0;color:#617367;font-size:14px}.filtering .overview,.filtering .hero,.filtering .stats,.filtering .glossary,.filtering .end-note{display:none}.filtering .book-intro-copy,.filtering .book-actions{display:none}
+.book-section{padding-top:58px;scroll-margin-top:25px}.book-heading{position:relative;background:#e4f0df;border:1px solid #d2e4ce;border-radius:17px;padding:26px 29px 27px;overflow:hidden}.book-heading:after{content:"";position:absolute;width:160px;height:160px;border-radius:50%;border:26px solid rgba(112,160,104,.12);right:-35px;top:-37px;pointer-events:none}.book-heading.security-heading{background:#e5ede7;border-color:#d4e1d8}.book-overline{display:flex;gap:9px;align-items:center;color:#466c4c;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}.book-overline .square{background:#285b3d;color:#edf8e9;border-radius:6px;padding:5px 7px;letter-spacing:.08em}.book-heading h2{font:500 clamp(30px,3.4vw,42px)/1.08 Georgia,serif;letter-spacing:-.035em;margin:17px 0 7px;max-width:650px}.book-author{font-size:12px;color:#4d6c53;font-weight:600}.book-intro-copy{font-size:14px;color:#536f5a;max-width:700px;margin:14px 0 0}.book-actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px}.book-actions a{font-size:11px;font-weight:750;color:#2d6541;text-decoration:underline;text-underline-offset:3px}.part-title{display:flex;align-items:center;gap:15px;margin:39px 0 14px}.part-title>div{white-space:nowrap}.part-title span:first-child{font-size:9px;letter-spacing:.15em;font-weight:800;color:#536d5a}.part-title h3{font:500 22px/1.1 Georgia,serif;letter-spacing:-.025em;margin:5px 0 0}.part-line{height:1px;background:#d6e0d5;flex:1}.part-count{font-size:9px;font-weight:750;letter-spacing:.12em;color:#536d5a;white-space:nowrap}
+.chapter{background:#fff;border:1px solid #dfe7dc;border-radius:15px;padding:30px clamp(22px,4vw,39px) 34px;margin:0 0 15px;box-shadow:var(--shadow);scroll-margin-top:24px}.chapter-meta{display:flex;align-items:center;justify-content:space-between;gap:12px}.chapter-number{color:#4a7857;letter-spacing:.13em;font-weight:800;font-size:10px}.source-link{color:#506f57;font-size:11px;font-weight:650;text-decoration:underline;text-decoration-color:#bbd0bd;text-underline-offset:3px;white-space:nowrap}.source-link:hover{color:#205c37}.chapter h4{font:500 clamp(25px,2.6vw,31px)/1.18 Georgia,serif;letter-spacing:-.028em;margin:15px 0 10px}.chapter-lead{font-size:15px;line-height:1.7;color:#47604f;margin:0;max-width:730px}.list-label{font-size:9px;letter-spacing:.15em;font-weight:800;color:#597666;margin:26px 0 10px}.key-points{padding:0;margin:0;list-style:none}.key-points li{position:relative;padding-left:21px;margin:0 0 11px;color:#485d4f;font-size:13.5px;line-height:1.76}.key-points li:before{content:"";position:absolute;left:1px;top:.73em;width:6px;height:6px;border-radius:50%;background:#80af7e}.key-points strong{color:#243e2c}.key-points a:not(.source-link){color:#2b7850;text-decoration:underline;text-underline-offset:3px}.takeaway{display:flex;gap:12px;background:#edf5ea;border-left:3px solid #8bbb84;border-radius:0 9px 9px 0;margin-top:22px;padding:13px 16px;color:#365c3f}.takeaway-icon{font-size:18px;line-height:1.3;color:#659a65}.takeaway p{font-size:12px;line-height:1.6;margin:0}.takeaway strong{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#477550}
+.book-figure{margin:23px 0 0;padding:17px;border:1px solid #e2e8de;border-radius:11px;background:#fafbf8}.figure-top{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:9px;letter-spacing:.12em;font-weight:800;color:#597666}.figure-top>a{font-size:10px;letter-spacing:0;color:#477c57;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}.figure-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#82b682;margin-right:5px}.figure-image{display:block;text-align:center;background:#fff;border:1px solid #eef1eb;border-radius:7px;margin:13px 0 12px;padding:10px;overflow:auto}.figure-image img{display:block;margin:auto;width:auto;max-width:100%;max-height:650px;object-fit:contain}.book-figure figcaption p{font-size:12px;line-height:1.6;color:#516b58;margin:0 0 5px}.book-figure figcaption small{font-size:10px;color:#5c7360}.book-figure figcaption .source-link{font-size:10px}.book-figure .figure-note{color:#765e3b;background:#f8f1e3;border-radius:6px;padding:8px 10px;margin:9px 0}
+.example{margin-top:23px;border:1px solid #dce7dd;border-radius:11px;overflow:hidden}.example-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:#f4f8f1;padding:13px 16px}.example-label{font-size:9px;letter-spacing:.13em;font-weight:800;color:#4f765b}.example-header p{font-size:11px;line-height:1.5;color:#5b705f;margin:4px 0 0}.language{font-size:9px;letter-spacing:.08em;font-weight:750;color:#506f5b;border:1px solid #d3e2d3;border-radius:5px;padding:3px 6px;text-transform:uppercase;white-space:nowrap}.code-wrap{background:#162e27;position:relative}.code-wrap pre{margin:0;padding:19px 20px 21px;overflow:auto;color:#e1f0dd;font-size:12px;line-height:1.7;tab-size:4}.copy-code{position:absolute;top:9px;right:10px;border:1px solid #496759;background:#243f33;color:#d9e8d8;border-radius:6px;font-size:10px;padding:4px 8px}.copy-code:hover{background:#355746}.code-wrap.has-copy pre{padding-top:40px}
+.glossary{padding:63px 0 0;scroll-margin-top:24px}.glossary>p{font-size:13px;color:#5b705f;margin:11px 0 22px}.glossary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.glossary-item{background:#fff;border:1px solid #dfe7dc;border-radius:10px;padding:15px}.glossary-item dt{font-size:12px;font-weight:800;color:#315c3d}.glossary-item dd{margin:5px 0 0;font-size:11px;line-height:1.6;color:#667b6b}.end-note{margin-top:55px;padding:29px;background:#dfeeda;border-radius:15px}.end-note h2{font-size:26px}.end-note p{font-size:13px;color:#526f56;margin:10px 0 0;max-width:690px}.end-links{display:flex;flex-wrap:wrap;gap:17px;margin-top:18px}.end-links a{font-size:11px;font-weight:750;color:#285d3b;text-decoration:underline;text-underline-offset:3px}.page-footer{display:flex;justify-content:space-between;gap:20px;margin-top:38px;padding-top:18px;border-top:1px solid #d5dfd4;color:#5c7360;font-size:10px}.page-footer a{color:#4a6f51;font-weight:700}
+@media(max-width:1000px){.layout{grid-template-columns:245px minmax(0,1fr)}.sidebar{padding-left:15px;padding-right:15px}.shell{padding-left:35px;padding-right:35px}.hero{grid-template-columns:minmax(0,1fr) 210px}.cover-stack{transform:scale(.82);transform-origin:center right;margin-left:-30px}.hero h1{font-size:55px}}
+@media(max-width:900px){.layout{display:block}.sidebar{position:relative;height:auto;padding:14px 20px 16px;overflow:visible}.brand{padding:0 0 13px}.brand-mark{width:34px;height:34px}.brand-title{font-size:17px}.side-divider{margin-bottom:14px}.search-label{margin-bottom:6px}.side-hint{margin-bottom:10px}.index-container{border-top:1px solid #365247;margin-top:3px}.index-container>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;padding:12px 2px 4px;font-size:12px;font-weight:750;color:#e6f0e4;cursor:pointer}.index-container>summary span{color:#9cbba7;font-size:18px}.index-container[open]>summary span{transform:rotate(180deg)}.index-heading{display:none}.side-overview{margin-top:12px}.side-footer{display:none}.shell{padding:22px 20px 65px}.topbar{padding-bottom:14px}.topbar-right{display:none}.hero{display:block;min-height:0;padding:45px 0 32px}.hero h1{font-size:clamp(44px,11vw,60px);margin:15px 0}.hero p{font-size:14px}.cover-stack{display:none}.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;padding:16px 0}.stat{padding:0;margin:0;border:0;gap:6px}.stat strong{font-size:20px}.stat span{font-size:10px}.overview{padding-top:40px}.overview-header p{display:none}.overview h2{font-size:28px}.book-cards{grid-template-columns:1fr}.book-card h3{margin-top:13px}.book-card-bottom{margin-top:15px}.book-section{padding-top:42px}.book-heading{padding:24px 22px}.book-heading h2{font-size:31px}.part-title{margin-top:32px}.part-title>div{white-space:normal;min-width:0}.part-count{display:none}.chapter{padding:25px 21px 26px}.chapter h4{font-size:26px}.chapter-lead{font-size:14px}.key-points li{font-size:13px}.figure-top{font-size:8px}.glossary-grid{grid-template-columns:1fr 1fr}.page-footer{display:block}.page-footer a{display:inline-block;margin-top:8px}}
+@media(max-width:380px){.stat{display:block}.stat span{display:block;margin-top:5px}.chapter-meta{align-items:flex-start}.source-link{font-size:10px}.glossary-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important}}
+@media print{.sidebar,.topbar,.hero-actions,.book-cards,.book-actions,.copy-code,.page-footer,.results,.empty-results{display:none!important}.layout{display:block}.shell{max-width:none;padding:0}.hero{display:block;min-height:0;padding:0 0 15px}.cover-stack{display:none}.hero h1{font-size:32px}.stats{padding:8px 0}.overview{padding:15px 0}.book-section{padding-top:25px}.book-heading,.chapter,.glossary-item{box-shadow:none;border:1px solid #aaa}.chapter,.book-figure,.example,.glossary-item{break-inside:avoid}.chapter{margin-bottom:10px}.book-figure img{max-height:360px}.code-wrap{background:#f4f4f4!important}.code-wrap pre{color:#000!important}.source-link{color:#333}.glossary{padding-top:25px}}
+</style>
+</head>
+<body id="top">
+<a class="skip-link" href="#main">Skip to main content</a>
+<div class="layout">
+  <aside class="sidebar" aria-label="Guide navigation">
+    <a class="brand" href="#top">
+      <span class="brand-mark" aria-hidden="true"><svg width="23" height="23" viewBox="0 0 24 24" fill="none"><path d="M19.4 4.4C13.6 4.8 6.3 6.5 5 12.4c-.8 3.9 2 6.6 5.3 6.2 6-.8 8.6-7.2 9.1-14.2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4 20c2.7-4.5 6.4-7.4 11-9.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+      <span class="brand-title">Spring Field Notes<small>A READING COMPANION</small></span>
+    </a>
+    <div class="side-divider"></div>
+    <label class="search-label" for="chapter-search">Find a topic</label>
+    <div class="search-box"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg><input type="search" id="chapter-search" placeholder="Search the guide…" autocomplete="off" aria-describedby="search-hint"><button id="clear-search" class="clear-search" type="button" aria-label="Clear search" hidden>×</button></div>
+    <p class="side-hint" id="search-hint">Search chapters, concepts, or code.</p>
+    <noscript><style>.search-label,.search-box,#search-hint{display:none}</style><p class="side-hint">Search needs JavaScript; browse the chapter index below instead.</p></noscript>
+    <details id="index-container" class="index-container" open>
+      <summary>Browse chapter index <span aria-hidden="true">⌄</span></summary>
+      <nav aria-label="Chapter index">
+        <p class="index-heading">CONTENTS</p>
+        <a class="side-overview" href="#top"><span aria-hidden="true">⌂</span> Guide overview</a>
+        <details class="nav-group" open data-nav-group>
+       <summary><span><small>BOOK 01</small>Spring Start Here</span><span class="chevron" aria-hidden="true">⌄</span></summary>
+       <ol><li data-nav-for="start-01"><a href="#start-01"><span>01</span>Spring in the real world</a></li><li data-nav-for="start-02"><a href="#start-02"><span>02</span>The Spring context: Defining beans</a></li><li data-nav-for="start-03"><a href="#start-03"><span>03</span>The Spring context: Wiring beans</a></li><li data-nav-for="start-04"><a href="#start-04"><span>04</span>The Spring context: Using abstractions</a></li><li data-nav-for="start-05"><a href="#start-05"><span>05</span>The Spring context: Bean scopes and life cycle</a></li><li data-nav-for="start-06"><a href="#start-06"><span>06</span>Using aspects with Spring AOP</a></li><li data-nav-for="start-07"><a href="#start-07"><span>07</span>Understanding Spring Boot and Spring MVC</a></li><li data-nav-for="start-08"><a href="#start-08"><span>08</span>Implementing web apps with Spring Boot and Spring MVC</a></li><li data-nav-for="start-09"><a href="#start-09"><span>09</span>Using the Spring web scopes</a></li><li data-nav-for="start-10"><a href="#start-10"><span>10</span>Implementing REST services</a></li><li data-nav-for="start-11"><a href="#start-11"><span>11</span>Consuming REST endpoints</a></li><li data-nav-for="start-12"><a href="#start-12"><span>12</span>Using data sources in Spring apps</a></li><li data-nav-for="start-13"><a href="#start-13"><span>13</span>Using transactions in Spring apps</a></li><li data-nav-for="start-14"><a href="#start-14"><span>14</span>Implementing data persistence with Spring Data</a></li><li data-nav-for="start-15"><a href="#start-15"><span>15</span>Testing your Spring app</a></li><li data-nav-for="start-appendices"><a href="#start-appendices"><span>+</span>Appendices</a></li></ol>
+    </details>
+        <details class="nav-group"  data-nav-group>
+       <summary><span><small>BOOK 02</small>Spring Security in Action</span><span class="chevron" aria-hidden="true">⌄</span></summary>
+       <ol><li data-nav-for="security-01"><a href="#security-01"><span>01</span>Security today</a></li><li data-nav-for="security-02"><a href="#security-02"><span>02</span>Hello, Spring Security</a></li><li data-nav-for="security-03"><a href="#security-03"><span>03</span>Managing users</a></li><li data-nav-for="security-04"><a href="#security-04"><span>04</span>Managing passwords</a></li><li data-nav-for="security-05"><a href="#security-05"><span>05</span>A web app’s security begins with filters</a></li><li data-nav-for="security-06"><a href="#security-06"><span>06</span>Implementing authentications</a></li><li data-nav-for="security-07"><a href="#security-07"><span>07</span>Configuring endpoint-level authorization: Restricting access</a></li><li data-nav-for="security-08"><a href="#security-08"><span>08</span>Configuring endpoint-level authorization: Applying restrictions</a></li><li data-nav-for="security-09"><a href="#security-09"><span>09</span>Configuring CSRF protection</a></li><li data-nav-for="security-10"><a href="#security-10"><span>10</span>Configuring CORS</a></li><li data-nav-for="security-11"><a href="#security-11"><span>11</span>Implementing authorization at the method level</a></li><li data-nav-for="security-12"><a href="#security-12"><span>12</span>Implementing filtering at the method level</a></li><li data-nav-for="security-13"><a href="#security-13"><span>13</span>What are OAuth 2 and OpenID Connect?</a></li><li data-nav-for="security-14"><a href="#security-14"><span>14</span>Implementing an OAuth 2 authorization server</a></li><li data-nav-for="security-15"><a href="#security-15"><span>15</span>Implementing an OAuth 2 resource server</a></li><li data-nav-for="security-16"><a href="#security-16"><span>16</span>Implementing an OAuth 2 client</a></li><li data-nav-for="security-17"><a href="#security-17"><span>17</span>Implementing security in reactive applications</a></li><li data-nav-for="security-18"><a href="#security-18"><span>18</span>Testing security configurations</a></li><li data-nav-for="security-appendices"><a href="#security-appendices"><span>+</span>Appendices</a></li></ol>
+    </details>
+        <a class="side-overview" href="#glossary"><span aria-hidden="true">✳</span> Quick glossary</a>
+      </nav>
+    </details>
+    <div class="side-footer">TWO BOOKS · ONE LEARNING PATH</div>
+  </aside>
+  <main id="main" tabindex="-1"><div class="shell">
+    <div class="topbar"><span class="topbar-left">THE SPRING STUDY GUIDE</span><span class="topbar-right">A CHAPTER-BY-CHAPTER COMPANION &nbsp; / &nbsp; 01—02</span></div>
+    <section class="hero" aria-labelledby="hero-title">
+      <div><span class="eyebrow">Your guide to the Spring ecosystem</span><h1 id="hero-title">Spring, <em>made<br>simpler.</em></h1><p>Two books, explained in plain language. Build a strong foundation, then learn how to protect the applications you create.</p><div class="hero-actions"><a class="button button-dark" href="#start-here">Start with the basics <span aria-hidden="true">↗</span></a><a class="button button-light" href="#security">Explore security <span aria-hidden="true">↗</span></a></div></div>
+      <div class="cover-stack" aria-hidden="true"><div class="cover-orbit"></div><div class="cover cover-one"><small>FIELD NOTES / 01</small><b>Spring<br>Start<br>Here</b><span class="cover-line"></span><span class="cover-icon">✳</span></div><div class="cover cover-two"><small>FIELD NOTES / 02</small><b>Spring<br>Security<br>in Action</b><span class="cover-line"></span><span class="cover-icon">↗</span></div></div>
+    </section>
+    <div class="stats" aria-label="Guide contents"><div class="stat"><strong>02</strong><span>books</span></div><div class="stat"><strong>33</strong><span>chapters</span></div><div class="stat"><strong>17</strong><span>book figures</span></div><div class="stat"><strong>01</strong><span>learning path</span></div></div>
+    <section class="overview" aria-labelledby="overview-title"><div class="overview-header"><div><p class="section-kicker">A good place to start</p><h2 id="overview-title">Choose your next chapter.</h2></div><p>Start at the beginning, or jump in wherever you need.</p></div>
+      <div class="book-cards"><a class="book-card" href="#start-here"><div class="book-card-top"><span class="book-badge">BOOK 01 &nbsp; / &nbsp; THE FOUNDATION</span><span class="book-arrow" aria-hidden="true">↗</span></div><h3>Spring Start Here</h3><p>Understand beans, web apps, databases, and testing.</p><div class="book-card-bottom"><span>15 chapters</span><span>Beginner friendly</span></div></a><a class="book-card" href="#security"><div class="book-card-top"><span class="book-badge">BOOK 02 &nbsp; / &nbsp; THE NEXT STEP</span><span class="book-arrow" aria-hidden="true">↗</span></div><h3>Spring Security in Action</h3><p>Learn authentication, authorization, OAuth, and more.</p><div class="book-card-bottom"><span>18 chapters</span><span>Second edition</span></div></a></div>
+      <p class="intro-note"><strong>How to use this guide:</strong> Read the books in order if you’re new to Spring, or use the chapter index and search to find a topic. Figures are reproduced from your supplied PDFs; select “View larger” to zoom in. Code is short and adapted to explain the ideas, not complete runnable projects: imports, dependencies, supporting classes, and configuration are often omitted. The first book predates Spring Boot 3, and APIs and defaults vary by version, so consult the version-matched documentation. PDF links open in a new tab and use PDF page numbers.</p>
+    </section>
+    <div id="results" class="results" role="status" aria-live="polite" hidden></div><p id="empty-results" class="empty-results" hidden>No matching sections. Try another word or clear the search.</p>
+    <section class="book-section" id="start-here" data-book aria-labelledby="start-title">
+      <header class="book-heading"><div class="book-overline"><span class="square">01</span> THE FOUNDATION</div><h2 id="start-title">Spring Start Here</h2><div class="book-author">Laurențiu Spilcă &nbsp;·&nbsp; Manning, 2021 &nbsp;·&nbsp; 15 chapters + appendices</div><p class="book-intro-copy">Start with the Spring container and work your way toward web applications, data, transactions, and tests.</p><div class="book-actions"><a href="SPRING~1.PDF" target="_blank" rel="noopener">Open the original book ↗</a><a href="#start-01">Go to chapter 1 ↓</a></div></header>
+      <section class="part-group" data-part>
+          <div class="part-title"><div><span>PART 01</span><h3>Fundamentals</h3></div><span class="part-line" aria-hidden="true"></span><span class="part-count">06 CHAPTERS</span></div>
+          <article class="chapter" id="start-01" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 01</span><a class="source-link" href="SPRING~1.PDF#page=27" target="_blank" rel="noopener">PDF page 27 <span aria-hidden="true">↗</span></a></div>
+      <h4>Spring in the real world</h4>
+      <p class="chapter-lead">Spring is a toolbox that handles common application plumbing, so you can focus on what your application actually does.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Why a framework?</strong> Applications repeatedly need object management, web requests, database access, and tests. A framework gives these jobs a consistent structure instead of making you build everything from scratch.</li>
+<li><strong>Inversion of control:</strong> rather than your code constructing and coordinating every object, Spring creates and connects selected objects for you. Your code supplies the parts; Spring manages their wiring.</li>
+<li><strong>Spring is an ecosystem.</strong> Spring Core provides the container and aspects; Spring MVC handles web requests; Spring Data helps with persistence; Spring Boot supplies convenient defaults and dependency starters.</li>
+<li><strong>It is not only for websites.</strong> The same ideas can help in backend services, test utilities, and other Java applications.</li>
+<li><strong>Choose deliberately.</strong> A framework adds dependencies and a learning curve. A very small program, strict footprint requirements, or an already suitable solution may not need it.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Think of Spring as the workshop infrastructure, not the product you are building.</p></div>
+
+
+    </article><article class="chapter" id="start-02" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 02</span><a class="source-link" href="SPRING~1.PDF#page=46" target="_blank" rel="noopener">PDF page 46 <span aria-hidden="true">↗</span></a></div>
+      <h4>The Spring context: Defining beans</h4>
+      <p class="chapter-lead">A bean is an object that Spring knows about and manages inside its application context.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>The context is a container.</strong> Plain objects you create with <code>new</code> do not automatically become Spring beans. Only objects registered with the container receive Spring’s management.</li>
+<li><strong>Use <code>@Bean</code></strong> on a configuration method when you want explicit control over creating an object, including objects from a third-party library.</li>
+<li><strong>Use <code>@Component</code></strong> and component scanning for your own classes. Spring finds annotated classes and creates their beans; specialized stereotypes include <code>@Service</code> and <code>@Repository</code>.</li>
+<li><strong>Register programmatically</strong> with the context when you need conditional or dynamic registration. It is useful, but not the usual first choice for ordinary application classes.</li>
+<li><strong>Names and types matter.</strong> Spring can look up a bean by type or name; when several beans share a type, the injection point may need a qualifier or a primary choice.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>If Spring is supposed to inject or enhance an object, make sure that object is a bean.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Two common ways to register an object; use either approach for the same bean, not both.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Configuration
+class AppConfig {
+    @Bean
+    Parrot parrot() {
+        return new Parrot();
+    }
+}
+
+// Alternatively, annotate your own class and scan its package:
+@Component
+class Parrot { }</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-03" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 03</span><a class="source-link" href="SPRING~1.PDF#page=74" target="_blank" rel="noopener">PDF page 74 <span aria-hidden="true">↗</span></a></div>
+      <h4>The Spring context: Wiring beans</h4>
+      <p class="chapter-lead">Dependency injection means Spring supplies one object with the other objects it needs.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>A dependency is a helper.</strong> If a person has a parrot, the person object needs a reference to the parrot object. Both can be beans and Spring can connect them.</li>
+<li><strong>Constructor injection</strong> makes required dependencies explicit and allows fields to be <code>final</code>. A class with one constructor generally does not need <code>@Autowired</code> on it.</li>
+<li><strong>Other options:</strong> Spring can supply <code>@Bean</code> method parameters, fields, or setters. Constructor injection is usually easier to test and avoids partially initialized objects.</li>
+<li><strong>Resolve ambiguity.</strong> If several beans match an interface or type, mark a default with <code>@Primary</code> or choose a named bean with <code>@Qualifier</code>.</li>
+<li><strong>Avoid circular dependencies.</strong> If A needs B to be constructed and B needs A, neither can be constructed first. Redesign the responsibilities rather than hiding the cycle.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Ask for the dependency you need; let Spring supply the matching bean.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 3.1</span><a href="figures/start-03-01.png" target="_blank" rel="noopener" aria-label="View larger: figure 3.1">View larger ↗</a></div>
+      <a class="figure-image" href="figures/start-03-01.png" target="_blank" rel="noopener"><img src="figures/start-03-01.png" width="608" height="358" alt="Two stages of bean wiring: a person and a parrot are first separate beans, then the person holds the parrot." loading="lazy"></a>
+      <figcaption><p>First register the person and parrot; then connect them so the person can use the parrot.</p><small>Spring Start Here · <a class="source-link" href="SPRING~1.PDF#page=76" target="_blank" rel="noopener">PDF page 76 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Spring injects the specifically named parrot through the constructor.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Component
+class Person {
+    private final Parrot parrot;
+
+    Person(@Qualifier(&quot;parrot2&quot;) Parrot parrot) {
+        this.parrot = parrot;
+    }
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-04" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 04</span><a class="source-link" href="SPRING~1.PDF#page=99" target="_blank" rel="noopener">PDF page 99 <span aria-hidden="true">↗</span></a></div>
+      <h4>The Spring context: Using abstractions</h4>
+      <p class="chapter-lead">An interface describes what a helper can do without tying its caller to one particular implementation.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Separate the contract from the implementation.</strong> A printer can ask for a <code>Sorter</code> without knowing whether it sorts by address or by name.</li>
+<li><strong>Loose coupling makes change easier.</strong> You can replace a real implementation with a different one or with a test double without rewriting the caller.</li>
+<li><strong>Spring can inject an interface.</strong> The actual bean must be a concrete class that implements that interface; the interface itself is not instantiated.</li>
+<li><strong>Choose among implementations</strong> with <code>@Primary</code> or <code>@Qualifier</code> when more than one bean satisfies the same contract.</li>
+<li><strong>Name responsibilities clearly.</strong> <code>@Service</code> identifies business logic and <code>@Repository</code> identifies persistence logic. These are specialized component stereotypes.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Depend on what the helper does, not on how it does it.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 4.3</span><a href="figures/start-04-03.png" target="_blank" rel="noopener" aria-label="View larger: figure 4.3">View larger ↗</a></div>
+      <a class="figure-image" href="figures/start-04-03.png" target="_blank" rel="noopener"><img src="figures/start-04-03.png" width="770" height="648" alt="A delivery-details printer depends on the Sorter interface, which can be implemented by sort-by-address or sort-by-name classes." loading="lazy"></a>
+      <figcaption><p>The interface sits between the printer and interchangeable sorting implementations.</p><small>Spring Start Here · <a class="source-link" href="SPRING~1.PDF#page=102" target="_blank" rel="noopener">PDF page 102 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>The printer depends on a contract; Spring supplies an implementation.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>interface Sorter {
+    void sortDetails();
+}
+
+@Service
+class DeliveryDetailsPrinter {
+    private final Sorter sorter;
+
+    DeliveryDetailsPrinter(Sorter sorter) {
+        this.sorter = sorter;
+    }
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-05" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 05</span><a class="source-link" href="SPRING~1.PDF#page=123" target="_blank" rel="noopener">PDF page 123 <span aria-hidden="true">↗</span></a></div>
+      <h4>The Spring context: Bean scopes and life cycle</h4>
+      <p class="chapter-lead">A bean’s scope decides how long an instance lives and when Spring creates another one.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Singleton is the default.</strong> Spring normally keeps one instance per bean definition and application context—not necessarily one instance for the entire Java process.</li>
+<li><strong>Singletons are shared.</strong> Multiple requests may use the same instance at once. Prefer stateless or immutable services, or protect shared mutable state against races.</li>
+<li><strong>Prototype means a fresh instance per lookup.</strong> It is useful when a new object is needed for each task, but the caller must consider any cleanup the object needs.</li>
+<li><strong>Eager versus lazy:</strong> singleton beans are normally created at startup; <code>@Lazy</code> can defer creation until first use. Laziness moves startup failures to a later time.</li>
+<li><strong>Watch mixed scopes.</strong> Injecting a prototype directly into a singleton resolves it once when the singleton is created. Use a provider when the singleton needs a fresh prototype for each operation.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Scope is about ownership and lifetime; it does not automatically make mutable objects thread-safe.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A provider requests a new prototype each time the method is called.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+class TaskState { }
+
+@Service
+class TaskService {
+    private final ObjectProvider&lt;TaskState&gt; states;
+    TaskService(ObjectProvider&lt;TaskState&gt; states) {
+        this.states = states;
+    }
+    TaskState newState() { return states.getObject(); }
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-06" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 06</span><a class="source-link" href="SPRING~1.PDF#page=145" target="_blank" rel="noopener">PDF page 145 <span aria-hidden="true">↗</span></a></div>
+      <h4>Using aspects with Spring AOP</h4>
+      <p class="chapter-lead">An aspect adds shared behavior around selected method calls without mixing it into every business method.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Cross-cutting work</strong> includes timing, logging, transactions, and some security checks. Keeping it separate can make business code easier to read.</li>
+<li><strong>Advice is the extra behavior;</strong> a pointcut describes which methods receive it. <code>@Before</code>, <code>@AfterReturning</code>, <code>@AfterThrowing</code>, and <code>@Around</code> run at different times.</li>
+<li><strong>Around advice controls the call.</strong> It normally calls <code>proceed()</code> to continue, and can observe arguments, results, or exceptions. Forgetting to proceed skips the original method.</li>
+<li><strong>Spring usually uses proxies.</strong> Calls that do not pass through the proxy, such as a method calling another method on the same object, may bypass advice.</li>
+<li><strong>Use aspects sparingly.</strong> Hidden behavior can make an application harder to understand. When several aspects apply, define their order if it affects the result.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>An aspect is like a wrapper around a method—not a replacement for clear business logic.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 6.3</span><a href="figures/start-06-03.png" target="_blank" rel="noopener" aria-label="View larger: figure 6.3">View larger ↗</a></div>
+      <a class="figure-image" href="figures/start-06-03.png" target="_blank" rel="noopener"><img src="figures/start-06-03.png" width="724" height="798" alt="The Spring context gives the caller a proxy that intercepts calls to the comment service before forwarding to the underlying bean." loading="lazy"></a>
+      <figcaption><p>For an aspected bean, the caller can receive a proxy that intercepts calls to the real object.</p><small>Spring Start Here · <a class="source-link" href="SPRING~1.PDF#page=149" target="_blank" rel="noopener">PDF page 149 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A small timing aspect; the service package in the pointcut is an example.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Aspect
+@Component
+class TimingAspect {
+    @Around(&quot;execution(* example.service.*.*(..))&quot;)
+    Object time(ProceedingJoinPoint call) throws Throwable {
+        long start = System.nanoTime();
+        try {
+            return call.proceed();
+        } finally {
+            System.out.println(System.nanoTime() - start);
+        }
+    }
+}</code></pre></div>
+    </div>
+    </article>
+        </section>
+<section class="part-group" data-part>
+          <div class="part-title"><div><span>PART 02</span><h3>Building applications</h3></div><span class="part-line" aria-hidden="true"></span><span class="part-count">09 CHAPTERS</span></div>
+          <article class="chapter" id="start-07" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 07</span><a class="source-link" href="SPRING~1.PDF#page=177" target="_blank" rel="noopener">PDF page 177 <span aria-hidden="true">↗</span></a></div>
+      <h4>Understanding Spring Boot and Spring MVC</h4>
+      <p class="chapter-lead">Spring Boot gets a web application running with sensible defaults; Spring MVC routes requests to your code.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Client and server have different jobs.</strong> A browser sends an HTTP request; the backend processes it and sends an HTTP response.</li>
+<li><strong>A servlet container</strong> such as Tomcat handles the HTTP connection and passes requests to the Java application. Boot can run one embedded inside the app.</li>
+<li><strong>Boot starters</strong> collect related dependencies, and auto-configuration creates useful components when appropriate. You can override defaults when your application needs something different.</li>
+<li><strong>Spring MVC (model–view–controller)</strong> uses a dispatcher to find the controller method for a request. A regular <code>@Controller</code> can return the name of an HTML view.</li>
+<li><strong>Start small.</strong> A Boot entry point, a web starter, a controller, and a view template are enough to see the basic request–response flow.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Boot sets up the web machinery; MVC directs the request to the right controller.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A minimal Boot entry point and a controller that chooses a view.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@SpringBootApplication
+class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
+
+@Controller
+class HomeController {
+    @GetMapping(&quot;/home&quot;)
+    String home() { return &quot;home&quot;; }
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-08" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 08</span><a class="source-link" href="SPRING~1.PDF#page=200" target="_blank" rel="noopener">PDF page 200 <span aria-hidden="true">↗</span></a></div>
+      <h4>Implementing web apps with Spring Boot and Spring MVC</h4>
+      <p class="chapter-lead">A dynamic page is a template filled with data that the controller prepares for a particular request.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>The controller builds a model.</strong> It adds values to a <code>Model</code> and returns a view name. A template engine such as Thymeleaf combines the template and model into HTML.</li>
+<li><strong>Inputs can come from the URL.</strong> <code>@RequestParam</code> reads a query parameter such as <code>?name=Ana</code>; <code>@PathVariable</code> reads a required part of the path such as <code>/products/7</code>.</li>
+<li><strong>HTTP methods communicate intent.</strong> GET retrieves; POST usually creates or submits; PUT replaces, PATCH partially updates, and DELETE removes. Do not change server state in a GET handler.</li>
+<li><strong>Forms usually submit GET or POST.</strong> A POST handler can read submitted fields and pass them to a service. Use validation and, for browser forms, appropriate CSRF protection.</li>
+<li><strong>Keep responsibilities separate.</strong> The controller handles web input and output; a service handles business rules instead of putting all behavior in the template or controller.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>The template is the page’s shape; the model is the data that fills it.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 8.3</span><a href="figures/start-08-03.png" target="_blank" rel="noopener" aria-label="View larger: figure 8.3">View larger ↗</a></div>
+      <a class="figure-image" href="figures/start-08-03.png" target="_blank" rel="noopener"><img src="figures/start-08-03.png" width="826" height="488" alt="A browser request passes through the dispatcher servlet to a controller; model data and a view resolver produce the page." loading="lazy"></a>
+      <figcaption><p>The controller supplies data and a view name; MVC uses them to build the response.</p><small>Spring Start Here · <a class="source-link" href="SPRING~1.PDF#page=204" target="_blank" rel="noopener">PDF page 204 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>The query parameter becomes data that the view can display.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@GetMapping(&quot;/greeting&quot;)
+String greet(@RequestParam(defaultValue = &quot;friend&quot;) String name,
+             Model model) {
+    model.addAttribute(&quot;name&quot;, name);
+    return &quot;greeting&quot;; // e.g., templates/greeting.html
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-09" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 09</span><a class="source-link" href="SPRING~1.PDF#page=223" target="_blank" rel="noopener">PDF page 223 <span aria-hidden="true">↗</span></a></div>
+      <h4>Using the Spring web scopes</h4>
+      <p class="chapter-lead">Web scopes let a bean’s lifetime follow a request, a user session, or the web application.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Request scope:</strong> a new instance is associated with each HTTP request. It is useful for short-lived request-specific information.</li>
+<li><strong>Session scope:</strong> one instance is associated with an HTTP session and can hold data across that session’s requests, such as a small shopping cart.</li>
+<li><strong>Application scope:</strong> an instance is shared at the servlet-application level. Shared mutable data can be accessed concurrently and needs careful coordination.</li>
+<li><strong>Session data is not automatically safe.</strong> A user can send simultaneous requests; mutable session state can race. Sessions also complicate scaling and failover between servers.</li>
+<li><strong>Use the smallest practical lifetime.</strong> Avoid unnecessarily storing sensitive or large objects in memory; use durable storage when data must survive a session or restart.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Request = one interaction; session = one conversation; application = shared by everyone.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 9.2</span><a href="figures/start-09-02.png" target="_blank" rel="noopener" aria-label="View larger: figure 9.2">View larger ↗</a></div>
+      <a class="figure-image" href="figures/start-09-02.png" target="_blank" rel="noopener"><img src="figures/start-09-02.png" width="810" height="606" alt="Two HTTP requests each receive a different request-scoped LoginProcessor instance." loading="lazy"></a>
+      <figcaption><p>The book shows that separate HTTP requests get separate request-scoped instances.</p><small>Spring Start Here · <a class="source-link" href="SPRING~1.PDF#page=225" target="_blank" rel="noopener">PDF page 225 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Spring creates a request-scoped object for each HTTP request.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Component
+@RequestScope
+class RequestInfo {
+    private String message;
+    // getters and setters
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-10" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 10</span><a class="source-link" href="SPRING~1.PDF#page=248" target="_blank" rel="noopener">PDF page 248 <span aria-hidden="true">↗</span></a></div>
+      <h4>Implementing REST services</h4>
+      <p class="chapter-lead">A REST endpoint lets a client exchange data with a backend, commonly using JSON rather than an HTML view.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>REST</strong> (representational state transfer) is a way to design services around resources and standard HTTP operations. An endpoint is a URL and operation that clients can call.</li>
+<li><strong><code>@RestController</code></strong> makes return values response bodies. Spring’s HTTP message converters can turn a Java object into JSON and JSON back into a Java object.</li>
+<li><strong>Read input from the right place.</strong> Use path variables or query parameters for URL data and <code>@RequestBody</code> for structured request content.</li>
+<li><strong>Set a useful response.</strong> <code>ResponseEntity</code> can set the body, status, and headers—for example, <code>201 Created</code> after creating a resource.</li>
+<li><strong>Handle failures consistently.</strong> <code>@RestControllerAdvice</code> and <code>@ExceptionHandler</code> can translate errors into clear API responses without repeating code in each controller.</li>
+<li><strong>Validate and protect input.</strong> A JSON parser does not make input trustworthy; check required fields and apply authentication and authorization when necessary.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>An HTML controller chooses a page; a REST controller normally returns data.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>The request body becomes a Product; the response contains the saved product.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@RestController
+class ProductController {
+    private final ProductService products;
+    ProductController(ProductService products) {
+        this.products = products;
+    }
+
+    @PostMapping(&quot;/products&quot;)
+    ResponseEntity&lt;Product&gt; add(@RequestBody Product product) {
+        Product saved = products.save(product);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-11" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 11</span><a class="source-link" href="SPRING~1.PDF#page=269" target="_blank" rel="noopener">PDF page 269 <span aria-hidden="true">↗</span></a></div>
+      <h4>Consuming REST endpoints</h4>
+      <p class="chapter-lead">A Spring application can also act as a client and call another application’s HTTP API.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Client versus server is a role.</strong> A payment service may serve a request from your app while your app is simultaneously serving a request from a browser.</li>
+<li><strong>OpenFeign</strong> lets you describe an HTTP client with an interface and annotations. Spring Cloud supplies the implementation when the Feign integration is enabled.</li>
+<li><strong><code>RestTemplate</code></strong> is the older synchronous client shown in the book. <code>WebClient</code> supports reactive, nonblocking use. Modern Spring also offers <code>RestClient</code> for synchronous calls.</li>
+<li><strong>Handle the network as unreliable.</strong> Configure timeouts, handle error responses, and be careful with retries: repeating a payment request can create a duplicate unless the operation is designed for it.</li>
+<li><strong>Keep remote details at the edge.</strong> A client or proxy class should handle URLs, headers, and conversion so business services do not need to know the HTTP mechanics.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Treat another service like an outside dependency that can be slow, unavailable, or return an error.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A declarative payment client. It also needs the OpenFeign dependency and client scanning.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@FeignClient(name = &quot;payments&quot;, url = &quot;${payment.url}&quot;)
+interface PaymentClient {
+    @PostMapping(&quot;/payment&quot;)
+    Payment create(@RequestBody Payment payment);
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-12" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 12</span><a class="source-link" href="SPRING~1.PDF#page=288" target="_blank" rel="noopener">PDF page 288 <span aria-hidden="true">↗</span></a></div>
+      <h4>Using data sources in Spring apps</h4>
+      <p class="chapter-lead">A data source supplies database connections; JdbcTemplate makes common SQL operations easier to write.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>JDBC (Java Database Connectivity) is the Java database interface.</strong> The JDK defines the API, and a database-specific JDBC driver implements the connection to a particular database.</li>
+<li><strong>A connection pool reuses connections.</strong> Spring Boot commonly configures HikariCP when the required dependencies and database settings are present. Reuse avoids opening a new connection for every operation.</li>
+<li><strong><code>JdbcTemplate</code> handles routine JDBC work.</strong> Use <code>update</code> for changes and <code>query</code> with a row mapper for results.</li>
+<li><strong>Use parameters, not string concatenation.</strong> Placeholders such as <code>?</code> keep data separate from SQL and help prevent SQL injection.</li>
+<li><strong>Configure connections safely.</strong> Set the URL and credentials through application configuration or a custom <code>DataSource</code>; keep real secrets out of source control. Multiple databases require clearly identified beans.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>DataSource manages connections; JdbcTemplate uses them to run SQL.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 12.2</span><a href="figures/start-12-02.png" target="_blank" rel="noopener" aria-label="View larger: figure 12.2">View larger ↗</a></div>
+      <a class="figure-image" href="figures/start-12-02.png" target="_blank" rel="noopener"><img src="figures/start-12-02.png" width="820" height="398" alt="Application logic uses a data source, which uses a JDBC driver to connect to a database management system." loading="lazy"></a>
+      <figcaption><p>The application reaches the database through a data source and a database-specific JDBC driver.</p><small>Spring Start Here · <a class="source-link" href="SPRING~1.PDF#page=290" target="_blank" rel="noopener">PDF page 290 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>The question marks are parameters, not text pasted into the SQL.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>jdbcTemplate.update(
+    &quot;INSERT INTO purchase (product, price) VALUES (?, ?)&quot;,
+    productName, price
+);
+
+List&lt;String&gt; names = jdbcTemplate.query(
+    &quot;SELECT product FROM purchase&quot;,
+    (rs, rowNumber) -&gt; rs.getString(&quot;product&quot;)
+);</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-13" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 13</span><a class="source-link" href="SPRING~1.PDF#page=308" target="_blank" rel="noopener">PDF page 308 <span aria-hidden="true">↗</span></a></div>
+      <h4>Using transactions in Spring apps</h4>
+      <p class="chapter-lead">A transaction groups related database changes so they can succeed together or be rolled back together.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Why it matters:</strong> a transfer must not subtract money from one account if adding it to the other fails. Partial changes can leave data inconsistent.</li>
+<li><strong>Commit or rollback.</strong> A successful transaction commits its changes; a rollback discards changes made within that transaction, subject to the database and transaction manager.</li>
+<li><strong><code>@Transactional</code></strong> marks a method or class for transaction management. Spring normally wraps calls through a proxy and begins or joins a transaction.</li>
+<li><strong>Know the defaults.</strong> By default Spring rolls back on unchecked exceptions and errors, not every checked exception. Configure rollback rules when the use case requires them.</li>
+<li><strong>Mind the boundaries.</strong> Self-invocation can bypass proxy advice, and a database transaction cannot automatically undo an external email or HTTP call. Concurrency and isolation also matter for money transfers.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>A transaction is an all-or-nothing boundary for the database operations it actually manages.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 13.3</span><a href="figures/start-13-03.png" target="_blank" rel="noopener" aria-label="View larger: figure 13.3">View larger ↗</a></div>
+      <a class="figure-image" href="figures/start-13-03.png" target="_blank" rel="noopener"><img src="figures/start-13-03.png" width="816" height="1018" alt="A money transfer debits John, then the credit to Jane fails; the transaction rolls back and John retains his original balance." loading="lazy"></a>
+      <figcaption><p>If the second step fails, the transaction can roll back the first step too.</p><small>Spring Start Here · <a class="source-link" href="SPRING~1.PDF#page=312" target="_blank" rel="noopener">PDF page 312 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Both repository operations run inside the transaction when called through the Spring proxy.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Transactional
+public void transfer(long from, long to, BigDecimal amount) {
+    accounts.debit(from, amount);
+    accounts.credit(to, amount);
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-14" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 14</span><a class="source-link" href="SPRING~1.PDF#page=326" target="_blank" rel="noopener">PDF page 326 <span aria-hidden="true">↗</span></a></div>
+      <h4>Implementing data persistence with Spring Data</h4>
+      <p class="chapter-lead">Spring Data lets you express common persistence operations as repository interfaces instead of hand-writing every implementation.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Pick the right module.</strong> Spring Data JDBC, JPA, and MongoDB are different modules for different persistence technologies; their behavior and supported query syntax differ.</li>
+<li><strong>Extend a repository contract.</strong> <code>CrudRepository</code> supplies common create, read, update, and delete operations. Paging and sorting interfaces add other capabilities; exact inheritance varies by version.</li>
+<li><strong>Spring supplies the implementation.</strong> Your interface describes the operations, and the framework creates a repository bean for it.</li>
+<li><strong>Add queries in two ways:</strong> a method name such as <code>findByName</code> can be translated into a query, or an explicit <code>@Query</code> can state the query directly.</li>
+<li><strong>Keep queries understandable.</strong> Very long derived names are hard to read. Test the generated or explicit query, and use the correct module’s annotations for modifying queries.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>A repository is the application’s dedicated doorway to stored data.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Spring Data JDBC can create this repository implementation from the interface.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>interface AccountRepository extends CrudRepository&lt;Account, Long&gt; {
+    List&lt;Account&gt; findByName(String name);
+
+    @Query(&quot;SELECT * FROM account WHERE name = :name&quot;)
+    List&lt;Account&gt; findAccounts(@Param(&quot;name&quot;) String name);
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="start-15" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 15</span><a class="source-link" href="SPRING~1.PDF#page=347" target="_blank" rel="noopener">PDF page 347 <span aria-hidden="true">↗</span></a></div>
+      <h4>Testing your Spring app</h4>
+      <p class="chapter-lead">Tests check that your code behaves as expected today and continues to do so after changes.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Unit tests</strong> check one small piece of logic in isolation. They are usually fast and make failures easier to locate.</li>
+<li><strong>Integration tests</strong> check how components work together—for example, a Spring controller, its configuration, and a database. They catch wiring and configuration problems unit tests can miss.</li>
+<li><strong>Mocks</strong> are controlled stand-ins for dependencies. Use them to focus a test, but do not assume a mocked dependency proves the real integration works.</li>
+<li><strong>Arrange, act, assert.</strong> Set up the scenario, perform one action, then verify the result. Include both happy paths and meaningful error or boundary cases.</li>
+<li><strong>Run tests repeatedly.</strong> Automated tests in a build or continuous-integration pipeline give quick feedback when application code or dependencies change.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Use fast unit tests for logic and focused integration tests for the connections between pieces.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 15.3</span><a href="figures/start-15-03.png" target="_blank" rel="noopener" aria-label="View larger: figure 15.3">View larger ↗</a></div>
+      <a class="figure-image" href="figures/start-15-03.png" target="_blank" rel="noopener"><img src="figures/start-15-03.png" width="740" height="684" alt="A transfer service sits in the application source; a separate test class contains multiple test cases for its transfer method." loading="lazy"></a>
+      <figcaption><p>One method can need several test scenarios, each checking a different behavior.</p><small>Spring Start Here · <a class="source-link" href="SPRING~1.PDF#page=351" target="_blank" rel="noopener">PDF page 351 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A focused unit-test sketch using a mocked repository and JUnit assertions.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Test
+void missingAccountIsReported() {
+    when(accounts.findById(42L)).thenReturn(Optional.empty());
+
+    assertThrows(AccountNotFoundException.class,
+                 () -&gt; service.findAccount(42L));
+}</code></pre></div>
+    </div>
+    </article>
+        </section>
+      <section class="part-group" data-part><div class="part-title"><div><span>BEYOND THE CHAPTERS</span><h3>Appendices</h3></div><span class="part-line" aria-hidden="true"></span><span class="part-count">A–G</span></div>
+  <article class="chapter appendix" id="start-appendices" data-searchable>
+    <div class="chapter-meta"><span class="chapter-number">APPENDICES A–G</span><a class="source-link" href="SPRING~1.PDF#page=371" target="_blank" rel="noopener">PDF page 371 <span aria-hidden="true">↗</span></a></div>
+    <h4>The supporting ideas</h4>
+    <p class="chapter-lead">The appendices fill in the surrounding concepts that make the main chapters easier to understand.</p>
+    <p class="list-label">WHAT EACH APPENDIX ADDS</p>
+    <ul class="key-points">
+      <li><strong>A · Architectural approaches.</strong> A monolith deploys functionality as one application; service-oriented systems split responsibilities into communicating services. Microservices and serverless can scale parts independently, but add network, security, data, and deployment complexity. <a class="source-link" href="SPRING~1.PDF#page=371" target="_blank" rel="noopener">PDF page 371 <span aria-hidden="true">↗</span></a></li>
+      <li><strong>B · XML configuration.</strong> Spring beans can also be declared in an XML file. The idea is the same as Java configuration: describe objects and their dependencies for the context to manage. <a class="source-link" href="SPRING~1.PDF#page=382" target="_blank" rel="noopener">PDF page 382 <span aria-hidden="true">↗</span></a></li>
+      <li><strong>C · HTTP basics.</strong> A request has a method, path, headers, and sometimes a body. A response has a status, headers, and sometimes a body. Cookies can link separate requests to a session. <a class="source-link" href="SPRING~1.PDF#page=384" target="_blank" rel="noopener">PDF page 384 <span aria-hidden="true">↗</span></a></li>
+      <li><strong>D · JSON.</strong> JSON is a text format for structured data: objects contain name–value pairs; arrays contain lists; values can be strings, numbers, booleans, null, objects, or arrays. <a class="source-link" href="SPRING~1.PDF#page=393" target="_blank" rel="noopener">PDF page 393 <span aria-hidden="true">↗</span></a></li>
+      <li><strong>E · MySQL setup.</strong> Install a database server and a client, connect, and create a database before running examples that need one. Use the database’s current installation and security instructions. <a class="source-link" href="SPRING~1.PDF#page=396" target="_blank" rel="noopener">PDF page 396 <span aria-hidden="true">↗</span></a></li>
+      <li><strong>F · Tools.</strong> A JDK, an IDE, Maven, and tools for making HTTP requests help you build and explore the examples. Choose versions compatible with your project. <a class="source-link" href="SPRING~1.PDF#page=404" target="_blank" rel="noopener">PDF page 404 <span aria-hidden="true">↗</span></a></li>
+      <li><strong>G · Further learning.</strong> Continue with the official Spring documentation and focused material on architecture, persistence, web development, and testing. <a class="source-link" href="SPRING~1.PDF#page=406" target="_blank" rel="noopener">PDF page 406 <span aria-hidden="true">↗</span></a></li>
+    </ul>
+    <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Spring makes more sense once you understand the HTTP, JSON, database, and architecture basics around it.</p></div>
+    <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>An HTTP request followed by an example HTTP response with a JSON body.</p></div><span class="language">HTTP + JSON</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>GET /products/7 HTTP/1.1
+Host: example.com
+Accept: application/json
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{&quot;id&quot;: 7, &quot;name&quot;: &quot;Notebook&quot;, &quot;price&quot;: 12.50}</code></pre></div>
+    </div>
+  </article></section>
+    </section>
+    <section class="book-section" id="security" data-book aria-labelledby="security-title">
+      <header class="book-heading security-heading"><div class="book-overline"><span class="square">02</span> THE NEXT STEP</div><h2 id="security-title">Spring Security in Action</h2><div class="book-author">Laurențiu Spilcă &nbsp;·&nbsp; Second edition, Manning, 2024 &nbsp;·&nbsp; 18 chapters + appendices</div><p class="book-intro-copy">Build on the fundamentals to identify callers, control access, defend web applications, and work with OAuth 2.</p><div class="book-actions"><a href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf" target="_blank" rel="noopener">Open the original book ↗</a><a href="#security-01">Go to chapter 1 ↓</a></div></header>
+      <section class="part-group" data-part>
+          <div class="part-title"><div><span>PART 01</span><h3>The foundations</h3></div><span class="part-line" aria-hidden="true"></span><span class="part-count">02 CHAPTERS</span></div>
+          <article class="chapter" id="security-01" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 01</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=28" target="_blank" rel="noopener">PDF page 28 <span aria-hidden="true">↗</span></a></div>
+      <h4>Security today</h4>
+      <p class="chapter-lead">Security is not a single login screen: it is a set of protections built into the whole system from the beginning.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Authentication asks “Who are you?”</strong> Authorization asks “What are you allowed to do?” An identified user is not automatically allowed to access everything.</li>
+<li><strong>Use layers.</strong> Network controls, secure configuration, authentication, authorization, data protection, and monitoring each address different risks. One layer should not be the only defense.</li>
+<li><strong>Protect confidentiality, integrity, and availability.</strong> Data should be visible only to permitted people, resistant to improper changes, and available when needed.</li>
+<li><strong>Think like an attacker.</strong> Identify valuable assets, possible entry points, and likely abuse cases before choosing controls.</li>
+<li><strong>Small leaks matter.</strong> Passwords, tokens, and personal information can escape through logs, error messages, or exposed configuration. Keep secrets out of all three.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Make security part of the design, not a feature added just before release.</p></div>
+
+
+    </article><article class="chapter" id="security-02" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 02</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=40" target="_blank" rel="noopener">PDF page 40 <span aria-hidden="true">↗</span></a></div>
+      <h4>Hello, Spring Security</h4>
+      <p class="chapter-lead">Spring Security intercepts requests, authenticates the caller, and applies rules before allowing access.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Adding the security dependency changes defaults.</strong> A basic Spring Boot app is protected by default, with a development user and generated password under the usual auto-configuration conditions.</li>
+<li><strong>The filter chain is the entry point.</strong> Security filters inspect requests before they reach controller methods.</li>
+<li><strong>Authentication has separate jobs.</strong> An authentication manager delegates to a provider; user details and password encoders can help the provider check credentials.</li>
+<li><strong>The security context</strong> holds the resulting authentication information so later code can make authorization decisions.</li>
+<li><strong>Customize with a <code>SecurityFilterChain</code> bean.</strong> Choose authentication methods and rules explicitly; development defaults and sample users are not a production identity system.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>The request is checked before the controller handles it.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 2.2</span><a href="figures/security-02-02.png" target="_blank" rel="noopener" aria-label="View larger: figure 2.2">View larger ↗</a></div>
+      <a class="figure-image" href="figures/security-02-02.png" target="_blank" rel="noopener"><img src="figures/security-02-02.png" width="864" height="686" alt="A request moves from an authentication filter to a manager and provider; the provider uses user details and a password encoder, and the result is stored in the security context." loading="lazy"></a>
+      <figcaption><p>The book’s authentication map separates request filtering, credential checking, and the stored result.</p><small>Spring Security in Action, Second Edition · <a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=46" target="_blank" rel="noopener">PDF page 46 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Require authentication for /hello and deny other requests. Use HTTP Basic only over TLS.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Bean
+SecurityFilterChain security(HttpSecurity http) throws Exception {
+    http.authorizeHttpRequests(auth -&gt; auth
+            .requestMatchers(&quot;/hello&quot;).authenticated()
+            .anyRequest().denyAll())
+        .httpBasic(Customizer.withDefaults());
+    return http.build();
+}</code></pre></div>
+    </div>
+    </article>
+        </section>
+<section class="part-group" data-part>
+          <div class="part-title"><div><span>PART 02</span><h3>Authentication</h3></div><span class="part-line" aria-hidden="true"></span><span class="part-count">04 CHAPTERS</span></div>
+          <article class="chapter" id="security-03" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 03</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=68" target="_blank" rel="noopener">PDF page 68 <span aria-hidden="true">↗</span></a></div>
+      <h4>Managing users</h4>
+      <p class="chapter-lead">Spring Security needs a consistent description of a user and a way to look that user up.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong><code>UserDetails</code></strong> describes security information such as a username, password hash, authorities, and account status. A <code>GrantedAuthority</code> represents one permission or role-like string.</li>
+<li><strong><code>UserDetailsService</code></strong> finds a user by username. The authentication provider can use the result while checking a login.</li>
+<li><strong><code>UserDetailsManager</code></strong> adds user-management operations such as creating, updating, and deleting users.</li>
+<li><strong>Implementations differ.</strong> In-memory users are convenient for learning or tests; JDBC and LDAP-backed approaches are available for users managed outside application memory.</li>
+<li><strong>Separate concerns.</strong> Your application’s user record may contain profile data, but authentication should only expose the details needed for security. Protect stored password hashes and account data.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>UserDetails describes a user; UserDetailsService explains how to find one.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A small in-memory demo; supply the password from configuration and define a PasswordEncoder separately.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Bean
+UserDetailsService users(PasswordEncoder encoder,
+                         @Value(&quot;${demo.password}&quot;) String password) {
+    UserDetails user = User.withUsername(&quot;alex&quot;)
+        .password(encoder.encode(password))
+        .authorities(&quot;report:read&quot;)
+        .build();
+    return new InMemoryUserDetailsManager(user);
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="security-04" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 04</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=93" target="_blank" rel="noopener">PDF page 93 <span aria-hidden="true">↗</span></a></div>
+      <h4>Managing passwords</h4>
+      <p class="chapter-lead">A password should be checked against a slow, salted password hash—not stored or compared as plain text.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong><code>PasswordEncoder</code></strong> has two main jobs: encode a new password and check a supplied password with <code>matches</code>. You do not decrypt a password hash.</li>
+<li><strong>Use a password-specific algorithm.</strong> Adaptive algorithms such as bcrypt, scrypt, or Argon2 are designed to make password guessing expensive. Choose parameters suitable for your system.</li>
+<li><strong>DelegatingPasswordEncoder</strong> records an algorithm identifier such as <code>{bcrypt}</code> with the stored hash. This helps verify older hashes while upgrading encoding strategies over time.</li>
+<li><strong>Do not use no-op encoding in production.</strong> It stores passwords without protection. Do not invent your own cryptographic algorithm or treat a fast general-purpose hash as a password-storage solution.</li>
+<li><strong>Encryption is different from hashing.</strong> Encryption is reversible with a key and is useful for secrets an application must recover. Key generation, storage, and rotation must be handled securely.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Store a strong password hash, verify with matches, and keep encryption keys separate from encrypted data.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>The delegating encoder selects a password-storage strategy and can recognize tagged hashes.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Bean
+PasswordEncoder passwordEncoder() {
+    return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+}
+
+// When creating a user: encoder.encode(rawPassword)
+// When checking a login: encoder.matches(rawPassword, storedHash)</code></pre></div>
+    </div>
+    </article><article class="chapter" id="security-05" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 05</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=108" target="_blank" rel="noopener">PDF page 108 <span aria-hidden="true">↗</span></a></div>
+      <h4>A web app’s security begins with filters</h4>
+      <p class="chapter-lead">A filter chain is a series of checkpoints that can inspect a request and decide whether to pass it onward.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Order matters.</strong> A filter may run before or after authentication, so it sees different information depending on its position.</li>
+<li><strong>Each filter can continue the chain</strong> or stop processing and return a response. A filter that forgets to continue can prevent the controller from running.</li>
+<li><strong>Customize only when needed.</strong> Spring supplies many filters. Add a custom one before, after, or at the position of an existing filter when a built-in option does not meet the requirement.</li>
+<li><strong>Avoid ambiguous order.</strong> Placing multiple custom filters at the same position does not guarantee their relative order.</li>
+<li><strong>Never log secrets.</strong> Request logs and audit events should not contain passwords, authorization headers, access tokens, or unnecessary personal data.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Think of filters as ordered security checkpoints on the way to a controller.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 5.3</span><a href="figures/security-05-03.png" target="_blank" rel="noopener" aria-label="View larger: figure 5.3">View larger ↗</a></div>
+      <a class="figure-image" href="figures/security-05-03.png" target="_blank" rel="noopener"><img src="figures/security-05-03.png" width="836" height="328" alt="A request passes through a validation filter, a basic authentication filter, and a logging filter in order." loading="lazy"></a>
+      <figcaption><p>Custom filters can be placed around Spring Security’s existing filters.</p><small>Spring Security in Action, Second Edition · <a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=110" target="_blank" rel="noopener">PDF page 110 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Place an existing custom filter before the username/password authentication filter.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>http.addFilterBefore(
+    auditFilter,
+    UsernamePasswordAuthenticationFilter.class
+);</code></pre></div>
+    </div>
+    </article><article class="chapter" id="security-06" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 06</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=126" target="_blank" rel="noopener">PDF page 126 <span aria-hidden="true">↗</span></a></div>
+      <h4>Implementing authentications</h4>
+      <p class="chapter-lead">An AuthenticationProvider checks a particular kind of credential and produces an authenticated identity.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong><code>Authentication</code></strong> represents an authentication request or result. The manager delegates to a provider that supports the presented authentication type.</li>
+<li><strong>Keep responsibilities separate.</strong> A provider can use a <code>UserDetailsService</code> to find users and a <code>PasswordEncoder</code> to verify passwords rather than implementing every job itself.</li>
+<li><strong>The security context stores the result.</strong> It can be read later to identify the caller, but an anonymous authentication can also appear; use authorization rules to enforce access.</li>
+<li><strong>Thread boundaries matter.</strong> The context is normally thread-local in servlet applications. Work sent to another thread may need Spring’s delegating security-context wrappers; do not assume it is automatically copied everywhere.</li>
+<li><strong>Choose a login mechanism.</strong> HTTP Basic sends credentials with requests and requires TLS; form login provides a browser login flow, typically with a session. Customize these carefully rather than writing ad hoc checks.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>The provider checks identity; the security context carries the result for later decisions.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Read the current authentication; it may represent an anonymous caller.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>Authentication authentication =
+    SecurityContextHolder.getContext().getAuthentication();
+
+if (authentication != null) {
+    String currentName = authentication.getName();
+}</code></pre></div>
+    </div>
+    </article>
+        </section>
+<section class="part-group" data-part>
+          <div class="part-title"><div><span>PART 03</span><h3>Authorization</h3></div><span class="part-line" aria-hidden="true"></span><span class="part-count">06 CHAPTERS</span></div>
+          <article class="chapter" id="security-07" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 07</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=162" target="_blank" rel="noopener">PDF page 162 <span aria-hidden="true">↗</span></a></div>
+      <h4>Configuring endpoint-level authorization: Restricting access</h4>
+      <p class="chapter-lead">After identifying a caller, authorization decides which actions that caller may perform.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Authorities are permissions.</strong> For example, <code>report:read</code> can represent permission to read reports. Grant only what the user or service needs.</li>
+<li><strong>Roles are a common grouping convention.</strong> In Spring Security, <code>hasRole("ADMIN")</code> normally checks for the authority <code>ROLE_ADMIN</code>; <code>hasAuthority</code> checks the exact string.</li>
+<li><strong>Different rules express different intentions.</strong> <code>authenticated()</code> requires an authenticated caller; <code>permitAll()</code> allows access without requiring login; <code>denyAll()</code> denies it.</li>
+<li><strong>Authentication is not authorization.</strong> A valid login should still receive a forbidden response when it lacks the required permission.</li>
+<li><strong>Start from least privilege.</strong> Make public endpoints intentional and deny or require authentication for everything else rather than accidentally exposing new routes.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>A valid ID proves who someone is; it does not give them every key.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Check a role or an exact authority; the role check uses the ROLE_ convention.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>auth.requestMatchers(&quot;/admin/**&quot;).hasRole(&quot;ADMIN&quot;)
+    .requestMatchers(&quot;/reports/**&quot;).hasAuthority(&quot;report:read&quot;)
+    .anyRequest().denyAll();</code></pre></div>
+    </div>
+    </article><article class="chapter" id="security-08" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 08</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=181" target="_blank" rel="noopener">PDF page 181 <span aria-hidden="true">↗</span></a></div>
+      <h4>Configuring endpoint-level authorization: Applying restrictions</h4>
+      <p class="chapter-lead">Request matchers decide which security rule applies to a path, an HTTP method, or a more specific request pattern.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Match the request you mean.</strong> <code>requestMatchers</code> can select paths such as <code>/reports/**</code> and can also restrict a rule to a method such as GET.</li>
+<li><strong>Order the rules carefully.</strong> Spring uses the first matching authorization rule, so put specific patterns before broad ones and finish with a deliberate <code>anyRequest()</code> rule.</li>
+<li><strong>Different methods can need different permissions.</strong> Reading a report and deleting it should not automatically require the same access.</li>
+<li><strong>Regular-expression matchers</strong> can express patterns that simple path matching cannot, but they are easier to get wrong. Test both matching and nonmatching paths.</li>
+<li><strong>Protect new endpoints by default.</strong> A final <code>denyAll()</code> makes an unlisted route inaccessible until someone deliberately adds a rule.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Specific rules first, a safe catch-all last.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Different requests receive different rules; unlisted requests are denied.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>http.authorizeHttpRequests(auth -&gt; auth
+    .requestMatchers(&quot;/public/**&quot;).permitAll()
+    .requestMatchers(HttpMethod.GET, &quot;/reports/**&quot;)
+        .hasAuthority(&quot;report:read&quot;)
+    .requestMatchers(&quot;/admin/**&quot;).hasRole(&quot;ADMIN&quot;)
+    .anyRequest().denyAll());</code></pre></div>
+    </div>
+    </article><article class="chapter" id="security-09" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 09</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=200" target="_blank" rel="noopener">PDF page 200 <span aria-hidden="true">↗</span></a></div>
+      <h4>Configuring CSRF protection</h4>
+      <p class="chapter-lead">Cross-site request forgery tricks a browser into sending an unwanted request with credentials it automatically includes.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>The attack:</strong> a user is signed in to a trusted site, then visits a malicious site that causes their browser to send an unwanted action to the trusted site.</li>
+<li><strong>The risk exists with automatically sent credentials,</strong> especially session cookies and sometimes browser-managed HTTP Basic credentials. The server may otherwise mistake the forged request for an intentional one.</li>
+<li><strong>CSRF tokens add a check.</strong> The legitimate application includes a token with a state-changing request; Spring checks it against the expected token. CSRF protection is enabled by default in standard servlet security.</li>
+<li><strong>Use safe HTTP methods correctly.</strong> GET should not change state. Send a CSRF token with protected POST, PUT, PATCH, and DELETE requests or forms.</li>
+<li><strong>Customize carefully.</strong> Token repositories and request handlers control storage and presentation. Disable protection only after analyzing the authentication and client model—not just to make a failing POST work.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>CORS and CSRF are different: allowing a browser origin does not replace CSRF protection.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 9.1</span><a href="figures/security-09-01.png" target="_blank" rel="noopener" aria-label="View larger: figure 9.1">View larger ↗</a></div>
+      <a class="figure-image" href="figures/security-09-01.png" target="_blank" rel="noopener"><img src="figures/security-09-01.png" width="766" height="474" alt="A signed-in user visits a malicious page, which causes their browser to perform unintended actions against the user’s application." loading="lazy"></a>
+      <figcaption><p>The attack uses the victim’s existing browser session to attempt an unwanted action.</p><small>Spring Security in Action, Second Edition · <a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=202" target="_blank" rel="noopener">PDF page 202 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A server-rendered form can include Spring’s CSRF token as a hidden field.</p></div><span class="language">HTML</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>&lt;form action=&quot;/transfer&quot; method=&quot;post&quot;&gt;
+  &lt;input type=&quot;hidden&quot; th:name=&quot;${_csrf.parameterName}&quot;
+         th:value=&quot;${_csrf.token}&quot;&gt;
+  &lt;button type=&quot;submit&quot;&gt;Transfer&lt;/button&gt;
+&lt;/form&gt;</code></pre></div>
+    </div>
+    </article><article class="chapter" id="security-10" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 10</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=224" target="_blank" rel="noopener">PDF page 224 <span aria-hidden="true">↗</span></a></div>
+      <h4>Configuring CORS</h4>
+      <p class="chapter-lead">Cross-origin resource sharing (CORS) tells a browser when a page from one origin may read responses from another origin.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>An origin is scheme, host, and port.</strong> For example, <code>https://app.example.com</code> and <code>https://api.example.com</code> are different origins.</li>
+<li><strong>The browser enforces the rules.</strong> A server opts in with response headers; for some requests the browser first sends an OPTIONS preflight to ask whether the method and headers are allowed.</li>
+<li><strong>Configure narrowly.</strong> Allow only the origins, methods, and headers your frontend needs. For credentialed requests, use specific trusted origins rather than a wildcard.</li>
+<li><strong>Spring offers local and central configuration.</strong> Use <code>@CrossOrigin</code> on a controller or configure CORS centrally and integrate it with the security filter chain.</li>
+<li><strong>CORS is not authorization.</strong> It does not stop non-browser clients, and some cross-origin requests can be sent even when their responses cannot be read. Keep access controls and CSRF defenses in place.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>CORS governs browser cross-origin access; it is not a general-purpose security boundary.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 10.3</span><a href="figures/security-10-03.png" target="_blank" rel="noopener" aria-label="View larger: figure 10.3">View larger ↗</a></div>
+      <a class="figure-image" href="figures/security-10-03.png" target="_blank" rel="noopener"><img src="figures/security-10-03.png" width="768" height="622" alt="A page on one site tries to load a resource from another site, whose response includes an access-control header." loading="lazy"></a>
+      <figcaption><p>The browser checks the server’s CORS response when a page accesses another origin.</p><p class="figure-note"><strong>Note:</strong> The header in the book’s drawing is schematic. A real Access-Control-Allow-Origin value is one allowed origin (including scheme and port when needed), or * where appropriate—not a comma-separated list.</p><small>Spring Security in Action, Second Edition · <a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=227" target="_blank" rel="noopener">PDF page 227 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Allow one known browser origin for this endpoint.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@CrossOrigin(origins = &quot;https://app.example.com&quot;)
+@GetMapping(&quot;/products&quot;)
+List&lt;Product&gt; products() {
+    return productService.findAll();
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="security-11" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 11</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=234" target="_blank" rel="noopener">PDF page 234 <span aria-hidden="true">↗</span></a></div>
+      <h4>Implementing authorization at the method level</h4>
+      <p class="chapter-lead">Method security protects business operations even when they can be reached through more than one endpoint.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Enable it explicitly</strong> with <code>@EnableMethodSecurity</code>; endpoint rules alone do not automatically protect every service method.</li>
+<li><strong><code>@PreAuthorize</code></strong> checks a Spring Expression Language (SpEL) rule before the method runs. Use it for rules such as “only an administrator or the owner may call this.”</li>
+<li><strong><code>@PostAuthorize</code></strong> checks the returned value after the method has run. It is unsuitable as the sole protection for a method that has already made side effects.</li>
+<li><strong>Complex rules deserve their own component.</strong> A custom permission evaluator or authorization component can keep ownership rules readable and reusable.</li>
+<li><strong>Proxy boundaries still matter.</strong> Calls inside the same object can bypass proxy-based method security. Test the actual path through the Spring-managed bean.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Use endpoint rules at the door and method rules near the business operation.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 11.3</span><a href="figures/security-11-03.png" target="_blank" rel="noopener" aria-label="View larger: figure 11.3">View larger ↗</a></div>
+      <a class="figure-image" href="figures/security-11-03.png" target="_blank" rel="noopener"><img src="figures/security-11-03.png" width="774" height="364" alt="A security aspect intercepts a controller call to a service and blocks the method when the authorization rule fails." loading="lazy"></a>
+      <figcaption><p>A preauthorization check can stop a service method before it runs.</p><small>Spring Security in Action, Second Edition · <a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=237" target="_blank" rel="noopener">PDF page 237 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Enable method security, then allow only users with the ADMIN role.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Configuration
+@EnableMethodSecurity
+class MethodSecurityConfig { }
+
+@PreAuthorize(&quot;hasRole(&#x27;ADMIN&#x27;)&quot;)
+public void deleteReport(long id) {
+    reports.deleteById(id);
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="security-12" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 12</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=260" target="_blank" rel="noopener">PDF page 260 <span aria-hidden="true">↗</span></a></div>
+      <h4>Implementing filtering at the method level</h4>
+      <p class="chapter-lead">Method filtering removes disallowed elements from a collection rather than allowing or denying the whole method call.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong><code>@PreFilter</code></strong> filters supported collection or array arguments before the method executes. <code>filterObject</code> refers to each candidate element in the expression.</li>
+<li><strong><code>@PostFilter</code></strong> filters supported returned collections or arrays after the method runs. For example, only documents owned by the current user may remain.</li>
+<li><strong>Filtering is not call authorization.</strong> A method may still run with an empty input or return an empty collection. Combine filtering with preauthorization if the call itself must be denied.</li>
+<li><strong>Filter as close to the data as possible.</strong> Fetching every database row and removing most in memory wastes resources and can break pagination; prefer an ownership condition in the database query.</li>
+<li><strong>Use appropriate collections and test behavior.</strong> Framework filtering can modify the supplied collection; check compatibility with the types and method-security configuration in use.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Filtering selects which items pass through; authorization can decide whether the call happens at all.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Illustrative post-filtering; a database query scoped to the owner is often better.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@PostFilter(&quot;filterObject.owner == authentication.name&quot;)
+public List&lt;Document&gt; findDocuments() {
+    return documents.findAll();
+}</code></pre></div>
+    </div>
+    </article>
+        </section>
+<section class="part-group" data-part>
+          <div class="part-title"><div><span>PART 04</span><h3>OAuth 2 &amp; OpenID Connect</h3></div><span class="part-line" aria-hidden="true"></span><span class="part-count">04 CHAPTERS</span></div>
+          <article class="chapter" id="security-13" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 13</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=282" target="_blank" rel="noopener">PDF page 282 <span aria-hidden="true">↗</span></a></div>
+      <h4>What are OAuth 2 and OpenID Connect?</h4>
+      <p class="chapter-lead">OAuth 2 lets a client obtain limited access to a protected resource; OpenID Connect adds a standardized identity layer.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Four roles:</strong> the resource owner is usually the user; the client is the app seeking access; the authorization server issues tokens; the resource server protects the API or data.</li>
+<li><strong>An access token is a permission-bearing credential.</strong> An opaque token is typically checked through introspection; a JSON Web Token (JWT) can carry claims and be validated locally using a trusted key and appropriate claim checks.</li>
+<li><strong>Authorization code + PKCE (proof key for code exchange)</strong> is a common user-facing flow: the user signs in at the authorization server, the client receives a code, and PKCE helps prevent a stolen code from being redeemed.</li>
+<li><strong>Scopes describe the requested or granted access.</strong> For example, a <code>reports.read</code> scope can limit a token to reading reports.</li>
+<li><strong>Client credentials</strong> is for a client acting on its own behalf, often service-to-service. A refresh token can obtain a new access token without repeating the full user login when the server permits it.</li>
+<li><strong>OpenID Connect (OIDC)</strong> uses OAuth 2 flows and adds an ID token and identity information. An ID token is for the client’s login; do not treat it as an API access token.</li>
+<li><strong>Tokens need protection.</strong> Use TLS, validate redirect URIs, limit scopes and lifetimes, avoid leaking tokens, and protect against replay and CSRF. A signed JWT is not necessarily encrypted.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>OAuth grants scoped access; OIDC tells a client about the signed-in user.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 13.9</span><a href="figures/security-13-09.png" target="_blank" rel="noopener" aria-label="View larger: figure 13.9">View larger ↗</a></div>
+      <a class="figure-image" href="figures/security-13-09.png" target="_blank" rel="noopener"><img src="figures/security-13-09.png" width="734" height="440" alt="Authorization-code flow: a user logs in, a client receives an authorization code, exchanges it for an access token, and calls the resource server." loading="lazy"></a>
+      <figcaption><p>The book illustrates the authorization-code flow; a modern client should also use PKCE.</p><small>Spring Security in Action, Second Edition · <a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=292" target="_blank" rel="noopener">PDF page 292 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A client sends the access token to the protected API. Never put a real token in a public example.</p></div><span class="language">HTTP</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>GET /invoices HTTP/1.1
+Host: api.example.com
+Authorization: Bearer &lt;access-token&gt;</code></pre></div>
+    </div>
+    </article><article class="chapter" id="security-14" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 14</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=300" target="_blank" rel="noopener">PDF page 300 <span aria-hidden="true">↗</span></a></div>
+      <h4>Implementing an OAuth 2 authorization server</h4>
+      <p class="chapter-lead">The authorization server knows which clients and users are allowed to participate and issues the tokens they need.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Register clients.</strong> A <code>RegisteredClientRepository</code> stores client identifiers, authentication methods, allowed grant types, redirect URIs, and scopes.</li>
+<li><strong>Manage users and consent.</strong> User-facing grants also need user authentication and, where appropriate, consent. Client credentials represent the client itself, not an end user.</li>
+<li><strong>Sign JWTs with protected keys.</strong> The authorization server uses private signing keys and can publish public keys as a JSON Web Key (JWK) set for resource servers to validate signatures.</li>
+<li><strong>Opaque tokens use introspection.</strong> A resource server asks the authorization server whether a token is active and what it permits.</li>
+<li><strong>Plan for revocation.</strong> Revocation can immediately affect introspected tokens, but a resource server validating a self-contained JWT locally may not learn of revocation until expiry unless an additional check is used.</li>
+<li><strong>A sample server is not a production setup.</strong> Use HTTPS, secure and durable client/key storage, carefully configured lifetimes, and a well-tested identity solution.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>The authorization server issues credentials; the resource server decides whether to accept them.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A client-credentials registration sketch. The secret must come from secure configuration.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>RegisteredClient client = RegisteredClient
+    .withId(UUID.randomUUID().toString())
+    .clientId(&quot;reports-client&quot;)
+    .clientSecret(encoder.encode(clientSecret))
+    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+    .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+    .scope(&quot;reports.read&quot;)
+    .build();</code></pre></div>
+    </div>
+    </article><article class="chapter" id="security-15" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 15</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=322" target="_blank" rel="noopener">PDF page 322 <span aria-hidden="true">↗</span></a></div>
+      <h4>Implementing an OAuth 2 resource server</h4>
+      <p class="chapter-lead">The resource server protects an API and verifies the access token presented by a client.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>For JWTs,</strong> obtain trusted public keys from the configured issuer or JWK set and validate the signature, expected issuer, lifetime, and intended audience as appropriate.</li>
+<li><strong>For opaque tokens,</strong> call a trusted introspection endpoint using the resource server’s client credentials. The response tells the server whether the token is active and provides its attributes.</li>
+<li><strong>Turn claims into permissions.</strong> Spring commonly maps OAuth scopes to authorities with the <code>SCOPE_</code> prefix; rules must match the authorities actually configured.</li>
+<li><strong>Customization is possible.</strong> A converter can map different claims to authorities. An authentication-manager resolver can choose a trusted validation strategy for a multitenant system.</li>
+<li><strong>Do not trust unverified token contents.</strong> In multi-issuer systems, allowlist trusted issuers rather than fetching keys from an arbitrary issuer supplied by a token.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>A token is not trusted just because it looks like a JWT; verify it and enforce the right permissions.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 15.1</span><a href="figures/security-15-01.png" target="_blank" rel="noopener" aria-label="View larger: figure 15.1">View larger ↗</a></div>
+      <a class="figure-image" href="figures/security-15-01.png" target="_blank" rel="noopener"><img src="figures/security-15-01.png" width="776" height="440" alt="A client obtains authorization from an authorization server and calls a separate resource server that protects the user’s data." loading="lazy"></a>
+      <figcaption><p>The resource server is the backend that protects the requested data.</p><small>Spring Security in Action, Second Edition · <a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=323" target="_blank" rel="noopener">PDF page 323 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A JWT resource server rule. Also configure a trusted issuer and any required audience validator.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Bean
+SecurityFilterChain api(HttpSecurity http) throws Exception {
+    http.authorizeHttpRequests(auth -&gt; auth
+            .requestMatchers(&quot;/reports/**&quot;)
+                .hasAuthority(&quot;SCOPE_reports.read&quot;)
+            .anyRequest().denyAll())
+        .oauth2ResourceServer(oauth -&gt;
+            oauth.jwt(Customizer.withDefaults()));
+    return http.build();
+}</code></pre></div>
+    </div>
+    </article><article class="chapter" id="security-16" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 16</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=349" target="_blank" rel="noopener">PDF page 349 <span aria-hidden="true">↗</span></a></div>
+      <h4>Implementing an OAuth 2 client</h4>
+      <p class="chapter-lead">An OAuth client requests tokens and uses them to sign users in or call another protected service.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>OAuth/OIDC login</strong> redirects the user to an identity provider. After the flow completes, Spring creates an authentication in the application’s security context.</li>
+<li><strong>Register the client with the provider.</strong> Configure its client ID, secret when applicable, scopes, and redirect URI. Common providers have useful built-in defaults; custom providers need their endpoint or issuer details.</li>
+<li><strong>Use OIDC for identity.</strong> The <code>openid</code> scope selects OpenID Connect where supported. Validate the provider configuration and keep credentials in secure configuration.</li>
+<li><strong>A backend can also be a client.</strong> For service-to-service calls, client credentials can obtain an access token without pretending that a human user is present.</li>
+<li><strong>Let the client manager handle token acquisition.</strong> Spring’s OAuth client support can obtain and manage authorized clients so the HTTP-calling code does not reimplement the protocol.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>A client consumes tokens; it is different from the server that issues them or the API that validates them.</p></div>
+
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>Enable a provider-based login after configuring an OAuth client registration.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>http.authorizeHttpRequests(auth -&gt; auth
+        .requestMatchers(&quot;/&quot;, &quot;/login/**&quot;).permitAll()
+        .anyRequest().authenticated())
+    .oauth2Login(Customizer.withDefaults());</code></pre></div>
+    </div>
+    </article>
+        </section>
+<section class="part-group" data-part>
+          <div class="part-title"><div><span>PART 05</span><h3>Going reactive</h3></div><span class="part-line" aria-hidden="true"></span><span class="part-count">01 CHAPTER</span></div>
+          <article class="chapter" id="security-17" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 17</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=372" target="_blank" rel="noopener">PDF page 372 <span aria-hidden="true">↗</span></a></div>
+      <h4>Implementing security in reactive applications</h4>
+      <p class="chapter-lead">Reactive applications process streams of values asynchronously, so they use the reactive versions of Spring Security’s components.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Reactive is a different programming model, not an automatic speed boost.</strong> It can be useful for nonblocking I/O or streams, but it adds complexity and is not ideal for every application.</li>
+<li><strong>Reactor types represent streams.</strong> <code>Mono</code> represents zero or one value; <code>Flux</code> represents zero or more. A subscriber consumes the publisher’s signals.</li>
+<li><strong>Use reactive security types.</strong> <code>ReactiveUserDetailsService</code>, <code>ServerHttpSecurity</code>, and <code>SecurityWebFilterChain</code> play roles similar to their servlet counterparts.</li>
+<li><strong>Endpoint rules use <code>authorizeExchange</code>.</strong> Reactive method security and reactive OAuth 2 resource-server support are also available.</li>
+<li><strong>Avoid blocking the reactive pipeline.</strong> Use nonblocking dependencies where possible, and understand that reactive security context propagation differs from a simple thread-local model.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>The security ideas stay similar; the APIs and execution model change for reactive applications.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 17.2</span><a href="figures/security-17-02.png" target="_blank" rel="noopener" aria-label="View larger: figure 17.2">View larger ↗</a></div>
+      <a class="figure-image" href="figures/security-17-02.png" target="_blank" rel="noopener"><img src="figures/security-17-02.png" width="844" height="476" alt="Reactive Streams publishers and subscribers with Project Reactor Mono for zero or one item and Flux for zero or more items." loading="lazy"></a>
+      <figcaption><p>The book relates a publisher and subscriber to Reactor’s Mono and Flux types.</p><small>Spring Security in Action, Second Edition · <a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=375" target="_blank" rel="noopener">PDF page 375 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A reactive web filter chain; this is not the servlet HttpSecurity API.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Bean
+SecurityWebFilterChain security(ServerHttpSecurity http) {
+    return http.authorizeExchange(auth -&gt; auth
+            .pathMatchers(&quot;/public/**&quot;).permitAll()
+            .anyExchange().authenticated())
+        .httpBasic(Customizer.withDefaults())
+        .build();
+}</code></pre></div>
+    </div>
+    </article>
+        </section>
+<section class="part-group" data-part>
+          <div class="part-title"><div><span>PART 06</span><h3>Testing security</h3></div><span class="part-line" aria-hidden="true"></span><span class="part-count">01 CHAPTER</span></div>
+          <article class="chapter" id="security-18" data-searchable>
+      <div class="chapter-meta"><span class="chapter-number">CHAPTER 18</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=398" target="_blank" rel="noopener">PDF page 398 <span aria-hidden="true">↗</span></a></div>
+      <h4>Testing security configurations</h4>
+      <p class="chapter-lead">Security rules need tests for both allowed and denied requests, not just tests that a controller returns the right data.</p>
+      <p class="list-label">THE KEY IDEAS</p>
+      <ul class="key-points"><li><strong>Test authorization separately.</strong> <code>@WithMockUser</code> or a mock-user request helper creates a test security context so you can check roles and authorities without repeating a real login in every test.</li>
+<li><strong>Mock users do not test authentication.</strong> Write separate tests for credential checking, login failures, custom providers, or token validation as appropriate.</li>
+<li><strong>Test both sides of a rule.</strong> Check an anonymous caller, a user without the permission, and a user with it. Also test ownership and method-level rules.</li>
+<li><strong>Exercise browser protections.</strong> Test state-changing requests with and without a CSRF token; test allowed and disallowed CORS origins and preflight requests where relevant.</li>
+<li><strong>Use the right client.</strong> <code>MockMvc</code> is useful for servlet applications; <code>WebTestClient</code> supports reactive tests. Run security tests after dependency and configuration changes.</li></ul>
+      <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>A passing mock-user test proves a rule, not that real credentials or tokens are valid.</p></div>
+      <figure class="book-figure">
+      <div class="figure-top"><span><span class="figure-dot"></span> FROM THE BOOK · FIGURE 18.3</span><a href="figures/security-18-03.png" target="_blank" rel="noopener" aria-label="View larger: figure 18.3">View larger ↗</a></div>
+      <a class="figure-image" href="figures/security-18-03.png" target="_blank" rel="noopener"><img src="figures/security-18-03.png" width="760" height="532" alt="A test supplies a mock security context directly, bypassing the authentication manager, provider, user service, and password encoder." loading="lazy"></a>
+      <figcaption><p>A mock-user test skips the real authentication components, so test those separately.</p><small>Spring Security in Action, Second Edition · <a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=402" target="_blank" rel="noopener">PDF page 402 <span aria-hidden="true">↗</span></a></small></figcaption>
+    </figure>
+      <div class="example">
+      <div class="example-header"><div><span class="example-label">ILLUSTRATIVE EXAMPLE</span><p>A MockMvc authorization test; it assumes /reports requires the report:read authority.</p></div><span class="language">Java</span></div>
+      <div class="code-wrap"><pre tabindex="0"><code>@Test
+@WithMockUser(authorities = &quot;report:read&quot;)
+void permittedUserCanReadReports() throws Exception {
+    mvc.perform(get(&quot;/reports&quot;))
+       .andExpect(status().isOk());
+}
+
+@Test
+@WithMockUser(authorities = &quot;other&quot;)
+void userWithoutPermissionIsForbidden() throws Exception {
+    mvc.perform(get(&quot;/reports&quot;))
+       .andExpect(status().isForbidden());
+}</code></pre></div>
+    </div>
+    </article>
+        </section>
+      <section class="part-group" data-part><div class="part-title"><div><span>BEYOND THE CHAPTERS</span><h3>Appendices</h3></div><span class="part-line" aria-hidden="true"></span><span class="part-count">A–B</span></div>
+  <article class="chapter appendix" id="security-appendices" data-searchable>
+    <div class="chapter-meta"><span class="chapter-number">APPENDICES A–B</span><a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=424" target="_blank" rel="noopener">PDF page 424 <span aria-hidden="true">↗</span></a></div>
+    <h4>Where to keep learning</h4>
+    <p class="chapter-lead">The book ends with documentation and further reading, because security APIs and guidance keep changing.</p>
+    <p class="list-label">WHAT EACH APPENDIX ADDS</p>
+    <ul class="key-points">
+      <li><strong>A · Official documentation.</strong> Check the references for the <a href="https://docs.spring.io/spring-framework/reference/" target="_blank" rel="noopener">Spring Framework</a>, <a href="https://docs.spring.io/spring-security/reference/" target="_blank" rel="noopener">Spring Security</a>, <a href="https://docs.spring.io/spring-authorization-server/reference/" target="_blank" rel="noopener">Spring Authorization Server</a>, Java, and JUnit. Select documentation that matches the versions in your project. <a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=424" target="_blank" rel="noopener">PDF page 424 <span aria-hidden="true">↗</span></a></li>
+      <li><strong>B · Further reading.</strong> Strengthen the foundations with books about Spring and Spring Boot, then deepen your knowledge of persistence, testing, and security. The appendix gives specific recommendations. <a class="source-link" href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf#page=425" target="_blank" rel="noopener">PDF page 425 <span aria-hidden="true">↗</span></a></li>
+    </ul>
+    <div class="takeaway"><span class="takeaway-icon" aria-hidden="true">✳</span><p><strong>Remember</strong><br>Use the books to learn the ideas, and the version-matched official docs to confirm current APIs and defaults.</p></div>
+  </article></section>
+    </section>
+    <section class="glossary" id="glossary" aria-labelledby="glossary-title"><p class="section-kicker">Keep this close</p><h2 id="glossary-title">A quick glossary.</h2><p>The terms you’ll see again and again, in everyday language.</p>
+      <dl class="glossary-grid">
+        <div class="glossary-item"><dt>Bean</dt><dd>An object managed by the Spring container.</dd></div>
+        <div class="glossary-item"><dt>Dependency injection</dt><dd>Supplying an object with the helpers it needs.</dd></div>
+        <div class="glossary-item"><dt>Controller</dt><dd>Code that receives a web request and helps produce a response.</dd></div>
+        <div class="glossary-item"><dt>Repository</dt><dd>A component that provides access to stored data.</dd></div>
+        <div class="glossary-item"><dt>Transaction</dt><dd>A boundary for database changes that should succeed or fail together.</dd></div>
+        <div class="glossary-item"><dt>Authentication</dt><dd>Checking who a user or client is.</dd></div>
+        <div class="glossary-item"><dt>Authorization</dt><dd>Deciding what an identified caller is allowed to do.</dd></div>
+        <div class="glossary-item"><dt>CSRF</dt><dd>Tricking a browser into sending an unwanted authenticated request.</dd></div>
+        <div class="glossary-item"><dt>CORS</dt><dd>Rules that let browsers access responses across allowed origins.</dd></div>
+        <div class="glossary-item"><dt>OAuth 2</dt><dd>A framework for granting limited access to resources.</dd></div>
+        <div class="glossary-item"><dt>OpenID Connect</dt><dd>An identity layer built on top of OAuth 2.</dd></div>
+        <div class="glossary-item"><dt>JWT</dt><dd>A token format that can carry claims; it must be verified before it is trusted.</dd></div>
+      </dl>
+    </section>
+    <section class="end-note" aria-labelledby="end-title"><p class="section-kicker">Keep building</p><h2 id="end-title">Read it. Try it. Test it.</h2><p>Use these notes as a map, then return to the original chapters for the complete explanations and projects. Build a small application, secure it, and test both what should work and what should be denied.</p><div class="end-links"><a href="SPRING~1.PDF" target="_blank" rel="noopener">Spring Start Here PDF ↗</a><a href="Spring%20Security%20in%20Action%2C%202nd%20Edition%20%28Final%20Release%29%20--%20Laurent%CC%A7iu%20Spilca%CC%86%20--%201%2C%202024%20--%20Manning%20Publications%20Co_%20LLC%20--%20isbn13%209781633437975%20--%2063e4be85013f4051ed43ac82075893ca%20--%20Anna%E2%80%99s%20Archive.pdf" target="_blank" rel="noopener">Spring Security in Action PDF ↗</a><a href="https://docs.spring.io/" target="_blank" rel="noopener">Spring documentation ↗</a></div></section>
+    <footer class="page-footer"><span>A study companion to the two books provided in this repository.</span><a href="#top">Back to the top ↑</a></footer>
+  </div></main>
+</div>
+<script>
+(function () {
+  const search = document.getElementById('chapter-search');
+  const clear = document.getElementById('clear-search');
+  const results = document.getElementById('results');
+  const searchHint = document.getElementById('search-hint');
+  const empty = document.getElementById('empty-results');
+  const articles = Array.from(document.querySelectorAll('[data-searchable]'));
+  const groups = Array.from(document.querySelectorAll('[data-nav-group]'));
+  const index = document.getElementById('index-container');
+  let savedOpen = null;
+
+  function filter() {
+    const query = search.value.trim().toLocaleLowerCase();
+    if (query && savedOpen === null) savedOpen = groups.map(group => group.open);
+    let count = 0;
+    articles.forEach(article => {
+      const match = !query || article.textContent.toLocaleLowerCase().includes(query);
+      article.hidden = !match;
+      if (match) count++;
+      const nav = document.querySelector('[data-nav-for="' + article.id + '"]');
+      if (nav) nav.hidden = !match;
+    });
+    document.querySelectorAll('[data-part]').forEach(part => {
+      part.hidden = !Array.from(part.querySelectorAll('[data-searchable]')).some(article => !article.hidden);
+    });
+    document.querySelectorAll('[data-book]').forEach(book => {
+      book.hidden = !Array.from(book.querySelectorAll('[data-searchable]')).some(article => !article.hidden);
+    });
+    groups.forEach((group, i) => {
+      group.hidden = !Array.from(group.querySelectorAll('[data-nav-for]')).some(item => !item.hidden);
+      if (query) group.open = true;
+      else if (savedOpen !== null) group.open = savedOpen[i];
+    });
+    if (!query) savedOpen = null;
+    document.body.classList.toggle('filtering', Boolean(query));
+    clear.hidden = !query;
+    results.hidden = !query;
+    empty.hidden = !query || count > 0;
+    results.textContent = query ? count + (count === 1 ? ' section' : ' sections') + ' found for “' + search.value.trim() + '”.' : '';
+    searchHint.textContent = query ? count + (count === 1 ? ' matching section.' : ' matching sections.') + (count ? ' Press Enter to jump to the first.' : '') : 'Search chapters, concepts, or code.';
+  }
+  search.addEventListener('input', filter);
+  search.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' || !search.value.trim()) return;
+    const first = articles.find(article => !article.hidden);
+    if (first) {
+      event.preventDefault();
+      if (window.matchMedia('(max-width: 900px)').matches) search.blur();
+      first.scrollIntoView({ block: 'start' });
+    }
+  });
+  clear.addEventListener('click', function () { search.value = ''; filter(); search.focus(); });
+  document.querySelectorAll('.side-overview').forEach(link => link.addEventListener('click', function () {
+    search.value = ''; filter();
+  }));
+  document.querySelectorAll('[data-nav-for] a').forEach(link => link.addEventListener('click', function () {
+    document.querySelectorAll('[data-nav-for] a.active').forEach(item => item.classList.remove('active'));
+    link.classList.add('active');
+    if (window.matchMedia('(max-width: 900px)').matches) index.open = false;
+  }));
+  let wideLayout = window.matchMedia('(min-width: 901px)').matches;
+  if (!wideLayout) index.open = false;
+  window.addEventListener('resize', function () {
+    const isWide = window.matchMedia('(min-width: 901px)').matches;
+    if (isWide !== wideLayout) {
+      index.open = isWide;
+      wideLayout = isWide;
+    }
+  });
+
+  document.querySelectorAll('.code-wrap').forEach(wrapper => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'copy-code';
+    button.textContent = 'Copy';
+    button.setAttribute('aria-label', 'Copy example code');
+    button.addEventListener('click', async function () {
+      const code = wrapper.querySelector('code');
+      try {
+        if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('Clipboard unavailable');
+        await navigator.clipboard.writeText(code.textContent);
+        button.textContent = 'Copied';
+      } catch (error) {
+        const range = document.createRange();
+        range.selectNodeContents(code);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        button.textContent = 'Selected — copy manually';
+      }
+      window.setTimeout(() => { button.textContent = 'Copy'; }, 2500);
+    });
+    wrapper.classList.add('has-copy');
+    wrapper.appendChild(button);
+  });
+})();
+</script>
+</body>
+</html>
