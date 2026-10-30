@@ -1,10 +1,13 @@
 """Structural checks for the offline HTML reading companion."""
 
+import base64
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
+import struct
 import unittest
 from urllib.parse import unquote, urlsplit
+import zlib
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -73,14 +76,47 @@ class GuideStructureTests(unittest.TestCase):
             with self.subTest(link=link):
                 self.assertTrue((ROOT / unquote(parsed.path)).is_file())
 
-    def test_book_figures_have_accessible_descriptions_and_local_files(self):
+    def test_book_figures_are_embedded_valid_pngs_with_accessible_descriptions(self):
         self.assertEqual(len(self.guide.images), 17)
         for image in self.guide.images:
-            with self.subTest(src=image.get("src")):
+            with self.subTest(alt=image.get("alt")):
                 self.assertTrue(image.get("alt"))
-                self.assertTrue((ROOT / image["src"]).is_file())
-                self.assertGreater(int(image["width"]), 0)
-                self.assertGreater(int(image["height"]), 0)
+                src = image.get("src", "")
+                prefix = "data:image/png;base64,"
+                self.assertTrue(src.startswith(prefix), "Figures must be embedded in the HTML")
+                png = base64.b64decode(src[len(prefix):], validate=True)
+                self.assertEqual(png[:8], b"\x89PNG\r\n\x1a\n")
+                self.assertEqual(png[12:16], b"IHDR")
+                width, height = struct.unpack(">II", png[16:24])
+                self.assertGreater(width, 0)
+                self.assertGreater(height, 0)
+                self.assertEqual(width, int(image["width"]))
+                self.assertEqual(height, int(image["height"]))
+
+                # Check the PNG chunks and their CRCs, including the end marker.
+                offset = 8
+                chunks = []
+                while offset < len(png):
+                    self.assertGreaterEqual(len(png) - offset, 12)
+                    length = struct.unpack_from(">I", png, offset)[0]
+                    end = offset + 12 + length
+                    self.assertLessEqual(end, len(png))
+                    chunk_type = png[offset + 4:offset + 8]
+                    chunk_data = png[offset + 8:offset + 8 + length]
+                    expected_crc = struct.unpack_from(">I", png, offset + 8 + length)[0]
+                    self.assertEqual(zlib.crc32(chunk_type + chunk_data) & 0xFFFFFFFF, expected_crc)
+                    chunks.append(chunk_type)
+                    offset = end
+                    if chunk_type == b"IEND":
+                        break
+                self.assertIn(b"IDAT", chunks)
+                self.assertEqual(chunks[-1], b"IEND")
+                self.assertEqual(offset, len(png))
+
+    def test_no_links_require_the_separate_figure_files(self):
+        for link in self.guide.links:
+            with self.subTest(link=link):
+                self.assertFalse(urlsplit(link).path.startswith("figures/"))
 
 
 if __name__ == "__main__":
