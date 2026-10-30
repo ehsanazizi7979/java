@@ -9,7 +9,9 @@ The guide includes key ideas, short illustrative code examples, 17 figures from 
 
 ## Reading locally
 
-Keep `index.html`, the `figures/` folder, and both PDFs together in this directory. No installation or internet connection is needed to read the guide. Search and copy buttons require JavaScript; the chapter index and all content work without it. Links to a specific PDF page depend on your browser’s PDF viewer.
+All 17 figures are embedded directly in `index.html`, so the HTML file can be copied and read on its own without the `figures/` folder or an internet connection. Use **View larger** above a figure to enlarge it, then scroll inside the figure if needed. The separate `figures/` files are retained as originals but are not required by the guide.
+
+Keep the two PDFs beside the HTML file if you want the links to the original books and their pages to work. PDF page links depend on your browser’s PDF viewer. Search and copy buttons require JavaScript; the chapter index, figures, figure zoom, and reading content work without it.
 
 To check the guide’s local links, figures, and chapter coverage with the Python standard library, run:
 
