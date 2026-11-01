@@ -11,8 +11,9 @@ The guide includes key ideas, short illustrative code examples, 17 figures from 
 
 1. *Spring in the real world* — why frameworks exist, the Spring ecosystem, where Spring is used, and when to avoid it.
 2. *The Spring context: Defining beans* — Maven basics and the three ways to add beans (`@Bean`, stereotype annotations, `registerBean()`), with the trade-offs of each.
+3. *The Spring context: Wiring beans* — linking beans by direct call, method parameters and `@Autowired` (field, constructor, setter), circular dependencies, and choosing between beans with `@Primary` and `@Qualifier`.
 
-It embeds all 22 original figures from the two chapters, plus 35 Java/XML examples. Use the chapter switcher at the top or the side contents to move between them.
+It embeds all 35 original figures from the three chapters, plus 54 Java/XML examples. Use the chapter switcher at the top or the side contents to move between them.
 
 ## Reading locally
 

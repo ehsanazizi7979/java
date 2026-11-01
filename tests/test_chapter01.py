@@ -63,9 +63,11 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_every_book_figure_is_embedded_as_a_valid_png(self):
         figures = [image for image in self.page.images if image.get("src")]
-        self.assertEqual(len(figures), 22, "8 figures from chapter 1 plus 14 from chapter 2")
+        self.assertEqual(len(figures), 35,
+                         "8 figures from chapter 1, 14 from chapter 2, 13 from chapter 3")
         expected_prefixes = (["Figure 1.%d" % n for n in range(1, 9)]
-                             + ["Figure 2.%d" % n for n in range(1, 15)])
+                             + ["Figure 2.%d" % n for n in range(1, 15)]
+                             + ["Figure 3.%d" % n for n in range(1, 14)])
         captions = [self.raw.count("<b>%s</b>" % label) for label in expected_prefixes]
         self.assertTrue(all(count >= 1 for count in captions), "Each book figure needs its caption")
 
@@ -103,7 +105,7 @@ class ChapterOneTests(unittest.TestCase):
                 self.assertEqual(offset, len(png))
 
     def test_code_examples_are_present(self):
-        self.assertGreaterEqual(self.page.code_blocks, 30,
+        self.assertGreaterEqual(self.page.code_blocks, 50,
                                 "The companion should illustrate each idea with code")
         for language in ("java", "xml"):
             with self.subTest(language=language):
@@ -114,12 +116,18 @@ class ChapterOneTests(unittest.TestCase):
         self.assertIn("registerBean", self.raw)
         self.assertIn("@ComponentScan", self.raw)
         self.assertIn("@Primary", self.raw)
+        self.assertIn("@Autowired", self.raw)
+        self.assertIn("@Qualifier", self.raw)
+        self.assertIn("BeanCurrentlyInCreationException", self.raw)
 
     def test_chapter_sections_are_covered(self):
         expected = ["tldr", "frameworks", "ecosystem", "ioc", "scenarios", "avoid",
                     "learn", "code-tour", "tryit", "recap",
                     "ch2-tldr", "maven", "beans", "bean-annotation", "stereotype",
-                    "programmatic", "choose", "ch2-summary"]
+                    "programmatic", "choose", "ch2-summary",
+                    "ch3-tldr", "wiring", "wiring-direct", "wiring-params", "autowired",
+                    "autowired-field", "autowired-constructor", "autowired-setter",
+                    "circular", "qualifier", "ch3-summary"]
         self.assertEqual([s for s in self.page.sections if s], expected)
 
     def test_ids_are_unique_and_internal_anchors_resolve(self):
@@ -141,8 +149,8 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_guide_links_to_the_companion(self):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertGreaterEqual(index.count("chapter-01.html"), 2,
-                                "Both chapter cards should link to the companion")
+        self.assertGreaterEqual(index.count("chapter-01.html"), 3,
+                                "All three chapter cards should link to the companion")
 
     def test_chapter_two_covers_its_three_approaches(self):
         for anchor in ("bean-annotation", "stereotype", "programmatic"):
@@ -151,7 +159,14 @@ class ChapterOneTests(unittest.TestCase):
         self.assertIn("NoUniqueBeanDefinitionException", self.raw,
                       "The ambiguity of several beans of one type should be explained")
         self.assertIn("@PostConstruct", self.raw)
-        self.assertIn("NoUniqueBeanDefinitionException", self.raw)
+
+    def test_chapter_three_covers_wiring_and_injection(self):
+        for anchor in ("wiring-direct", "wiring-params", "autowired-constructor", "qualifier"):
+            with self.subTest(anchor=anchor):
+                self.assertIn('id="%s"' % anchor, self.raw)
+        self.assertIn("BeanCurrentlyInCreationException", self.raw)
+        self.assertIn("@Qualifier(\"parrot2\")", self.raw)
+        self.assertIn("dependency injection", self.raw.lower())
 
 
 if __name__ == "__main__":
