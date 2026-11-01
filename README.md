@@ -7,6 +7,8 @@ Open **[index.html](index.html)** in a browser for a plain-language companion to
 
 The guide includes key ideas, short illustrative code examples, 17 figures from the supplied PDFs, a chapter index, search, and a glossary. The examples are adapted and abbreviated for learning; they are not complete runnable projects. Check the documentation for the Spring version you use, particularly for security configuration.
 
+**[Chapter 1 companion](chapter-01.html)** — *Spring in the real world* explained in plain language: why frameworks exist, the Spring ecosystem, where Spring is used, and when to avoid it. It includes all eight original chapter figures embedded inline, plus Java examples for every idea in the chapter.
+
 ## Reading locally
 
 All 17 figures are embedded directly in `index.html`, so the HTML file can be copied and read on its own without the `figures/` folder or an internet connection. Use **View larger** above a figure to enlarge it, then scroll inside the figure if needed. The separate `figures/` files are retained as originals but are not required by the guide.
