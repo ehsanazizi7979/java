@@ -63,13 +63,14 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_every_book_figure_is_embedded_as_a_valid_png(self):
         figures = [image for image in self.page.images if image.get("src")]
-        self.assertEqual(len(figures), 57,
-                         "8 + 14 + 13 + 12 + 10 figures across chapters 1-5")
+        self.assertEqual(len(figures), 73,
+                         "8 + 14 + 13 + 12 + 10 + 16 figures across chapters 1-6")
         expected_prefixes = (["Figure 1.%d" % n for n in range(1, 9)]
                              + ["Figure 2.%d" % n for n in range(1, 15)]
                              + ["Figure 3.%d" % n for n in range(1, 14)]
                              + ["Figure 4.%d" % n for n in range(1, 13)]
-                             + ["Figure 5.%d" % n for n in range(1, 11)])
+                             + ["Figure 5.%d" % n for n in range(1, 11)]
+                             + ["Figure 6.%d" % n for n in range(1, 17)])
         captions = [self.raw.count("<b>%s</b>" % label) for label in expected_prefixes]
         self.assertTrue(all(count >= 1 for count in captions), "Each book figure needs its caption")
 
@@ -107,7 +108,7 @@ class ChapterOneTests(unittest.TestCase):
                 self.assertEqual(offset, len(png))
 
     def test_code_examples_are_present(self):
-        self.assertGreaterEqual(self.page.code_blocks, 90,
+        self.assertGreaterEqual(self.page.code_blocks, 110,
                                 "The companion should illustrate each idea with code")
         for language in ("java", "xml"):
             with self.subTest(language=language):
@@ -127,6 +128,9 @@ class ChapterOneTests(unittest.TestCase):
         self.assertIn("@Scope", self.raw)
         self.assertIn("SCOPE_PROTOTYPE", self.raw)
         self.assertIn("@Lazy", self.raw)
+        self.assertIn("@Aspect", self.raw)
+        self.assertIn("@EnableAspectJAutoProxy", self.raw)
+        self.assertIn("ProceedingJoinPoint", self.raw)
 
     def test_chapter_sections_are_covered(self):
         expected = ["tldr", "frameworks", "ecosystem", "ioc", "scenarios", "avoid",
@@ -139,7 +143,9 @@ class ChapterOneTests(unittest.TestCase):
                     "ch4-tldr", "contracts", "usecase", "no-framework", "spring-di",
                     "multiple-impl", "stereotypes", "ch4-summary",
                     "ch5-tldr", "scopes", "singleton-beans", "singleton-realworld",
-                    "lazy", "prototype", "mutable-beans", "ch5-summary"]
+                    "lazy", "prototype", "mutable-beans", "ch5-summary",
+                    "ch6-tldr", "aspects", "implement", "proceed", "annotations",
+                    "advice", "chain", "ch6-summary"]
         self.assertEqual([s for s in self.page.sections if s], expected)
 
     def test_ids_are_unique_and_internal_anchors_resolve(self):
@@ -161,8 +167,8 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_guide_links_to_the_companion(self):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertGreaterEqual(index.count("chapter-01.html"), 5,
-                                "All five chapter cards should link to the companion")
+        self.assertGreaterEqual(index.count("chapter-01.html"), 6,
+                                "All six chapter cards should link to the companion")
 
     def test_chapter_two_covers_its_three_approaches(self):
         for anchor in ("bean-annotation", "stereotype", "programmatic"):
@@ -201,8 +207,20 @@ class ChapterOneTests(unittest.TestCase):
         self.assertIn("ApplicationContext context", self.raw,
                       "The prototype-inside-singleton workaround should be shown")
 
+    def test_chapter_six_covers_aspects(self):
+        for anchor in ("aspects", "implement", "proceed", "annotations", "advice", "chain"):
+            with self.subTest(anchor=anchor):
+                self.assertIn('id="%s"' % anchor, self.raw)
+        self.assertIn("@Aspect", self.raw)
+        self.assertIn("@Around(", self.raw)
+        self.assertIn("@AfterReturning", self.raw)
+        self.assertIn("@annotation(ToLog)", self.raw)
+        self.assertIn("EnhancerBySpringCGLIB", self.raw,
+                      "The proxy nature of an aspected bean should be shown")
+        self.assertIn("@Order(1)", self.raw, "The execution chain ordering should be shown")
+
     def test_contents_can_be_collapsed_per_chapter(self):
-        self.assertEqual(self.raw.count('class="toc-sec"'), 5)
+        self.assertEqual(self.raw.count('class="toc-sec"'), 6)
 
 
 if __name__ == "__main__":
