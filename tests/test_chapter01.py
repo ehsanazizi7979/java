@@ -63,11 +63,12 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_every_book_figure_is_embedded_as_a_valid_png(self):
         figures = [image for image in self.page.images if image.get("src")]
-        self.assertEqual(len(figures), 35,
-                         "8 figures from chapter 1, 14 from chapter 2, 13 from chapter 3")
+        self.assertEqual(len(figures), 47,
+                         "8 + 14 + 13 + 12 figures across chapters 1-4")
         expected_prefixes = (["Figure 1.%d" % n for n in range(1, 9)]
                              + ["Figure 2.%d" % n for n in range(1, 15)]
-                             + ["Figure 3.%d" % n for n in range(1, 14)])
+                             + ["Figure 3.%d" % n for n in range(1, 14)]
+                             + ["Figure 4.%d" % n for n in range(1, 13)])
         captions = [self.raw.count("<b>%s</b>" % label) for label in expected_prefixes]
         self.assertTrue(all(count >= 1 for count in captions), "Each book figure needs its caption")
 
@@ -105,7 +106,7 @@ class ChapterOneTests(unittest.TestCase):
                 self.assertEqual(offset, len(png))
 
     def test_code_examples_are_present(self):
-        self.assertGreaterEqual(self.page.code_blocks, 50,
+        self.assertGreaterEqual(self.page.code_blocks, 70,
                                 "The companion should illustrate each idea with code")
         for language in ("java", "xml"):
             with self.subTest(language=language):
@@ -119,6 +120,9 @@ class ChapterOneTests(unittest.TestCase):
         self.assertIn("@Autowired", self.raw)
         self.assertIn("@Qualifier", self.raw)
         self.assertIn("BeanCurrentlyInCreationException", self.raw)
+        self.assertIn("@Service", self.raw)
+        self.assertIn("@Repository", self.raw)
+        self.assertIn("CommentNotificationProxy", self.raw)
 
     def test_chapter_sections_are_covered(self):
         expected = ["tldr", "frameworks", "ecosystem", "ioc", "scenarios", "avoid",
@@ -127,7 +131,9 @@ class ChapterOneTests(unittest.TestCase):
                     "programmatic", "choose", "ch2-summary",
                     "ch3-tldr", "wiring", "wiring-direct", "wiring-params", "autowired",
                     "autowired-field", "autowired-constructor", "autowired-setter",
-                    "circular", "qualifier", "ch3-summary"]
+                    "circular", "qualifier", "ch3-summary",
+                    "ch4-tldr", "contracts", "usecase", "no-framework", "spring-di",
+                    "multiple-impl", "stereotypes", "ch4-summary"]
         self.assertEqual([s for s in self.page.sections if s], expected)
 
     def test_ids_are_unique_and_internal_anchors_resolve(self):
@@ -149,8 +155,8 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_guide_links_to_the_companion(self):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertGreaterEqual(index.count("chapter-01.html"), 3,
-                                "All three chapter cards should link to the companion")
+        self.assertGreaterEqual(index.count("chapter-01.html"), 4,
+                                "All four chapter cards should link to the companion")
 
     def test_chapter_two_covers_its_three_approaches(self):
         for anchor in ("bean-annotation", "stereotype", "programmatic"):
@@ -165,8 +171,22 @@ class ChapterOneTests(unittest.TestCase):
             with self.subTest(anchor=anchor):
                 self.assertIn('id="%s"' % anchor, self.raw)
         self.assertIn("BeanCurrentlyInCreationException", self.raw)
+        self.assertIn("@Service", self.raw)
+        self.assertIn("@Repository", self.raw)
+        self.assertIn("CommentNotificationProxy", self.raw)
         self.assertIn("@Qualifier(\"parrot2\")", self.raw)
         self.assertIn("dependency injection", self.raw.lower())
+
+    def test_chapter_four_covers_abstractions(self):
+        for anchor in ("contracts", "spring-di", "multiple-impl", "stereotypes"):
+            with self.subTest(anchor=anchor):
+                self.assertIn('id="%s"' % anchor, self.raw)
+        self.assertIn("CommentRepository", self.raw)
+        self.assertIn("interface Sorter", self.raw)
+        self.assertIn("Never annotate interfaces", self.raw)
+
+    def test_contents_can_be_collapsed_per_chapter(self):
+        self.assertEqual(self.raw.count('class="toc-sec"'), 4)
 
 
 if __name__ == "__main__":
