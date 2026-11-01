@@ -7,7 +7,12 @@ Open **[index.html](index.html)** in a browser for a plain-language companion to
 
 The guide includes key ideas, short illustrative code examples, 17 figures from the supplied PDFs, a chapter index, search, and a glossary. The examples are adapted and abbreviated for learning; they are not complete runnable projects. Check the documentation for the Spring version you use, particularly for security configuration.
 
-**[Chapter 1 companion](chapter-01.html)** — *Spring in the real world* explained in plain language: why frameworks exist, the Spring ecosystem, where Spring is used, and when to avoid it. It includes all eight original chapter figures embedded inline, plus Java examples for every idea in the chapter.
+**[Chapters 1–2 companion](chapter-01.html)** — both opening chapters explained in plain language:
+
+1. *Spring in the real world* — why frameworks exist, the Spring ecosystem, where Spring is used, and when to avoid it.
+2. *The Spring context: Defining beans* — Maven basics and the three ways to add beans (`@Bean`, stereotype annotations, `registerBean()`), with the trade-offs of each.
+
+It embeds all 22 original figures from the two chapters, plus 35 Java/XML examples. Use the chapter switcher at the top or the side contents to move between them.
 
 ## Reading locally
 
