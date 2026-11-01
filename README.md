@@ -7,7 +7,7 @@ Open **[index.html](index.html)** in a browser for a plain-language companion to
 
 The guide includes key ideas, short illustrative code examples, 17 figures from the supplied PDFs, a chapter index, search, and a glossary. The examples are adapted and abbreviated for learning; they are not complete runnable projects. Check the documentation for the Spring version you use, particularly for security configuration.
 
-**[Chapters 1–8 companion](chapter-01.html)** — the first eight chapters explained in plain language:
+**[Chapters 1–9 companion](chapter-01.html)** — the first nine chapters explained in plain language:
 
 1. *Spring in the real world* — why frameworks exist, the Spring ecosystem, where Spring is used, and when to avoid it.
 2. *The Spring context: Defining beans* — Maven basics and the three ways to add beans (`@Bean`, stereotype annotations, `registerBean()`), with the trade-offs of each.
@@ -17,8 +17,9 @@ The guide includes key ideas, short illustrative code examples, 17 figures from 
 6. *Using aspects with Spring AOP* — aspect terminology (aspect, advice, pointcut, join point), weaving through proxy objects, the four steps to a working aspect, the AspectJ pointcut expression explained token by token, altering arguments and return values with `ProceedingJoinPoint`, intercepting annotated methods with `@ToLog`, the five advice annotations, and the aspect execution chain with `@Order`.
 7. *Understanding Spring Boot and Spring MVC* — web app anatomy (frontend and backend), the two architectures (server-rendered views versus frontend–backend separation), why a servlet container exists and what a servlet is, Spring Initializr and the five files it generates, dependency starters, autoconfiguration and convention over configuration, then a first Spring MVC page with `@Controller`/`@RequestMapping` and the seven-step request flow through the dispatcher servlet.
 8. *Implementing web apps with Spring Boot and Spring MVC* — dynamic views with Thymeleaf and the `Model`, the static-versus-templates folder distinction, request parameters with `@RequestParam` (and why they are mandatory by default), path variables with `@PathVariable` (with table 8.1's comparison), the five HTTP methods, and a product list built with `@GetMapping`/`@PostMapping` plus an HTML form.
+9. *Using the Spring web scopes* — request, session and application scopes and how each one measures a bean's lifetime against HTTP requests, a request-scoped login judge, a session-scoped `LoggedUserManagementService` that remembers the user, the guarded main page and `redirect:` between pages, an application-scoped login counter, and the book's advice to avoid application scope in favour of a database.
 
-It embeds all 102 original figures from the eight chapters, plus 138 Java/XML examples. The side contents can collapse each chapter, and the chapter switcher at the top jumps between them. Use the chapter switcher at the top or the side contents to move between them.
+It embeds all 117 original figures from the nine chapters, plus 154 Java/XML examples. The side contents can collapse each chapter, and the chapter switcher at the top jumps between them. Use the chapter switcher at the top or the side contents to move between them.
 
 ## Reading locally
 

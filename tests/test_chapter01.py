@@ -63,8 +63,8 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_every_book_figure_is_embedded_as_a_valid_png(self):
         figures = [image for image in self.page.images if image.get("src")]
-        self.assertEqual(len(figures), 102,
-                         "8 + 14 + 13 + 12 + 10 + 16 + 18 + 11 figures across chapters 1-8")
+        self.assertEqual(len(figures), 117,
+                         "8 + 14 + 13 + 12 + 10 + 16 + 18 + 11 + 15 figures across chapters 1-9")
         expected_prefixes = (["Figure 1.%d" % n for n in range(1, 9)]
                              + ["Figure 2.%d" % n for n in range(1, 15)]
                              + ["Figure 3.%d" % n for n in range(1, 14)]
@@ -72,7 +72,8 @@ class ChapterOneTests(unittest.TestCase):
                              + ["Figure 5.%d" % n for n in range(1, 11)]
                              + ["Figure 6.%d" % n for n in range(1, 17)]
                              + ["Figure 7.%d" % n for n in range(1, 19)]
-                             + ["Figure 8.%d" % n for n in range(1, 12)])
+                             + ["Figure 8.%d" % n for n in range(1, 12)]
+                             + ["Figure 9.%d" % n for n in range(1, 16)])
         captions = [self.raw.count("<b>%s</b>" % label) for label in expected_prefixes]
         self.assertTrue(all(count >= 1 for count in captions), "Each book figure needs its caption")
 
@@ -110,7 +111,7 @@ class ChapterOneTests(unittest.TestCase):
                 self.assertEqual(offset, len(png))
 
     def test_code_examples_are_present(self):
-        self.assertGreaterEqual(self.page.code_blocks, 130,
+        self.assertGreaterEqual(self.page.code_blocks, 150,
                                 "The companion should illustrate each idea with code")
         for language in ("java", "xml"):
             with self.subTest(language=language):
@@ -159,7 +160,9 @@ class ChapterOneTests(unittest.TestCase):
                     "ch7-tldr", "webapp", "web-designs", "servlet", "boot",
                     "mvc", "ch7-summary",
                     "ch8-tldr", "dynamic", "request-params", "path-variables",
-                    "http-methods", "products-app", "ch8-summary"]
+                    "http-methods", "products-app", "ch8-summary",
+                    "ch9-tldr", "request-scope", "session-scope",
+                    "application-scope", "ch9-summary"]
         self.assertEqual([s for s in self.page.sections if s], expected)
 
     def test_ids_are_unique_and_internal_anchors_resolve(self):
@@ -181,8 +184,8 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_guide_links_to_the_companion(self):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertGreaterEqual(index.count("chapter-01.html"), 8,
-                                "All eight chapter cards should link to the companion")
+        self.assertGreaterEqual(index.count("chapter-01.html"), 9,
+                                "All nine chapter cards should link to the companion")
 
     def test_chapter_two_covers_its_three_approaches(self):
         for anchor in ("bean-annotation", "stereotype", "programmatic"):
@@ -254,8 +257,21 @@ class ChapterOneTests(unittest.TestCase):
         self.assertIn("@GetMapping(\"/products\")", self.raw)
         self.assertIn("th:each", self.raw)
 
+    def test_chapter_nine_covers_web_scopes(self):
+        for anchor in ("request-scope", "session-scope", "application-scope"):
+            with self.subTest(anchor=anchor):
+                self.assertIn('id="%s"' % anchor, self.raw)
+        self.assertIn("@RequestScope", self.raw)
+        self.assertIn("@SessionScope", self.raw)
+        self.assertIn("@ApplicationScope", self.raw)
+        self.assertIn("LoggedUserManagementService", self.raw)
+        self.assertIn("LoginCountService", self.raw)
+        self.assertIn("redirect:/main", self.raw,
+                      "The redirect after a successful login should be shown")
+        self.assertIn("/main?logout", self.raw)
+
     def test_contents_can_be_collapsed_per_chapter(self):
-        self.assertEqual(self.raw.count('class="toc-sec"'), 8)
+        self.assertEqual(self.raw.count('class="toc-sec"'), 9)
 
 
 if __name__ == "__main__":
