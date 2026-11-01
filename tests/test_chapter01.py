@@ -63,15 +63,16 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_every_book_figure_is_embedded_as_a_valid_png(self):
         figures = [image for image in self.page.images if image.get("src")]
-        self.assertEqual(len(figures), 91,
-                         "8 + 14 + 13 + 12 + 10 + 16 + 18 figures across chapters 1-7")
+        self.assertEqual(len(figures), 102,
+                         "8 + 14 + 13 + 12 + 10 + 16 + 18 + 11 figures across chapters 1-8")
         expected_prefixes = (["Figure 1.%d" % n for n in range(1, 9)]
                              + ["Figure 2.%d" % n for n in range(1, 15)]
                              + ["Figure 3.%d" % n for n in range(1, 14)]
                              + ["Figure 4.%d" % n for n in range(1, 13)]
                              + ["Figure 5.%d" % n for n in range(1, 11)]
                              + ["Figure 6.%d" % n for n in range(1, 17)]
-                             + ["Figure 7.%d" % n for n in range(1, 19)])
+                             + ["Figure 7.%d" % n for n in range(1, 19)]
+                             + ["Figure 8.%d" % n for n in range(1, 12)])
         captions = [self.raw.count("<b>%s</b>" % label) for label in expected_prefixes]
         self.assertTrue(all(count >= 1 for count in captions), "Each book figure needs its caption")
 
@@ -109,7 +110,7 @@ class ChapterOneTests(unittest.TestCase):
                 self.assertEqual(offset, len(png))
 
     def test_code_examples_are_present(self):
-        self.assertGreaterEqual(self.page.code_blocks, 120,
+        self.assertGreaterEqual(self.page.code_blocks, 130,
                                 "The companion should illustrate each idea with code")
         for language in ("java", "xml"):
             with self.subTest(language=language):
@@ -136,6 +137,10 @@ class ChapterOneTests(unittest.TestCase):
         self.assertIn("spring-boot-starter-web", self.raw)
         self.assertIn("@Controller", self.raw)
         self.assertIn("@RequestMapping(\"/home\")", self.raw)
+        self.assertIn("@RequestParam", self.raw)
+        self.assertIn("@PathVariable", self.raw)
+        self.assertIn("@PostMapping", self.raw)
+        self.assertIn("spring-boot-starter-thymeleaf", self.raw)
 
     def test_chapter_sections_are_covered(self):
         expected = ["tldr", "frameworks", "ecosystem", "ioc", "scenarios", "avoid",
@@ -152,7 +157,9 @@ class ChapterOneTests(unittest.TestCase):
                     "ch6-tldr", "aspects", "implement", "proceed", "annotations",
                     "advice", "chain", "ch6-summary",
                     "ch7-tldr", "webapp", "web-designs", "servlet", "boot",
-                    "mvc", "ch7-summary"]
+                    "mvc", "ch7-summary",
+                    "ch8-tldr", "dynamic", "request-params", "path-variables",
+                    "http-methods", "products-app", "ch8-summary"]
         self.assertEqual([s for s in self.page.sections if s], expected)
 
     def test_ids_are_unique_and_internal_anchors_resolve(self):
@@ -174,8 +181,8 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_guide_links_to_the_companion(self):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertGreaterEqual(index.count("chapter-01.html"), 7,
-                                "All seven chapter cards should link to the companion")
+        self.assertGreaterEqual(index.count("chapter-01.html"), 8,
+                                "All eight chapter cards should link to the companion")
 
     def test_chapter_two_covers_its_three_approaches(self):
         for anchor in ("bean-annotation", "stereotype", "programmatic"):
@@ -236,8 +243,19 @@ class ChapterOneTests(unittest.TestCase):
         self.assertIn("spring-boot-starter-parent", self.raw)
         self.assertIn("404 Not Found", self.raw)
 
+    def test_chapter_eight_covers_dynamic_pages(self):
+        for anchor in ("dynamic", "request-params", "path-variables", "http-methods", "products-app"):
+            with self.subTest(anchor=anchor):
+                self.assertIn('id="%s"' % anchor, self.raw)
+        self.assertIn("xmlns:th", self.raw, "The Thymeleaf namespace should be shown")
+        self.assertIn("resources/templates", self.raw)
+        self.assertIn("Model page", self.raw)
+        self.assertIn("required = false", self.raw)
+        self.assertIn("@GetMapping(\"/products\")", self.raw)
+        self.assertIn("th:each", self.raw)
+
     def test_contents_can_be_collapsed_per_chapter(self):
-        self.assertEqual(self.raw.count('class="toc-sec"'), 7)
+        self.assertEqual(self.raw.count('class="toc-sec"'), 8)
 
 
 if __name__ == "__main__":
