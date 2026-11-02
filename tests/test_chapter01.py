@@ -63,8 +63,8 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_every_book_figure_is_embedded_as_a_valid_png(self):
         figures = [image for image in self.page.images if image.get("src")]
-        self.assertEqual(len(figures), 128,
-                         "8 + 14 + 13 + 12 + 10 + 16 + 18 + 11 + 15 + 11 figures across chapters 1-10")
+        self.assertEqual(len(figures), 139,
+                         "8+14+13+12+10+16+18+11+15+11+11 figures across chapters 1-11")
         expected_prefixes = (["Figure 1.%d" % n for n in range(1, 9)]
                              + ["Figure 2.%d" % n for n in range(1, 15)]
                              + ["Figure 3.%d" % n for n in range(1, 14)]
@@ -74,7 +74,8 @@ class ChapterOneTests(unittest.TestCase):
                              + ["Figure 7.%d" % n for n in range(1, 19)]
                              + ["Figure 8.%d" % n for n in range(1, 12)]
                              + ["Figure 9.%d" % n for n in range(1, 16)]
-                             + ["Figure 10.%d" % n for n in range(1, 12)])
+                             + ["Figure 10.%d" % n for n in range(1, 12)]
+                             + ["Figure 11.%d" % n for n in range(1, 12)])
         captions = [self.raw.count("<b>%s</b>" % label) for label in expected_prefixes]
         self.assertTrue(all(count >= 1 for count in captions), "Each book figure needs its caption")
 
@@ -112,7 +113,7 @@ class ChapterOneTests(unittest.TestCase):
                 self.assertEqual(offset, len(png))
 
     def test_code_examples_are_present(self):
-        self.assertGreaterEqual(self.page.code_blocks, 165,
+        self.assertGreaterEqual(self.page.code_blocks, 180,
                                 "The companion should illustrate each idea with code")
         for language in ("java", "xml"):
             with self.subTest(language=language):
@@ -165,7 +166,9 @@ class ChapterOneTests(unittest.TestCase):
                     "ch9-tldr", "request-scope", "session-scope",
                     "application-scope", "ch9-summary",
                     "ch10-tldr", "rest-basics", "rest-endpoint", "rest-response",
-                    "request-body", "ch10-summary"]
+                    "request-body", "ch10-summary",
+                    "ch11-tldr", "rest-clients", "openfeign", "resttemplate",
+                    "webclient", "ch11-summary"]
         self.assertEqual([s for s in self.page.sections if s], expected)
 
     def test_ids_are_unique_and_internal_anchors_resolve(self):
@@ -187,8 +190,8 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_guide_links_to_the_companion(self):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertGreaterEqual(index.count("chapter-01.html"), 10,
-                                "All ten chapter cards should link to the companion")
+        self.assertGreaterEqual(index.count("chapter-01.html"), 11,
+                                "All eleven chapter cards should link to the companion")
 
     def test_chapter_two_covers_its_three_approaches(self):
         for anchor in ("bean-annotation", "stereotype", "programmatic"):
@@ -285,8 +288,20 @@ class ChapterOneTests(unittest.TestCase):
         self.assertIn("@RequestBody PaymentDetails paymentDetails", self.raw)
         self.assertIn("HttpStatus.ACCEPTED", self.raw)
 
+    def test_chapter_eleven_covers_rest_clients(self):
+        for anchor in ("rest-clients", "openfeign", "resttemplate", "webclient"):
+            with self.subTest(anchor=anchor):
+                self.assertIn('id="%s"' % anchor, self.raw)
+        self.assertIn("@FeignClient", self.raw)
+        self.assertIn("@EnableFeignClients", self.raw)
+        self.assertIn("spring-cloud-starter-openfeign", self.raw)
+        self.assertIn("rest.exchange(", self.raw)
+        self.assertIn("spring-boot-starter-webflux", self.raw)
+        self.assertIn("Mono&lt;Payment&gt;", self.raw)
+        self.assertIn("bodyToMono", self.raw)
+
     def test_contents_can_be_collapsed_per_chapter(self):
-        self.assertEqual(self.raw.count('class="toc-sec"'), 10)
+        self.assertEqual(self.raw.count('class="toc-sec"'), 11)
 
 
 if __name__ == "__main__":
