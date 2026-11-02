@@ -7,7 +7,7 @@ Open **[index.html](index.html)** in a browser for a plain-language companion to
 
 The guide includes key ideas, short illustrative code examples, 17 figures from the supplied PDFs, a chapter index, search, and a glossary. The examples are adapted and abbreviated for learning; they are not complete runnable projects. Check the documentation for the Spring version you use, particularly for security configuration.
 
-**[Chapters 1–12 companion](chapter-01.html)** — the first twelve chapters explained in plain language:
+**[Chapters 1–13 companion](chapter-01.html)** — the first thirteen chapters explained in plain language:
 
 1. *Spring in the real world* — why frameworks exist, the Spring ecosystem, where Spring is used, and when to avoid it.
 2. *The Spring context: Defining beans* — Maven basics and the three ways to add beans (`@Bean`, stereotype annotations, `registerBean()`), with the trade-offs of each.
@@ -21,8 +21,9 @@ The guide includes key ideas, short illustrative code examples, 17 figures from 
 10. *Implementing REST services* — REST as communication between two apps, the Spring MVC flow without a view resolver, `@ResponseBody` versus `@RestController`, testing endpoints with Postman and cURL, returning objects and collections as JSON, controlling the response with `ResponseEntity` (status and custom headers), exception handling inside the action versus a `@RestControllerAdvice` with `@ExceptionHandler`, and reading a JSON payload with `@RequestBody`.
 11. *Consuming REST endpoints* — the payment-service scenario, OpenFeign (an interface plus `@FeignClient`, enabled with `@EnableFeignClients`), RestTemplate (`HttpHeaders`, `HttpEntity`, `exchange()`), why it is in maintenance mode yet still worth reading, and WebClient with the reactive model behind it (tasks, producers and subscribers, `Mono`), ending with the book's rule: OpenFeign for ordinary apps, WebClient only for reactive ones.
 12. *Using data sources in Spring apps* — what a data store, DBMS, JDBC driver and data source each do, why connections are pooled (HikariCP), `JdbcTemplate` with `update()` and `query()` plus a `RowMapper`, the `@Repository` stereotype, `schema.sql` for examples versus Flyway/Liquibase in production, switching to MySQL through `spring.datasource` properties, and declaring your own `DataSource` bean when the defaults are not enough.
+13. *Using transactions in Spring apps* — a use case with two mutable steps (withdraw, deposit) and the inconsistent data a failure between them leaves behind; transactions as atomic sets of changes, with **commit** (everything persisted) and **rollback** (data restored); the Spring AOP aspect that intercepts `@Transactional` methods and its try/commit/catch/rollback logic; why the method must *throw* a runtime exception for the rollback to happen, and why checked exceptions do not roll back by default; then the full `sq-ch13-ex1` wallet app — `schema.sql` and `data.sql`, `Account`, `AccountRepository` with `queryForObject`/`update`, `AccountRowMapper`, `TransferService.transferMoney()` under `@Transactional`, and the REST layer with `TransferRequest` — plus the cURL runs that prove the balances move, and `sq-ch13-ex2`, one added `throw`, which proves the rollback leaves the data untouched.
 
-It embeds all 148 original figures from the twelve chapters, plus 200 Java/XML examples. The side contents can collapse each chapter, and the chapter switcher at the top jumps between them. Use the chapter switcher at the top or the side contents to move between them.
+It embeds all 156 original figures from the thirteen chapters, plus 219 Java/XML examples. The side contents can collapse each chapter, and the chapter switcher at the top jumps between them. Use the chapter switcher at the top or the side contents to move between them.
 
 ## Reading locally
 
