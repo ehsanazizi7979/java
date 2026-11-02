@@ -63,8 +63,8 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_every_book_figure_is_embedded_as_a_valid_png(self):
         figures = [image for image in self.page.images if image.get("src")]
-        self.assertEqual(len(figures), 168,
-                         "8+14+13+12+10+16+18+11+15+11+11+9+8+12 figures across chapters 1-14")
+        self.assertEqual(len(figures), 179,
+                         "8+14+13+12+10+16+18+11+15+11+11+9+8+12+11 figures across chapters 1-15")
         expected_prefixes = (["Figure 1.%d" % n for n in range(1, 9)]
                              + ["Figure 2.%d" % n for n in range(1, 15)]
                              + ["Figure 3.%d" % n for n in range(1, 14)]
@@ -78,7 +78,8 @@ class ChapterOneTests(unittest.TestCase):
                              + ["Figure 11.%d" % n for n in range(1, 12)]
                              + ["Figure 12.%d" % n for n in range(1, 10)]
                              + ["Figure 13.%d" % n for n in range(1, 9)]
-                             + ["Figure 14.%d" % n for n in range(1, 13)])
+                             + ["Figure 14.%d" % n for n in range(1, 13)]
+                             + ["Figure 15.%d" % n for n in range(1, 12)])
         captions = [self.raw.count("<b>%s</b>" % label) for label in expected_prefixes]
         self.assertTrue(all(count >= 1 for count in captions), "Each book figure needs its caption")
 
@@ -116,7 +117,7 @@ class ChapterOneTests(unittest.TestCase):
                 self.assertEqual(offset, len(png))
 
     def test_code_examples_are_present(self):
-        self.assertGreaterEqual(self.page.code_blocks, 232,
+        self.assertGreaterEqual(self.page.code_blocks, 243,
                                 "The companion should illustrate each idea with code")
         for language in ("java", "xml"):
             with self.subTest(language=language):
@@ -177,7 +178,9 @@ class ChapterOneTests(unittest.TestCase):
                     "ch13-tldr", "transactions", "how-transactions-work",
                     "using-transactions", "ch13-summary",
                     "ch14-tldr", "what-spring-data-is", "how-spring-data-works",
-                    "using-spring-data-jdbc", "ch14-summary"]
+                    "using-spring-data-jdbc", "ch14-summary",
+                    "ch15-tldr", "why-testing", "writing-tests", "unit-tests",
+                    "integration-tests", "ch15-summary"]
         self.assertEqual([s for s in self.page.sections if s], expected)
 
     def test_ids_are_unique_and_internal_anchors_resolve(self):
@@ -199,8 +202,8 @@ class ChapterOneTests(unittest.TestCase):
 
     def test_guide_links_to_the_companion(self):
         index = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertGreaterEqual(index.count("chapter-01.html"), 14,
-                                "All fourteen chapter cards should link to the companion")
+        self.assertGreaterEqual(index.count("chapter-01.html"), 15,
+                                "All fifteen chapter cards should link to the companion")
 
     def test_chapter_two_covers_its_three_approaches(self):
         for anchor in ("bean-annotation", "stereotype", "programmatic"):
@@ -353,8 +356,23 @@ class ChapterOneTests(unittest.TestCase):
         self.assertIn("sq-ch14-ex1", self.raw)
         self.assertIn("AccountNotFoundException", self.raw)
 
+    def test_chapter_fifteen_covers_testing(self):
+        for anchor in ("why-testing", "writing-tests", "unit-tests", "integration-tests"):
+            with self.subTest(anchor=anchor):
+                self.assertIn('id="%s"' % anchor, self.raw)
+        self.assertIn("@Test", self.raw)
+        self.assertIn("@ExtendWith(MockitoExtension.class)", self.raw)
+        self.assertIn("@Mock", self.raw)
+        self.assertIn("@InjectMocks", self.raw)
+        self.assertIn("@SpringBootTest", self.raw)
+        self.assertIn("@MockBean", self.raw)
+        self.assertIn("assertThrows", self.raw)
+        self.assertIn("verify(accountRepository", self.raw)
+        self.assertIn("spring-boot-starter-test", self.raw)
+        self.assertIn("when(accountRepository.findById(1L))", self.raw)
+
     def test_contents_can_be_collapsed_per_chapter(self):
-        self.assertEqual(self.raw.count('class="toc-sec"'), 14)
+        self.assertEqual(self.raw.count('class="toc-sec"'), 15)
 
 
 if __name__ == "__main__":
