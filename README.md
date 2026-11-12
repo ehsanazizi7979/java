@@ -15,6 +15,7 @@ Everything lives in one page: **[`index.html`](index.html)**.
 | 3 — Sharing Objects | `#ch3` | pp. 23–36: visibility, reordering, stale data, `volatile`, publication & escape, safe construction, thread confinement, immutability, safe publication, sharing policies |
 | 4 — Composing Objects | `#ch4` | pp. 37–50: designing thread-safe classes, state/invariants/synchronization policy, instance confinement, the Java monitor pattern, delegation, publishing state, client-side locking vs. composition, documenting policies |
 | 5 — Building Blocks | `#ch5` | pp. 51–70: synchronized collections and compound actions, fail-fast and hidden iterators, `ConcurrentHashMap` and lock striping, `CopyOnWriteArrayList`, blocking queues and producer–consumer, serial thread confinement, work stealing, interruption, latches/`FutureTask`/semaphores/barriers, and the four-step `Memorizer` result cache |
+| 6 — Task Execution | `#ch6` | pp. 71–84: thinking in tasks rather than threads, sequential and thread-per-task servers, the Executor framework and execution policies, thread pools, `ExecutorService` lifecycle, `Timer` vs. `ScheduledThreadPoolExecutor`, finding exploitable parallelism, `Callable`/`Future`, `CompletionService`, time budgets and `invokeAll` |
 
 ## Notes on the chapter files
 
@@ -24,10 +25,10 @@ Everything lives in one page: **[`index.html`](index.html)**.
 * **Original figures.** Figures 1.1 (p. 5), 2.1 (p. 21), 3.1 (p. 25) and 5.1–5.4 (pp. 51, 66–68) are taken
   from the book PDF in this repository and stored in [`assets/`](assets) — 1.1, 2.1 and 3.1 cropped from page
   renders, 5.1–5.4 extracted from the PDF's own image layer — and the HTML embeds their base64 forms. Later
-  chapters (e.g. the `NumberRange` race in Ch. 4) use hand-drawn inline SVG instead, so the page stays
-  self-contained either way.
-* **Code listings.** All sixty-one book listings (1.1–1.2, 2.1–2.8, 3.1–3.15, 4.1–4.16, 5.1–5.20) are
-  reproduced verbatim; additional listings are the same ideas written out as runnable fragments. A
+  chapters (e.g. the `NumberRange` race in Ch. 4, and the cover art) use hand-drawn inline SVG instead, so the
+  page stays self-contained either way.
+* **Code listings.** All seventy-eight book listings (1.1–1.2, 2.1–2.8, 3.1–3.15, 4.1–4.16, 5.1–5.20,
+  6.1–6.17) are reproduced verbatim; additional listings are the same ideas written out as runnable fragments. A
   dependency-free Java highlighter styles them and every block has a copy button.
 * **Interactive simulators.** Chapter 1: step through the Figure 1.1 interleaving, then re-run it with
   `synchronized`. Chapter 2: step through the two-`AtomicReference` cache breaking its invariant, then watch
@@ -35,7 +36,9 @@ Everything lives in one page: **[`index.html`](index.html)**.
   reordered, and `volatile` — to see the reader print nothing, `0`, and `42`. Chapter 4 has no simulator: its
   material is design decisions, illustrated with diagrams instead (e.g. the `NumberRange` race). Chapter 5:
   race four cache designs — `Memorizer1` through `Memorizer` — with three threads asking for the same expensive
-  value, and watch the duplicate computations disappear as the window of vulnerability narrows.
+  value, and watch the duplicate computations disappear as the window of vulnerability narrows. Chapter 6: replay one
+  six-request workload under four execution policies — sequential, thread-per-task, cached pool, fixed pool of two —
+  and compare threads created, peak concurrency and first/last response times.
 
 ## Viewing
 

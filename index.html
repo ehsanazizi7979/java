@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Java Concurrency in Practice — study notes (Chapters 1–5)</title>
-<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–5: Introduction, Thread Safety, Sharing Objects, Composing Objects and Building Blocks, with the book's figures, all code listings and interactive simulators.">
+<title>Java Concurrency in Practice — study notes (Chapters 1–6)</title>
+<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–6: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks and Task Execution, with the book's figures, all code listings and interactive simulators.">
 <style>
   :root{
     --bg:#0d1117;
@@ -193,6 +193,27 @@
   .stat b.good{color:#8fe0a0}
   .sim-msg{margin-top:12px;font-size:.9rem;color:var(--muted);min-height:1.4em}
 
+  /* ---------- request timeline (Ch. 6) ---------- */
+  .tl-wrap{overflow-x:auto;padding-bottom:4px}
+  .tl{min-width:640px;display:flex;flex-direction:column;gap:5px}
+  .tl-row{display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:center}
+  .tl-lbl{font-family:var(--mono);font-size:12.5px;color:var(--muted);text-align:right;padding-right:2px}
+  .tl-cells{display:grid;grid-template-columns:repeat(15,1fr);gap:4px}
+  .tl-cell{
+    height:26px;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:11px;border-radius:5px;
+    border:1px solid var(--line);background:var(--bg-soft);color:#93a3b5;transition:.18s
+  }
+  .tl-cell.axis-cell{border:none;background:transparent;color:var(--faint);height:18px;font-size:10.5px}
+  .tl-cell.run{background:rgba(74,163,240,.30);border-color:rgba(74,163,240,.6);color:#dceafd}
+  .tl-cell.done{background:rgba(63,185,80,.16);border-color:rgba(63,185,80,.4);color:#8fe0a0}
+  .tl-cell.wait{background:rgba(240,162,75,.10);border-color:rgba(240,162,75,.35);color:#f0c987}
+  .tl-cell.future{opacity:.25}
+  .tl-cell.now{box-shadow:0 0 0 2px rgba(240,162,75,.35)}
+  .tl-legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:.78rem;color:var(--muted)}
+  .tl-legend span{display:inline-flex;align-items:center;gap:6px}
+  .tl-legend .sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+
   /* ---------- pull quote ---------- */
   blockquote.pull{
     margin:34px 0;padding:6px 0 6px 24px;border-left:3px solid var(--accent);
@@ -357,6 +378,21 @@
           <a href="#ch5-cheatsheet">Cheat sheet</a>
         </div>
       </div>
+      <div class="navmenu">
+        <button class="navbtn" aria-expanded="false" data-menu="menu-ch6">Chapter 6 · Task Execution ▾</button>
+        <div class="menu" id="menu-ch6">
+          <div class="grp">Sections</div>
+          <a href="#ch6-tldr">TL;DR</a>
+          <a href="#ch6-tasks">6.1 Executing Tasks in Threads</a>
+          <a href="#ch6-executor">6.2 The Executor Framework</a>
+          <a href="#ch6-parallelism">6.3 Finding Exploitable Parallelism</a>
+          <div class="grp">Extras</div>
+          <a href="#ch6-sim">Simulator: one workload, four policies</a>
+          <a href="#ch6-listings">Patterns</a>
+          <a href="#ch6-terms">Glossary</a>
+          <a href="#ch6-cheatsheet">Cheat sheet</a>
+        </div>
+      </div>
       <a href="#top">↑ Top</a>
     </nav>
   </div>
@@ -366,11 +402,11 @@
 <div class="hero">
     <div class="hero-grid">
     <div>
-    <span class="kicker">Study notes · Part I — Fundamentals</span>
+    <span class="kicker">Study notes · Parts I–II — Fundamentals &amp; Structuring</span>
     <h1>Java Concurrency<br><span>in Practice</span></h1>
     <p class="sub">
-      Visual summaries of the book: the argument for threads, the hazards they introduce, and the
-      vocabulary and code that make concurrent programs correct.
+      Visual summaries of the book: the argument for threads, the hazards they introduce, the vocabulary and code
+      that make concurrent programs correct — and how to structure a whole application around tasks.
     </p>
     <p class="byline">Brian Goetz, with Tim Peierls, Joshua Bloch, Joseph Bowbeer, David Holmes &amp; Doug Lea</p>
     <div class="chapter-cards">
@@ -399,68 +435,91 @@
         <span class="cc-title">Building Blocks</span>
         <span class="cc-meta">pp. 51–70 · collections, queues, synchronizers, a scalable cache</span>
       </a>
+      <a class="chapter-card" href="#ch6">
+        <span class="cc-num">Chapter 6</span>
+        <span class="cc-title">Task Execution</span>
+        <span class="cc-meta">pp. 71–84 · tasks, executors, pools, futures, completion services</span>
+      </a>
     </div>
     <div class="meta">
-      <span class="pill">📚 <b>5</b> chapters · <b>61</b> book listings + extras</span>
+      <span class="pill">📚 <b>6</b> chapters · <b>78</b> book listings + extras</span>
       <span class="pill">🖼️ Figures 1.1–5.4 embedded</span>
-      <span class="pill">▶️ <b>4</b> interactive simulators</span>
+      <span class="pill">▶️ <b>5</b> interactive simulators</span>
       <span class="pill">🔌 Fully self-contained</span>
     </div>
     </div>
 
     <figure class="hero-art" style="margin:0">
-      <svg viewBox="0 0 420 250" role="img" aria-label="One process containing three threads that share the heap and each keep their own stack and program counter">
+      <svg viewBox="0 0 420 250" role="img" aria-label="An Executor between producers and consumers: submitted tasks wait in a work queue, and a fixed pool of worker threads takes them one at a time">
         <defs>
-          <linearGradient id="gProc" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#1f2b39"/><stop offset="1" stop-color="#131a23"/>
+          <linearGradient id="gQ" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#f0a24b" stop-opacity=".22"/><stop offset="1" stop-color="#f0a24b" stop-opacity=".04"/>
           </linearGradient>
-          <linearGradient id="gThread" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#f0a24b" stop-opacity=".28"/><stop offset="1" stop-color="#f0a24b" stop-opacity=".06"/>
+          <linearGradient id="gW" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#4aa3f0" stop-opacity=".2"/><stop offset="1" stop-color="#4aa3f0" stop-opacity=".04"/>
           </linearGradient>
         </defs>
-        <rect x="8" y="14" width="404" height="222" rx="14" fill="url(#gProc)" stroke="#2b3a4a"/>
-        <text x="24" y="38" fill="#9aa8b7" font-size="11" font-family="ui-monospace,monospace">PROCESS — shared address space</text>
 
-        <!-- three threads -->
-        <g font-family="ui-monospace,monospace">
-          <rect x="24" y="52" width="112" height="86" rx="10" fill="url(#gThread)" stroke="#f0a24b" stroke-opacity=".5"/>
-          <text x="80" y="72" fill="#ffd9ac" font-size="11" text-anchor="middle">thread A</text>
-          <text x="36" y="92" fill="#a9b8c7" font-size="9.5">PC</text><rect x="58" y="84" width="64" height="10" rx="3" fill="#33506b"/>
-          <text x="36" y="108" fill="#a9b8c7" font-size="9.5">stack</text><rect x="58" y="100" width="64" height="10" rx="3" fill="#33506b"/>
-          <text x="36" y="124" fill="#a9b8c7" font-size="9.5">locals</text><rect x="58" y="116" width="64" height="10" rx="3" fill="#33506b"/>
+        <text x="14" y="20" fill="#9aa8b7" font-size="10.5" font-family="ui-monospace,monospace">SUBMIT — decoupled from — EXECUTE</text>
 
-          <rect x="150" y="52" width="112" height="86" rx="10" fill="url(#gThread)" stroke="#f0a24b" stroke-opacity=".5"/>
-          <text x="206" y="72" fill="#ffd9ac" font-size="11" text-anchor="middle">thread B</text>
-          <text x="162" y="92" fill="#a9b8c7" font-size="9.5">PC</text><rect x="184" y="84" width="64" height="10" rx="3" fill="#33506b"/>
-          <text x="162" y="108" fill="#a9b8c7" font-size="9.5">stack</text><rect x="184" y="100" width="64" height="10" rx="3" fill="#33506b"/>
-          <text x="162" y="124" fill="#a9b8c7" font-size="9.5">locals</text><rect x="184" y="116" width="64" height="10" rx="3" fill="#33506b"/>
-
-          <rect x="276" y="52" width="112" height="86" rx="10" fill="url(#gThread)" stroke="#f0a24b" stroke-opacity=".5"/>
-          <text x="332" y="72" fill="#ffd9ac" font-size="11" text-anchor="middle">thread C</text>
-          <text x="288" y="92" fill="#a9b8c7" font-size="9.5">PC</text><rect x="310" y="84" width="64" height="10" rx="3" fill="#33506b"/>
-          <text x="288" y="108" fill="#a9b8c7" font-size="9.5">stack</text><rect x="310" y="100" width="64" height="10" rx="3" fill="#33506b"/>
-          <text x="288" y="124" fill="#a9b8c7" font-size="9.5">locals</text><rect x="310" y="116" width="64" height="10" rx="3" fill="#33506b"/>
+        <!-- producers -->
+        <g font-family="ui-monospace,monospace" font-size="9.5">
+          <text x="14" y="52" fill="#f0a24b">producers</text>
+          <rect x="14" y="60" width="82" height="24" rx="6" fill="#16222f" stroke="#f0a24b" stroke-opacity=".55"/>
+          <text x="55" y="76" fill="#ffd9ac" text-anchor="middle">request 1</text>
+          <rect x="14" y="92" width="82" height="24" rx="6" fill="#16222f" stroke="#f0a24b" stroke-opacity=".55"/>
+          <text x="55" y="108" fill="#ffd9ac" text-anchor="middle">request 2</text>
+          <rect x="14" y="124" width="82" height="24" rx="6" fill="#16222f" stroke="#f0a24b" stroke-opacity=".55"/>
+          <text x="55" y="140" fill="#ffd9ac" text-anchor="middle">request 3</text>
+          <text x="14" y="170" fill="#6b7a8c" font-size="8.5">exec.execute(task)</text>
         </g>
 
-        <!-- shared heap -->
-        <rect x="24" y="156" width="364" height="66" rx="10" fill="#0f1721" stroke="#4aa3f0" stroke-opacity=".55"/>
-        <text x="38" y="176" fill="#a9c8e8" font-size="11" font-family="ui-monospace,monospace">HEAP + file handles — shared by all threads</text>
-        <g font-family="ui-monospace,monospace" font-size="10">
-          <rect x="38" y="186" width="72" height="24" rx="5" fill="#16222f" stroke="#31414f"/>
-          <text x="74" y="202" fill="#e6edf3" text-anchor="middle">value = 9</text>
-          <rect x="120" y="186" width="86" height="24" rx="5" fill="#16222f" stroke="#31414f"/>
-          <text x="163" y="202" fill="#9aa8b7" text-anchor="middle">objects…</text>
-          <rect x="216" y="186" width="96" height="24" rx="5" fill="#16222f" stroke="#31414f"/>
-          <text x="264" y="202" fill="#9aa8b7" text-anchor="middle">file handle</text>
-          <rect x="322" y="186" width="52" height="24" rx="5" fill="#16222f" stroke="#31414f"/>
-          <text x="348" y="202" fill="#9aa8b7" text-anchor="middle">…</text>
+        <!-- work queue -->
+        <g>
+          <rect x="122" y="52" width="176" height="112" rx="10" fill="url(#gQ)" stroke="#f0a24b" stroke-opacity=".45"/>
+          <text x="210" y="70" fill="#ffd9ac" font-size="10" text-anchor="middle" font-family="ui-monospace,monospace">work queue (bounded)</text>
+          <g font-family="ui-monospace,monospace" font-size="9">
+            <rect x="134" y="80" width="152" height="20" rx="5" fill="#1b2531" stroke="#31414f"/>
+            <text x="142" y="94" fill="#c9d5e0">T1</text>
+            <rect x="134" y="104" width="152" height="20" rx="5" fill="#1b2531" stroke="#31414f"/>
+            <text x="142" y="118" fill="#c9d5e0">T2</text>
+            <rect x="134" y="128" width="152" height="20" rx="5" fill="#1b2531" stroke="#31414f" stroke-dasharray="3 3"/>
+            <text x="142" y="142" fill="#6b7a8c">T3 … queued</text>
+          </g>
+          <text x="210" y="176" fill="#6b7a8c" font-size="8.5" text-anchor="middle" font-family="ui-monospace,monospace">put / take — blocks when full or empty</text>
         </g>
-        <!-- arrows from threads to heap -->
-        <g stroke="#4aa3f0" stroke-opacity=".5" stroke-width="1.3">
-          <line x1="80" y1="140" x2="80" y2="154"/><line x1="206" y1="140" x2="206" y2="154"/><line x1="332" y1="140" x2="332" y2="154"/>
+
+        <!-- workers -->
+        <g font-family="ui-monospace,monospace" font-size="9.5">
+          <text x="322" y="52" fill="#4aa3f0">workers</text>
+          <rect x="322" y="60" width="84" height="46" rx="8" fill="url(#gW)" stroke="#4aa3f0" stroke-opacity=".45"/>
+          <text x="364" y="80" fill="#a9c8e8" text-anchor="middle">pool-1</text>
+          <text x="364" y="96" fill="#6b7a8c" text-anchor="middle" font-size="8.5">running T1</text>
+          <rect x="322" y="116" width="84" height="46" rx="8" fill="url(#gW)" stroke="#4aa3f0" stroke-opacity=".45"/>
+          <text x="364" y="136" fill="#a9c8e8" text-anchor="middle">pool-2</text>
+          <text x="364" y="152" fill="#6b7a8c" text-anchor="middle" font-size="8.5">idle</text>
+        </g>
+
+        <!-- arrows -->
+        <g stroke="#f0a24b" stroke-opacity=".55" stroke-width="1.3" fill="none">
+          <line x1="96" y1="72" x2="120" y2="72"/><line x1="96" y1="104" x2="120" y2="104"/><line x1="96" y1="136" x2="120" y2="136"/>
+        </g>
+        <g stroke="#4aa3f0" stroke-opacity=".6" stroke-width="1.3" fill="none">
+          <line x1="298" y1="90" x2="320" y2="84"/><line x1="298" y1="112" x2="320" y2="136"/>
+        </g>
+
+        <!-- lifecycle strip -->
+        <g font-family="ui-monospace,monospace" font-size="9">
+          <rect x="14" y="192" width="392" height="42" rx="8" fill="#0f1721" stroke="#31414f"/>
+          <text x="26" y="209" fill="#9aa8b7" font-size="9">ExecutorService lifecycle:</text>
+          <text x="26" y="225" fill="#8fe0a0">running</text>
+          <text x="72" y="225" fill="#6b7a8c">→ shutdown() →</text>
+          <text x="170" y="225" fill="#f0c987">shutting down</text>
+          <text x="256" y="225" fill="#6b7a8c">→ drained →</text>
+          <text x="334" y="225" fill="#a9c8e8">terminated</text>
         </g>
       </svg>
-      <figcaption>Threads share the heap; each keeps its own program counter, stack and locals.</figcaption>
+      <figcaption>Tasks are submitted to an Executor and wait in a work queue; a fixed set of worker threads takes them one at a time.</figcaption>
     </figure>
     </div>
   </div>
@@ -6011,8 +6070,1139 @@ ProductInfo info = f.get();          // blocks; ExecutionException wraps failure
     </p>
   </div>
 
+  <div class="page-hero chapter-start" id="ch6">
+    <span class="kicker">Java Concurrency in Practice · Chapter 6 · Part II begins</span>
+    <h1>Chapter 6 — <span>Task Execution</span></h1>
+    <p class="sub">
+      Part I was about making individual objects thread-safe. Part II is about <strong>structuring whole
+      applications</strong> around concurrency — and it starts by changing the unit of design from <em>thread</em> to
+      <strong>task</strong>: an abstract, discrete unit of work. Once tasks are the unit, threads become a resource to be
+      managed rather than something you sprinkle through your code, and that management gets a name —
+      the <strong>Executor framework</strong>.
+    </p>
+    <div class="meta">
+      <span class="pill">📖 <b>pp. 71–84</b></span>
+      <span class="pill">🧩 <b>3</b> sections · <b>17</b> listings · <b>no figures</b></span>
+      <span class="pill">⏱️ ~20 min read</span>
+      <span class="pill">🏷️ Part II — Structuring Concurrent Applications</span>
+    </div>
+  </div>
+
+  <!-- ================= TL;DR ================= -->
+  <section id="ch6-tldr">
+    <h2>Chapter in one paragraph</h2>
+    <div class="card tldr">
+      <h4>TL;DR — the six things worth remembering</h4>
+      <ol>
+        <li><strong>Think in tasks, not threads.</strong> A task is a unit of work with a natural boundary — usually a client request, or a page element in a GUI — and independence is what makes it parallelizable.</li>
+        <li><strong>Sequential execution is simple and wrong for servers.</strong> One blocking request stalls every pending one, and the CPU idles while the single thread waits on I/O.</li>
+        <li><strong>Thread-per-task is better, then unbounded.</strong> It buys responsiveness and parallelism, but nothing limits the thread count except the arrival rate — so heavy load turns into <code>OutOfMemoryError</code>.</li>
+        <li><strong>An <code>Executor</code> decouples submission from execution.</strong> That decoupling is what lets you choose an <em>execution policy</em> — what thread, what order, how many concurrent, how many queued, what to reject, and what to do before and after.</li>
+        <li><strong>Pools bound the resource; queues bound the backlog.</strong> <code>newFixedThreadPool</code>, <code>newCachedThreadPool</code>, <code>newSingleThreadExecutor</code>, <code>newScheduledThreadPool</code> — and an <code>ExecutorService</code> that nobody shuts down keeps the JVM alive.</li>
+        <li><strong>Parallelize homogeneous work, not heterogeneous work.</strong> Two threads for "render text" and "download images" caps the speedup at 2×; splitting one image download into <em>n</em> tasks and taking results as they finish is where the payoff is — <code>Callable</code>, <code>Future</code>, <code>CompletionService</code>, time budgets.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= 6.1 ================= -->
+  <section id="ch6-tasks">
+    <h2><span class="num">6.1</span>Executing Tasks in Threads</h2>
+    <p class="lede">Most concurrent applications are organised around the execution of tasks — and the first design
+    decision is where the task boundaries go.</p>
+    <p>
+      Dividing an application's work into tasks simplifies program organisation, gives error recovery natural transaction
+      boundaries, and provides a structure for parallelizing work. Ideally tasks are <strong>independent</strong>: work
+      that does not depend on the state, result or side effects of other tasks. Independence is what lets tasks run in
+      parallel when there are resources to run them on. For flexibility in scheduling and load balancing, each task
+      should also represent a <em>small fraction</em> of the application's processing capacity.
+    </p>
+    <p>
+      Server applications need both good throughput and good responsiveness under normal load, and should
+      <strong>degrade gracefully</strong> as they become overloaded rather than simply falling over. Good task
+      boundaries plus a sensible execution policy (§6.2.2) are how you get there. Most servers offer a natural boundary
+      for free: the <em>individual client request</em>. Web servers, mail servers, file servers, EJB containers and
+      database servers all accept requests over network connections, and a request is usually both independent and
+      appropriately sized — sending one mail message does not depend on the others in flight, and handling it consumes a
+      small percentage of total capacity.
+    </p>
+
+    <h3><span class="num">6.1.1</span>Executing tasks sequentially</h3>
+    <p>
+      The simplest scheduling policy runs tasks one at a time in a single thread.
+      <code>SingleThreadWebServer</code> processes HTTP requests arriving on port 80 sequentially; the details of request
+      processing don't matter, only the concurrency characteristics of the policy.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">SEQUENTIAL</span>
+        <span class="name">Listing 6.1 · Sequential web server</span>
+        <button class="copy" data-copy="ch6-l61">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l61">class SingleThreadWebServer {
+    public static void main(String[] args) throws IOException {
+        ServerSocket socket = new ServerSocket(80);
+        while (true) {
+            Socket connection = socket.accept();
+            handleRequest(connection);
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      It is simple and theoretically correct, and would perform poorly in production because it handles only one request
+      at a time. The main thread alternates between accepting connections and processing the associated request; while it
+      handles a request, new connections wait. That might work if <code>handleRequest</code> effectively returned
+      immediately — which describes no web server in the real world.
+    </p>
+    <p>
+      Processing a request is a mix of computation and I/O: socket reads and writes that can block on network congestion,
+      plus file I/O and database calls that can block too. In a single-threaded server, blocking not only delays the
+      current request but prevents pending requests from being processed <em>at all</em>. One unusually slow request makes
+      the server look unresponsive, and utilization is poor because the CPU sits idle while the single thread waits.
+      Sequential processing rarely provides good throughput or responsiveness — the exceptions are tasks that are few and
+      long-lived, or a server with a single client making one request at a time.
+    </p>
+
+    <h3><span class="num">6.1.2</span>Explicitly creating threads for tasks</h3>
+    <p>
+      A more responsive approach creates a new thread per request, as <code>ThreadPerTaskWebServer</code> does. The main
+      loop still alternates between accepting and dispatching; the difference is that each request is handled in a fresh
+      thread instead of in the main loop. Three things follow:
+    </p>
+    <ul>
+      <li>Task processing moves <strong>off the main thread</strong>, so the loop resumes waiting for the next connection
+      quickly and new connections are accepted before earlier requests finish — better responsiveness.</li>
+      <li>Tasks run <strong>in parallel</strong>, so multiple requests can be serviced at once. Throughput improves on
+      multiprocessors, and also on a single CPU when tasks block for I/O, lock acquisition or resources.</li>
+      <li>Task-handling code must now be <strong>thread-safe</strong>, because it can be invoked concurrently for multiple
+      tasks.</li>
+    </ul>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">THREAD PER TASK</span>
+        <span class="name">Listing 6.2 · Web server that starts a new thread for each request</span>
+        <button class="copy" data-copy="ch6-l62">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l62">class ThreadPerTaskWebServer {
+    public static void main(String[] args) throws IOException {
+        ServerSocket socket = new ServerSocket(80);
+        while (true) {
+            final Socket connection = socket.accept();
+            Runnable task = new Runnable() {
+                    public void run() {
+                        handleRequest(connection);
+                    }
+                };
+            new Thread(task).start();
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Under light to moderate load this is an improvement on sequential execution. As long as the request arrival rate
+      does not exceed the server's capacity to handle requests, both responsiveness and throughput are better.
+    </p>
+
+    <h3><span class="num">6.1.3</span>Disadvantages of unbounded thread creation</h3>
+    <p>For production use, the thread-per-task approach has practical drawbacks, especially when many threads are created:</p>
+    <div class="grid">
+      <div class="tile"><div class="ico">🧵</div><h5>Thread lifecycle overhead</h5>
+        <p>Creation and teardown are not free. They cost time — adding latency to request processing — and consume
+        processing in the JVM and the OS. For frequent, lightweight requests, a new thread per request burns significant
+        computing resources.</p></div>
+      <div class="tile"><div class="ico">💾</div><h5>Resource consumption</h5>
+        <p>Active threads consume memory. With more runnable threads than processors, threads sit idle; many idle threads
+        tie up memory and pressure the garbage collector, and many threads competing for CPUs costs performance too.
+        Once every CPU is busy, more threads do not help.</p></div>
+      <div class="tile"><div class="ico">💥</div><h5>Stability</h5>
+        <p>There is a limit on how many threads can be created — set by JVM parameters, the requested stack size and the
+        OS. Hit it and the likely result is <code>OutOfMemoryError</code>, and trying to recover from that is very risky.
+        It is far easier to structure the program not to reach the limit.</p></div>
+    </div>
+    <p>
+      Up to a point, more threads improve throughput; beyond it, more threads just slow the application down, and one
+      thread too many can crash it. The way to stay out of danger is to <strong>place a bound</strong> on how many
+      threads the application creates, and to test that even at that bound it does not run out of resources.
+    </p>
+    <p>
+      The problem with thread-per-task is precisely that <em>nothing</em> limits the number of threads except the rate at
+      which remote users can throw HTTP requests at it. Like other concurrency hazards, this works fine during prototyping
+      and surfaces only under heavy deployment load — so a malicious user, or enough ordinary users, can crash the
+      server by pushing traffic past a threshold. For a server that is supposed to provide high availability and graceful
+      degradation, that is a serious failing.
+    </p>
+  </section>
+
+  <!-- ================= 6.2 ================= -->
+  <section id="ch6-executor">
+    <h2><span class="num">6.2</span>The Executor Framework</h2>
+    <p class="lede">Tasks are logical units of work; threads are only a mechanism for running them asynchronously. The
+    library's primary abstraction for task execution is not <code>Thread</code> — it is <code>Executor</code>.</p>
+    <p>
+      Both policies so far have serious limitations: the sequential approach suffers from poor responsiveness and
+      throughput, and thread-per-task from poor resource management. Chapter 5 showed how bounded queues keep an overloaded
+      application from running out of memory; <strong>thread pools offer the same benefit for thread management</strong>,
+      and <code>java.util.concurrent</code> provides a flexible pool implementation as part of the Executor framework.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">INTERFACE</span>
+        <span class="name">Listing 6.3 · Executor interface</span>
+        <button class="copy" data-copy="ch6-l63">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l63">public interface Executor {
+    void execute(Runnable command);
+}</code></pre>
+    </div>
+
+    <p>
+      A one-method interface, but it is the basis for a flexible and powerful framework for asynchronous task execution
+      that supports a wide variety of <em>execution policies</em>. It gives a standard means of decoupling task
+      <strong>submission</strong> from task <strong>execution</strong>, describing tasks with <code>Runnable</code>.
+      Implementations also provide lifecycle support and hooks for statistics, management and monitoring.
+    </p>
+    <p>
+      <code>Executor</code> is the producer–consumer pattern of §5.3 with a name: the activities that submit tasks are the
+      producers, and the threads that execute them are the consumers. Using an <code>Executor</code> is usually the
+      easiest way to implement a producer–consumer design.
+    </p>
+
+    <h3><span class="num">6.2.1</span>Example: web server using an Executor</h3>
+    <p>
+      <code>TaskExecutionWebServer</code> replaces the hard-coded thread creation with an <code>Executor</code> — here a
+      fixed-size pool of 100 threads. Submission is decoupled from execution, so behaviour can be changed by substituting
+      a different <code>Executor</code> implementation, without touching the task-submission code.
+    </p>
+    <p>
+      That distinction matters in practice: <strong>changing Executor implementations or configuration is far less
+      invasive than changing how tasks are submitted</strong>. Executor configuration is generally a one-time event and
+      can be exposed for deployment-time configuration, whereas task submission code tends to be strewn throughout the
+      program and is much harder to expose.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">POOL</span>
+        <span class="name">Listing 6.4 · Web server using a thread pool</span>
+        <button class="copy" data-copy="ch6-l64">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l64">class TaskExecutionWebServer {
+    private static final int NTHREADS = 100;
+    private static final Executor exec
+        = Executors.newFixedThreadPool(NTHREADS);
+    public static void main(String[] args) throws IOException {
+        ServerSocket socket = new ServerSocket(80);
+        while (true) {
+            final Socket connection = socket.accept();
+            Runnable task = new Runnable() {
+                public void run() {
+                    handleRequest(connection);
+                }
+            };
+            exec.execute(task);
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      It is easy to make this behave like the thread-per-task version — substitute an <code>Executor</code> that creates a
+      thread per request — or like the sequential version, with an <code>Executor</code> that runs the task in the calling
+      thread before <code>execute</code> returns.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">UNBOUNDED</span>
+        <span class="name">Listing 6.5 · Executor that starts a new thread for each task</span>
+        <button class="copy" data-copy="ch6-l65">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l65">public class ThreadPerTaskExecutor implements Executor {
+    public void execute(Runnable r) {
+        new Thread(r).start();
+    };
+}</code></pre>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">SYNCHRONOUS</span>
+        <span class="name">Listing 6.6 · Executor that executes tasks synchronously in the calling thread</span>
+        <button class="copy" data-copy="ch6-l66">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l66">public class WithinThreadExecutor implements Executor {
+    public void execute(Runnable r) {
+        r.run();
+    };
+}</code></pre>
+    </div>
+
+    <h3><span class="num">6.2.2</span>Execution policies</h3>
+    <p>
+      The value of decoupling submission from execution is that it lets you specify — and later change without much
+      trouble — the <strong>execution policy</strong> for a class of tasks. A policy specifies the what, where, when and
+      how of task execution:
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Question the policy answers</th><th>Typical answers</th></tr></thead>
+        <tbody>
+          <tr><td>In what thread will tasks run?</td><td>The caller's thread, one new thread per task, a pool thread, a GUI event thread</td></tr>
+          <tr><td>In what order should tasks run?</td><td>FIFO, LIFO, priority order</td></tr>
+          <tr><td>How many tasks may execute concurrently?</td><td>One, a fixed number, one per CPU, unbounded</td></tr>
+          <tr><td>How many tasks may be queued pending execution?</td><td>Unbounded, bounded with a rejection policy, none (synchronous handoff)</td></tr>
+          <tr><td>If a task must be rejected, which task is the victim — and how is the application told?</td><td>Newest, oldest, throw <code>RejectedExecutionException</code>, run in the caller's thread, discard silently</td></tr>
+          <tr><td>What actions should be taken before or after executing a task?</td><td>Logging, timing, statistics, thread-local setup, transaction demarcation</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Execution policies are a <strong>resource-management tool</strong>, and the right one depends on available computing
+      resources and quality-of-service requirements. Limiting concurrency keeps the application from failing through
+      resource exhaustion or degrading through contention for scarce resources — much as a transaction monitor throttles
+      transaction rates in an enterprise application. Separating the policy from submission also makes it practical to pick
+      a policy at deployment time that matches the hardware.
+    </p>
+    <div class="callout">
+      <span class="mark">🔁</span>
+      <p>Whenever you see <code>new Thread(runnable).start()</code> and think you might someday want a more flexible
+      execution policy, seriously consider replacing it with an <code>Executor</code>.</p>
+    </div>
+
+    <h3><span class="num">6.2.3</span>Thread pools</h3>
+    <p>
+      A thread pool manages a homogeneous set of worker threads, tightly bound to a work queue holding tasks awaiting
+      execution. Workers have a simple life: take the next task from the queue, run it, go back to waiting. Compared with
+      thread-per-task, reusing a thread amortizes creation and teardown across many requests; because the worker often
+      already exists when a request arrives, creation latency is off the critical path; and a properly tuned pool keeps
+      processors busy without so many threads that the application runs out of memory or thrashes.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Factory</th><th>Behaviour</th><th>Bound</th></tr></thead>
+        <tbody>
+          <tr><td><code>newFixedThreadPool(n)</code></td><td>Creates threads as tasks are submitted up to <code>n</code>, then holds the pool size constant (replacing a thread that dies from an unexpected exception)</td><td>Threads: yes. Queue: unbounded</td></tr>
+          <tr><td><code>newCachedThreadPool()</code></td><td>Reaps idle threads when demand drops, adds threads when demand grows, reuses idle threads for new tasks</td><td>None — unbounded</td></tr>
+          <tr><td><code>newSingleThreadExecutor()</code></td><td>One worker, replaced if it dies; tasks are processed sequentially in queue order</td><td>Threads: one. Queue: unbounded</td></tr>
+          <tr><td><code>newScheduledThreadPool(n)</code></td><td>Fixed-size pool with delayed and periodic execution — the <code>Timer</code> replacement</td><td>Threads: yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      <code>newFixedThreadPool</code> and <code>newCachedThreadPool</code> return general-purpose
+      <code>ThreadPoolExecutor</code> instances, which can also be constructed directly for more specialised policies
+      (Chapter 8).
+    </p>
+    <p>
+      Switching <code>TaskExecutionWebServer</code> from thread-per-task to a pool has a big effect on stability: the
+      server no longer fails under heavy load, and degrades more gracefully because it does not create thousands of
+      threads competing for limited CPU and memory. Using an <code>Executor</code> also opens the door to tuning,
+      management, monitoring, logging and error reporting that would have been far harder to bolt on afterwards.
+    </p>
+    <div class="callout warn">
+      <span class="mark">⚠️</span>
+      <p>A bounded pool fixes the <em>thread</em> explosion, not the <em>queue</em> explosion. If the task arrival rate
+      exceeds the service rate for long enough, an unbounded work queue still grows until memory runs out — just more
+      slowly. Bound the queue too (§8.3.2) and choose a rejection policy deliberately.</p>
+    </div>
+
+    <h3><span class="num">6.2.4</span>Executor lifecycle</h3>
+    <p>
+      An <code>Executor</code> is likely to create threads, and the JVM cannot exit until all non-daemon threads have
+      terminated — so <strong>failing to shut an Executor down can prevent the JVM from exiting</strong>. And because
+      execution is asynchronous, the state of previously submitted tasks is not immediately obvious: some completed, some
+      running, some queued. Shutdown spans a spectrum from graceful (finish what you started, accept nothing new) to
+      abrupt, so an execution service needs to expose that spectrum and report what happened.
+    </p>
+    <p>
+      <code>ExecutorService</code> extends <code>Executor</code> with lifecycle management and convenience submission
+      methods.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">LIFECYCLE</span>
+        <span class="name">Listing 6.7 · Lifecycle methods in ExecutorService</span>
+        <button class="copy" data-copy="ch6-l67">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l67">public interface ExecutorService extends Executor {
+    void shutdown();
+    List&lt;Runnable&gt; shutdownNow();
+    boolean isShutdown();
+    boolean isTerminated();
+    boolean awaitTermination(long timeout, TimeUnit unit)
+        throws InterruptedException;
+    //  ... additional convenience methods for task submission
+}</code></pre>
+    </div>
+
+    <p>
+      The lifecycle has three states: <strong>running</strong>, <strong>shutting down</strong> and
+      <strong>terminated</strong>. Every <code>ExecutorService</code> starts running. <code>shutdown()</code> is the
+      graceful path — no new tasks are accepted, but previously submitted tasks, including those not yet started, are
+      allowed to complete. <code>shutdownNow()</code> is the abrupt path — it attempts to cancel outstanding tasks and
+      starts none of the queued ones.
+    </p>
+    <p>
+      Tasks submitted after shutdown are handled by the rejected execution handler (§8.3.3), which may silently discard
+      the task or make <code>execute</code> throw the unchecked <code>RejectedExecutionException</code>. Once all tasks
+      have completed, the service transitions to terminated; you can wait for that with <code>awaitTermination</code> or
+      poll <code>isTerminated</code>. It is common to follow <code>shutdown</code> immediately with
+      <code>awaitTermination</code>, which creates the effect of a synchronous shutdown.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">GRACEFUL STOP</span>
+        <span class="name">Listing 6.8 · Web server with shutdown support</span>
+        <button class="copy" data-copy="ch6-l68">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l68">class LifecycleWebServer {
+    private final ExecutorService exec = ...;
+    public void start() throws IOException {
+        ServerSocket socket = new ServerSocket(80);
+        while (!exec.isShutdown()) {
+            try {
+                final Socket conn = socket.accept();
+                exec.execute(new Runnable() {
+                    public void run() { handleRequest(conn); }
+                });
+            } catch (RejectedExecutionException e) {
+                if (!exec.isShutdown())
+                    log("task submission rejected", e);
+            }
+        }
+    }
+    public void stop() { exec.shutdown(); }
+    void handleRequest(Socket connection) {
+        Request req = readRequest(connection);
+        if (isShutdownRequest(req))
+            stop();
+        else
+            dispatchRequest(req);
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">6.2.5</span>Delayed and periodic tasks</h3>
+    <p>
+      <code>Timer</code> handles deferred ("run this in 100 ms") and periodic ("run this every 10 ms") tasks, but it has
+      drawbacks and <code>ScheduledThreadPoolExecutor</code> should be thought of as its replacement. Construct it
+      directly or via <code>newScheduledThreadPool</code>.
+    </p>
+    <p>
+      <strong>A <code>Timer</code> creates only one thread</strong> for all timer tasks, so one slow task damages the
+      accuracy of the rest: if a recurring task runs every 10 ms and another task takes 40 ms, the recurring task either
+      fires four times in rapid succession afterwards (fixed-rate) or misses four invocations entirely (fixed-delay). A
+      scheduled thread pool removes that limitation by allowing several threads.
+    </p>
+    <p>
+      Worse, <code>Timer</code> behaves badly when a task throws an unchecked exception. The timer thread does not catch
+      it, so the exception terminates the thread — and <code>Timer</code> does not resurrect it, assuming instead that the
+      whole <code>Timer</code> was cancelled. Already-scheduled tasks never run and new ones cannot be scheduled. This is
+      <strong>thread leakage</strong> (§7.3). <code>OutOfTime</code> demonstrates the confusion, which it then shares with
+      the next caller: you might expect six seconds and a clean exit, but the program terminates after one second with
+      <code>IllegalStateException: Timer already cancelled</code>.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">BROKEN TIMER</span>
+        <span class="name">Listing 6.9 · Class illustrating confusing Timer behavior</span>
+        <button class="copy" data-copy="ch6-l69">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l69">public class OutOfTime {
+    public static void main(String[] args) throws Exception {
+        Timer timer = new Timer();
+        timer.schedule(new ThrowTask(), 1);
+        SECONDS.sleep(1);
+        timer.schedule(new ThrowTask(), 1);
+        SECONDS.sleep(5);
+    }
+    static class ThrowTask extends TimerTask {
+        public void run() { throw new RuntimeException(); }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      <code>ScheduledThreadPoolExecutor</code> deals properly with ill-behaved tasks; there is little reason to use
+      <code>Timer</code> in Java 5.0 or later. If you need to build your own scheduling service you can still lean on the
+      library through <code>DelayQueue</code>, a <code>BlockingQueue</code> that hands out an element only once its delay
+      has expired, ordering elements by the time associated with that delay.
+    </p>
+  </section>
+
+  <!-- ================= 6.3 ================= -->
+  <section id="ch6-parallelism">
+    <h2><span class="num">6.3</span>Finding Exploitable Parallelism</h2>
+    <p class="lede">In a server the task boundary is the request. In a desktop application — or inside a single server
+    request — somebody has to go looking for it.</p>
+    <p>
+      The Executor framework makes an execution policy easy to specify, but to use it you must be able to describe your
+      work as a <code>Runnable</code>. Sometimes good task boundaries are not obvious: desktop applications, and server
+      requests that contain exploitable parallelism of their own (database servers, for instance). The chapter's running
+      example is the <strong>page-rendering portion of a browser</strong>: take a page of HTML and render it into an image
+      buffer, where the HTML is marked-up text interspersed with image elements of known size and URL.
+    </p>
+
+    <h3><span class="num">6.3.1</span>Example: sequential page renderer</h3>
+    <p>
+      The simplest approach processes the document sequentially: render text markup as it is encountered, fetch and draw
+      images as their references are encountered. It touches each element once — it doesn't even need to buffer the
+      document — but it makes the user wait for all the text until the images are done.
+    </p>
+    <p>
+      A less annoying but still sequential approach renders the text first, leaving rectangular placeholders for the
+      images, then goes back to download and draw them into the placeholders. That is <code>SingleThreadRenderer</code>.
+      Downloading an image is mostly waiting for I/O, during which the CPU does almost nothing — so this underutilizes the
+      CPU and makes the user wait longer than necessary.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">SEQUENTIAL</span>
+        <span class="name">Listing 6.10 · Rendering page elements sequentially</span>
+        <button class="copy" data-copy="ch6-l610">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l610">public class SingleThreadRenderer {
+    void renderPage(CharSequence source) {
+        renderText(source);
+        List&lt;ImageData&gt; imageData = new ArrayList&lt;ImageData&gt;();
+        for (ImageInfo imageInfo : scanForImageInfo(source))
+            imageData.add(imageInfo.downloadImage());
+        for (ImageData data : imageData)
+            renderImage(data);
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">6.3.2</span>Result-bearing tasks: Callable and Future</h3>
+    <p>
+      <code>Runnable</code> is a limiting abstraction: <code>run</code> cannot return a value or throw checked exceptions,
+      though it can have side effects. Many tasks are effectively deferred computations — a database query, a fetch over
+      the network, a complicated function — and for those <code>Callable</code> is the better abstraction: its entry point
+      <code>call</code> returns a value and may throw. <code>Executors</code> includes utilities for wrapping other task
+      types, including <code>Runnable</code> and <code>java.security.PrivilegedAction</code>, as a
+      <code>Callable</code>.
+    </p>
+    <p>
+      Tasks are usually finite, with a clear start and an eventual end. A task executed by an <code>Executor</code> has
+      four lifecycle phases: <strong>created, submitted, started, completed</strong>. Because tasks can run for a long
+      time we also want to cancel them: a task submitted but not started can always be cancelled, a started task can
+      sometimes be cancelled if it is responsive to interruption, and cancelling a completed task has no effect.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">INTERFACES</span>
+        <span class="name">Listing 6.11 · Callable and Future interfaces</span>
+        <button class="copy" data-copy="ch6-l611">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l611">public interface Callable&lt;V&gt; {
+    V call() throws Exception;
+}
+
+public interface Future&lt;V&gt; {
+    boolean cancel(boolean mayInterruptIfRunning);
+    boolean isCancelled();
+    boolean isDone();
+    V get() throws InterruptedException, ExecutionException,
+                   CancellationException;
+    V get(long timeout, TimeUnit unit)
+        throws InterruptedException, ExecutionException,
+               CancellationException, TimeoutException;
+}</code></pre>
+    </div>
+
+    <p>
+      <code>Future</code> represents that lifecycle: it tests whether the task completed or was cancelled, retrieves the
+      result, and cancels. Implicitly, a task lifecycle can only move forwards — like the <code>ExecutorService</code>
+      lifecycle, once completed it stays completed forever. The behaviour of <code>get</code> depends on the state: it
+      returns immediately or throws if the task has completed, and otherwise blocks. If the task completed by throwing,
+      <code>get</code> rethrows it wrapped in <code>ExecutionException</code>; if it was cancelled, <code>get</code> throws
+      <code>CancellationException</code>; the underlying exception is available from <code>getCause</code>.
+    </p>
+    <p>
+      There are several ways to get a <code>Future</code>. The <code>submit</code> methods of
+      <code>ExecutorService</code> all return one, for either a <code>Runnable</code> or a <code>Callable</code>; you can
+      also instantiate a <code>FutureTask</code> directly, and because it implements <code>Runnable</code> it can be
+      submitted to an executor or simply run. As of Java 6, <code>ExecutorService</code> implementations can override
+      <code>newTaskFor</code> to control how the <code>Future</code> for a submitted task is created; the default just
+      builds a <code>FutureTask</code>.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">HOOK</span>
+        <span class="name">Listing 6.12 · Default implementation of newTaskFor in ThreadPoolExecutor</span>
+        <button class="copy" data-copy="ch6-l612">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l612">protected &lt;T&gt; RunnableFuture&lt;T&gt; newTaskFor(Callable&lt;T&gt; task) {
+    return new FutureTask&lt;T&gt;(task);
+}</code></pre>
+    </div>
+
+    <p>
+      Two safe-publication guarantees come free here, and they are what make this style thread-safe:
+      <strong>submitting</strong> a <code>Runnable</code> or <code>Callable</code> to an <code>Executor</code> safely
+      publishes it from the submitting thread to the executing thread (§3.5), and <strong>setting the result</strong> of a
+      <code>Future</code> safely publishes that result from the computing thread to any thread that retrieves it with
+      <code>get</code>.
+    </p>
+
+    <h3><span class="num">6.3.3</span>Example: page renderer with Future</h3>
+    <p>
+      As a first step towards concurrency, divide the renderer into two tasks: one renders the text, one downloads all the
+      images. Because one is largely CPU-bound and the other I/O-bound, this can help even on a single CPU.
+      <code>FutureRenderer</code> creates a <code>Callable</code> to download the images and submits it; when the main
+      task reaches the point where it needs them, it calls <code>Future.get</code>. With luck the results are ready by
+      then; if not, at least the download got a head start.
+    </p>
+    <p>
+      Because <code>get</code> is state-dependent, the caller need not know the task's state, and the safe-publication
+      properties just described make the approach thread-safe. The exception handling covers the two things that can go
+      wrong: the task threw, or the thread calling <code>get</code> was interrupted before the result was available.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">TWO TASKS</span>
+        <span class="name">Listing 6.13 · Waiting for image download with Future</span>
+        <button class="copy" data-copy="ch6-l613">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l613">public class FutureRenderer {
+    private final ExecutorService executor = ...;
+    void renderPage(CharSequence source) {
+        final List&lt;ImageInfo&gt; imageInfos = scanForImageInfo(source);
+        Callable&lt;List&lt;ImageData&gt;&gt; task =
+                new Callable&lt;List&lt;ImageData&gt;&gt;() {
+                    public List&lt;ImageData&gt; call() {
+                        List&lt;ImageData&gt; result
+                                = new ArrayList&lt;ImageData&gt;();
+                        for (ImageInfo imageInfo : imageInfos)
+                            result.add(imageInfo.downloadImage());
+                        return result;
+                    }
+                };
+        Future&lt;List&lt;ImageData&gt;&gt; future =  executor.submit(task);
+        renderText(source);
+        try {
+            List&lt;ImageData&gt; imageData =  future.get();
+            for (ImageData data : imageData)
+                renderImage(data);
+        } catch (InterruptedException e) {
+            // Re-assert the thread's interrupted status
+            Thread.currentThread().interrupt();
+            // We don't need the result, so cancel the task too
+            future.cancel(true);
+        } catch (ExecutionException e) {
+            throw launderThrowable(e.getCause());
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      <code>FutureRenderer</code> renders text while the images download, then draws them all when they arrive. The user
+      sees something sooner and some parallelism is exploited — but we can do better. There is no reason for users to wait
+      for <em>all</em> the images; they would rather see each one as it becomes available.
+    </p>
+
+    <h3><span class="num">6.3.4</span>Limitations of parallelizing heterogeneous tasks</h3>
+    <p>
+      Two people can divide the dinner dishes effectively — one washes, one dries — but assigning a <em>different type</em>
+      of task to each worker does not scale. If several more people show up, it is not obvious how they can help without
+      getting in the way or forcing a restructuring of the division of labour. Without finding finer-grained parallelism
+      among <em>similar</em> tasks, this approach yields diminishing returns.
+    </p>
+    <p>
+      A second problem is disparate sizes. Divide A and B between two workers and let A take ten times as long as B: you
+      have sped up the total process by 9%, not by two. And splitting work across workers always costs coordination
+      overhead, which has to be more than repaid by the parallelism.
+    </p>
+    <p>
+      Concretely: if rendering text is much faster than downloading images — entirely possible —
+      <code>FutureRenderer</code> performs about as well as the sequential version while being a lot more complicated. And
+      with two threads the very best case is a factor of two.
+      <strong>The real performance payoff of dividing work into tasks comes when there are a large number of independent,
+      homogeneous tasks</strong> that can be processed concurrently.
+    </p>
+
+    <h3><span class="num">6.3.5</span>CompletionService: Executor meets BlockingQueue</h3>
+    <p>
+      To submit a batch of computations and retrieve results <em>as they become available</em>, you could keep the
+      <code>Future</code> for each task and poll it with a zero timeout <code>get</code> — possible, but tedious. A
+      <strong>completion service</strong> does it properly: it combines an <code>Executor</code> with a
+      <code>BlockingQueue</code>. You submit <code>Callable</code> tasks and use queue-like <code>take</code> and
+      <code>poll</code> to retrieve completed results, packaged as <code>Future</code>s, in completion order.
+      <code>ExecutorCompletionService</code> implements it, delegating the computation to an <code>Executor</code>.
+    </p>
+    <p>
+      The implementation is straightforward. The constructor creates a <code>BlockingQueue</code> to hold completed
+      results. <code>FutureTask</code> has a <code>done</code> method called when the computation completes; each submitted
+      task is wrapped in a <code>QueueingFuture</code>, a <code>FutureTask</code> subclass that overrides
+      <code>done</code> to put the result on the queue. <code>take</code> and <code>poll</code> delegate to the queue,
+      blocking when no result is available yet.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">MECHANISM</span>
+        <span class="name">Listing 6.14 · QueueingFuture class used by ExecutorCompletionService</span>
+        <button class="copy" data-copy="ch6-l614">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l614">private class QueueingFuture&lt;V&gt; extends FutureTask&lt;V&gt; {
+    QueueingFuture(Callable&lt;V&gt; c) { super(c); }
+    QueueingFuture(Runnable t, V r) { super(t, r); }
+    protected void done() {
+        completionQueue.add(this);
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">6.3.6</span>Example: page renderer with CompletionService</h3>
+    <p>
+      A <code>CompletionService</code> improves the renderer in two ways: shorter total runtime and better responsiveness.
+      Make a separate task per image and run them in a pool, turning sequential downloading into parallel downloading, and
+      render each image the moment its result is taken from the service. The user gets a more dynamic interface.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">STREAMING RESULTS</span>
+        <span class="name">Listing 6.15 · Using CompletionService to render page elements as they become available</span>
+        <button class="copy" data-copy="ch6-l615">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l615">public class Renderer {
+    private final ExecutorService executor;
+    Renderer(ExecutorService executor) { this.executor = executor; }
+    void renderPage(CharSequence source) {
+        final List&lt;ImageInfo&gt; info = scanForImageInfo(source);
+        CompletionService&lt;ImageData&gt; completionService =
+            new ExecutorCompletionService&lt;ImageData&gt;(executor);
+        for (final ImageInfo imageInfo : info)
+            completionService.submit(new Callable&lt;ImageData&gt;() {
+                 public ImageData call() {
+                     return imageInfo.downloadImage();
+                 }
+            });
+        renderText(source);
+        try {
+            for (int t = 0, n =  info.size(); t &lt; n;  t++) {
+                Future&lt;ImageData&gt; f = completionService.take();
+                ImageData imageData = f.get();
+                renderImage(imageData);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            throw launderThrowable(e.getCause());
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Multiple <code>ExecutorCompletionService</code>s can share one <code>Executor</code>, so it is perfectly sensible to
+      create one privately for a particular computation over a common pool. Used that way, a
+      <code>CompletionService</code> is a handle for a <em>batch</em> of computations, much as a <code>Future</code> is a
+      handle for a single one. Remember how many tasks you submitted and count the results retrieved, and you know when the
+      batch is complete — even on a shared executor.
+    </p>
+
+    <h3><span class="num">6.3.7</span>Placing time limits on tasks</h3>
+    <p>
+      Sometimes a result is worthless if it arrives late. A web application might fetch an advertisement from an external
+      server but show a default ad if it is not available within two seconds; a portal might fetch data from several
+      sources in parallel and be willing to wait only so long before rendering the page without it.
+    </p>
+    <p>
+      The primary challenge is not waiting longer than the budget to get an answer <em>or</em> to learn that none is
+      coming. The timed <code>Future.get</code> supports exactly that: it returns as soon as the result is ready and throws
+      <code>TimeoutException</code> otherwise.
+    </p>
+    <p>
+      A secondary problem is <strong>stopping</strong> a task that has run out of time, so it does not keep burning cycles
+      on a result nobody will use. Either the task manages its own budget and aborts, or the caller cancels it when the
+      timeout expires — <code>Future</code> again: a timed <code>get</code> that throws
+      <code>TimeoutException</code> can be followed by <code>cancel</code>, and if the task is written to be cancellable
+      (Chapter 7) it can be terminated early.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">TIME BUDGET</span>
+        <span class="name">Listing 6.16 · Fetching an advertisement with a time budget</span>
+        <button class="copy" data-copy="ch6-l616">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l616">Page renderPageWithAd() throws InterruptedException {
+    long endNanos = System.nanoTime() + TIME_BUDGET;
+    Future&lt;Ad&gt; f = exec.submit(new FetchAdTask());
+    // Render the page while waiting for the ad
+    Page page = renderPageBody();
+    Ad ad;
+    try {
+        // Only wait for the remaining time budget
+        long timeLeft = endNanos - System.nanoTime();
+        ad = f.get(timeLeft, NANOSECONDS);
+    } catch (ExecutionException e) {
+        ad = DEFAULT_AD;
+    } catch (TimeoutException e) {
+        ad = DEFAULT_AD;
+        f.cancel(true);
+    }
+    page.setAd(ad);
+    return page;
+}</code></pre>
+    </div>
+
+    <h3><span class="num">6.3.8</span>Example: a travel reservations portal</h3>
+    <p>
+      The time-budget approach generalizes to any number of tasks. A travel portal takes dates and requirements and
+      fetches bids from airlines, hotels and car rental companies — by web service, database query, EDI transaction or
+      something else. Rather than letting the slowest provider set the page's response time, show only what arrives inside
+      a budget, and either omit the rest or display a placeholder ("Did not hear from Air Java in time").
+    </p>
+    <p>
+      Bids are independent of one another, so one bid is a sensible task boundary. You could submit <em>n</em> tasks,
+      retain the futures and do a timed <code>get</code> on each in turn — but there is an easier way:
+      <strong><code>invokeAll</code></strong>. It takes a collection of tasks and returns a collection of futures with
+      identical structure, adding them in the order imposed by the task collection's iterator, so a future can be
+      associated with the callable it represents. The timed version returns when all tasks complete, the calling thread is
+      interrupted, or the timeout expires — and any task not complete at that point is cancelled. On return, each task has
+      either completed normally or been cancelled, and the client can call <code>get</code> or
+      <code>isCancelled</code> to tell which.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">INVOKEALL</span>
+        <span class="name">Listing 6.17 · Requesting travel quotes under a time budget</span>
+        <button class="copy" data-copy="ch6-l617">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-l617">private class QuoteTask implements Callable&lt;TravelQuote&gt; {
+    private final TravelCompany company;
+    private final TravelInfo travelInfo;
+    ...
+    public TravelQuote call() throws Exception {
+        return company.solicitQuote(travelInfo);
+    }
+}
+public List&lt;TravelQuote&gt; getRankedTravelQuotes(
+        TravelInfo travelInfo, Set&lt;TravelCompany&gt; companies,
+        Comparator&lt;TravelQuote&gt; ranking, long time, TimeUnit unit)
+        throws InterruptedException {
+    List&lt;QuoteTask&gt; tasks = new ArrayList&lt;QuoteTask&gt;();
+    for (TravelCompany company : companies)
+        tasks.add(new QuoteTask(company, travelInfo));
+    List&lt;Future&lt;TravelQuote&gt;&gt; futures =
+        exec.invokeAll(tasks, time, unit);
+    List&lt;TravelQuote&gt; quotes =
+        new ArrayList&lt;TravelQuote&gt;(tasks.size());
+    Iterator&lt;QuoteTask&gt; taskIter = tasks.iterator();
+    for (Future&lt;TravelQuote&gt; f : futures) {
+        QuoteTask task = taskIter.next();
+        try {
+            quotes.add(f.get());
+        } catch (ExecutionException e) {
+            quotes.add(task.getFailureQuote(e.getCause()));
+        } catch (CancellationException e) {
+            quotes.add(task.getTimeoutQuote(e));
+        }
+    }
+    Collections.sort(quotes, ranking);
+    return quotes;
+}</code></pre>
+    </div>
+
+    <div class="card">
+      <h4>Chapter summary, in the book's words</h4>
+      <p style="margin-top:0">
+        Structuring applications around the execution of tasks can simplify development and facilitate concurrency. The
+        Executor framework lets you decouple task submission from execution policy and supports a rich variety of policies;
+        whenever you find yourself creating threads to perform tasks, consider using an <code>Executor</code> instead. To
+        maximize the benefit of decomposing an application into tasks, you must identify sensible task boundaries. In some
+        applications the obvious boundaries work well; in others, some analysis is required to uncover finer-grained
+        exploitable parallelism.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= simulator ================= -->
+  <section id="ch6-sim">
+    <h2><span class="num">▶</span>Interactive: one workload, four execution policies</h2>
+    <p class="lede">Six requests arrive over the first few ticks, with different service times. Step through the same
+    workload under four policies and watch three numbers: when the <em>first</em> response appears, when the last one does,
+    and how many threads it took.</p>
+
+    <div class="sim">
+      <div class="sim-controls">
+        <button class="btn primary" id="ch6-simStep">Step ▸</button>
+        <button class="btn" id="ch6-simPlay">Play</button>
+        <button class="btn" id="ch6-simReset">Reset</button>
+        <div class="sim-toggle">
+          <button id="ch6-modeSeq" class="on">sequential</button>
+          <button id="ch6-modePerTask">thread-per-task</button>
+          <button id="ch6-modeCached">cached pool</button>
+          <button id="ch6-modeFixed">fixed pool(2)</button>
+        </div>
+      </div>
+
+      <div class="tl-wrap">
+        <div class="tl" id="ch6-tl">
+          <div class="tl-row"><span class="tl-lbl">tick</span><div class="tl-cells" id="ch6-axis"></div></div>
+          <div class="tl-row"><span class="tl-lbl">R1</span><div class="tl-cells" id="ch6-row0"></div></div>
+          <div class="tl-row"><span class="tl-lbl">R2</span><div class="tl-cells" id="ch6-row1"></div></div>
+          <div class="tl-row"><span class="tl-lbl">R3</span><div class="tl-cells" id="ch6-row2"></div></div>
+          <div class="tl-row"><span class="tl-lbl">R4</span><div class="tl-cells" id="ch6-row3"></div></div>
+          <div class="tl-row"><span class="tl-lbl">R5</span><div class="tl-cells" id="ch6-row4"></div></div>
+          <div class="tl-row"><span class="tl-lbl">R6</span><div class="tl-cells" id="ch6-row5"></div></div>
+        </div>
+      </div>
+      <div class="tl-legend">
+        <span><i class="sw" style="background:rgba(240,162,75,.10);border:1px solid rgba(240,162,75,.35)"></i> arrived, waiting for a thread</span>
+        <span><i class="sw" style="background:rgba(74,163,240,.30);border:1px solid rgba(74,163,240,.6)"></i> running</span>
+        <span><i class="sw" style="background:rgba(63,185,80,.16);border:1px solid rgba(63,185,80,.4)"></i> done</span>
+      </div>
+
+      <div class="sim-readout">
+        <div class="stat"><span>tick</span><b id="ch6-stTick">0</b></div>
+        <div class="stat"><span>threads created</span><b id="ch6-stThreads">0</b></div>
+        <div class="stat"><span>peak concurrent</span><b id="ch6-stPeak">0</b></div>
+        <div class="stat"><span>first response</span><b id="ch6-stFirst">—</b></div>
+        <div class="stat"><span>last response</span><b id="ch6-stLast">—</b></div>
+        <div class="stat"><span>verdict</span><b id="ch6-stVerdict">idle</b></div>
+      </div>
+      <div class="sim-msg" id="ch6-simMsg">Press “Step” to advance one tick.</div>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🔍</span>
+      <p><strong>sequential</strong>: R1 holds the only thread for four ticks, so R2 waits, and R3–R6 queue behind each
+      other. First response at <b>t4</b>, everything finished at <b>t13</b> — and the CPU idles whenever that thread blocks.
+      <strong>thread-per-task</strong>: everyone starts on arrival, so the first response is <b>t2</b> and the workload is done
+      at <b>t5</b> — using six threads, five of them running at once. <strong>cached pool</strong>: identical timings, but R5
+      reuses R2's thread, so five threads serve six requests. <strong>fixed pool(2)</strong>: the queue absorbs the surplus
+      instead of the thread count — two threads, peak concurrency two, nothing ever unbounded. The price is latency: R6 waits
+      in the queue and the workload finishes at <b>t8</b> rather than t5. Bounded resources are bought with response time,
+      and that is the trade the policy makes explicit.</p>
+    </div>
+  </section>
+
+  <!-- ================= patterns ================= -->
+  <section id="ch6-listings">
+    <h2><span class="num">§</span>Patterns worth stealing</h2>
+    <p class="lede">The seventeen listings above are the book's. These two are the chapter's ideas written the way you would
+    actually reach for them.</p>
+
+    <h3><span class="num">1</span>An execution policy in one place, with a real lifecycle</h3>
+    <p>
+      Listing 6.8 stops the server but never waits for the tasks in flight. A service that is actually shut down cleanly
+      needs: one place where the policy is defined, submission that cannot outlive shutdown, a graceful stop followed by a
+      bounded wait, and an abrupt fallback.
+    </p>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">Execution policy as configuration, with graceful and abrupt shutdown</span>
+        <button class="copy" data-copy="ch6-c1">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-c1">public class TaskService {
+    /** The execution policy, in exactly one place. */
+    private final ExecutorService exec;
+    private final AtomicBoolean closed = new AtomicBoolean();
+
+    public TaskService(int poolSize) {
+        this.exec = new ThreadPoolExecutor(
+                poolSize, poolSize,               // fixed size
+                0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue&lt;Runnable&gt;(1000),  // bounded backlog
+                new ThreadFactory() {             // name the threads
+                    private final AtomicInteger n = new AtomicInteger();
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, "task-" + n.incrementAndGet());
+                    }
+                },
+                new ThreadPoolExecutor.AbortPolicy());     // loud rejection
+    }
+
+    /** Submission cannot outlive shutdown. */
+    public Future&lt;?&gt; submit(Callable&lt;?&gt; task) {
+        if (closed.get())
+            throw new RejectedExecutionException("service is shutting down");
+        return exec.submit(task);
+    }
+
+    /** Graceful: stop accepting, let the backlog drain, but don't wait forever. */
+    public boolean shutdown(long timeout, TimeUnit unit)
+            throws InterruptedException {
+        closed.set(true);
+        exec.shutdown();                       // no new tasks accepted
+        if (!exec.awaitTermination(timeout, unit)) {
+            exec.shutdownNow();                // escalate to abrupt
+            return exec.awaitTermination(5, TimeUnit.SECONDS);
+        }
+        return true;
+    }
+
+    /** Abrupt: cancel what is running, drop what is queued, report the dropped tasks. */
+    public List&lt;Runnable&gt; shutdownNow() {
+        closed.set(true);
+        return exec.shutdownNow();
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">2</span>Getting results as they finish, inside a deadline</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">CompletionService + a wall-clock deadline: render what arrives in time</span>
+        <button class="copy" data-copy="ch6-c2">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch6-c2">/** Render each element as soon as it is ready, but never past the budget. */
+void renderWithin(ExecutorService exec, List&lt;ImageInfo&gt; infos,
+                  long budgetMillis) throws InterruptedException {
+    CompletionService&lt;ImageData&gt; cs =
+            new ExecutorCompletionService&lt;ImageData&gt;(exec);
+    for (final ImageInfo info : infos)
+        cs.submit(new Callable&lt;ImageData&gt;() {
+            public ImageData call() { return info.downloadImage(); }
+        });
+
+    long deadline = System.nanoTime()
+            + TimeUnit.MILLISECONDS.toNanos(budgetMillis);
+    int remaining = infos.size();
+    while (remaining &gt; 0) {
+        long left = deadline - System.nanoTime();       // negative == expired
+        Future&lt;ImageData&gt; f = (left &lt;= 0)
+                ? cs.poll()                              // no wait: take what's done
+                : cs.poll(left, TimeUnit.NANOSECONDS);
+        if (f == null) break;                            // budget gone
+        remaining--;
+        try {
+            renderImage(f.get());
+        } catch (ExecutionException e) {
+            renderPlaceholder();                         // one element failed
+        }
+    }
+    // Whatever did not arrive in time gets a placeholder — the page still renders.
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ================= glossary ================= -->
+  <section id="ch6-terms">
+    <h2><span class="num">§</span>Vocabulary introduced in Chapter 6</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Term</th><th>Meaning as used here</th><th>Where it goes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Task</strong></td><td>An abstract, discrete unit of work with a natural boundary — independent and a small fraction of total capacity, ideally.</td><td>Ch. 6.1</td></tr>
+          <tr><td><strong>Task boundary</strong></td><td>The line that separates one task from another; in servers, usually one client request.</td><td>Ch. 6.1</td></tr>
+          <tr><td><strong>Thread-per-task</strong></td><td>Scheduling policy that creates a new thread for each task. Responsive, but unbounded.</td><td>Ch. 6.1.2</td></tr>
+          <tr><td><strong>Unbounded thread creation</strong></td><td>Thread count limited only by arrival rate; ends in resource exhaustion, usually <code>OutOfMemoryError</code>.</td><td>Ch. 6.1.3</td></tr>
+          <tr><td><strong><code>Executor</code></strong></td><td>One-method abstraction for running <code>Runnable</code>s; decouples submission from execution.</td><td>Ch. 6.2</td></tr>
+          <tr><td><strong>Execution policy</strong></td><td>The what/where/when/how of task execution: which thread, what order, how many concurrent, how many queued, what to reject, what to do around a task.</td><td>Ch. 6.2.2</td></tr>
+          <tr><td><strong>Thread pool</strong></td><td>A fixed set of worker threads fed by a work queue; amortizes thread creation and bounds the resource.</td><td>Ch. 6.2.3</td></tr>
+          <tr><td><strong>Work queue</strong></td><td>The queue of tasks awaiting execution inside an executor — bound it, or the backlog becomes the new unbounded resource.</td><td>Ch. 6.2.3</td></tr>
+          <tr><td><strong><code>ExecutorService</code></strong></td><td>An <code>Executor</code> with a lifecycle: running → shutting down → terminated.</td><td>Ch. 6.2.4</td></tr>
+          <tr><td><strong>Graceful shutdown</strong></td><td><code>shutdown()</code>: accept nothing new, finish everything already submitted.</td><td>Ch. 6.2.4</td></tr>
+          <tr><td><strong>Abrupt shutdown</strong></td><td><code>shutdownNow()</code>: attempt to cancel outstanding tasks; do not start queued ones.</td><td>Ch. 6.2.4</td></tr>
+          <tr><td><strong><code>RejectedExecutionException</code></strong></td><td>What submission can throw after shutdown — or when a bounded queue and a saturation policy say so.</td><td>Ch. 6.2.4</td></tr>
+          <tr><td><strong><code>Callable</code></strong></td><td>A task whose <code>call</code> returns a value and may throw checked exceptions.</td><td>Ch. 6.3.2</td></tr>
+          <tr><td><strong><code>Future</code></strong></td><td>A handle to a task's lifecycle: completion test, result retrieval, cancellation. Forward-only.</td><td>Ch. 6.3.2</td></tr>
+          <tr><td><strong>Task lifecycle</strong></td><td>Created → submitted → started → completed; completion subsumes normal, exceptional and cancelled.</td><td>Ch. 6.3.2</td></tr>
+          <tr><td><strong>Heterogeneous vs. homogeneous tasks</strong></td><td>Different tasks per worker (poor scaling, disparate sizes) vs. many identical tasks (the real payoff).</td><td>Ch. 6.3.4</td></tr>
+          <tr><td><strong>Completion service</strong></td><td>An <code>Executor</code> plus a <code>BlockingQueue</code> of finished futures; results in completion order.</td><td>Ch. 6.3.5</td></tr>
+          <tr><td><strong><code>invokeAll</code></strong></td><td>Submit a batch, get futures in the tasks' iteration order; the timed form cancels stragglers at the deadline.</td><td>Ch. 6.3.8</td></tr>
+          <tr><td><strong>Time budget</strong></td><td>A wall-clock deadline for a whole activity, computed once and decremented — never reset per <code>get</code>.</td><td>Ch. 6.3.7</td></tr>
+          <tr><td><strong>Thread leakage</strong></td><td>Threads that never terminate — a dead <code>Timer</code> thread, or an <code>Executor</code> nobody shut down.</td><td>Ch. 6.2.5</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= cheat sheet ================= -->
+  <section id="ch6-cheatsheet">
+    <h2><span class="num">✓</span>Cheat sheet &amp; self-check</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>You need…</th><th>Reach for</th><th>Watch out for</th></tr></thead>
+        <tbody>
+          <tr><td>To run a task asynchronously</td><td><code>executor.execute(runnable)</code></td><td>Never <code>new Thread(r).start()</code> in application code</td></tr>
+          <tr><td>A fixed degree of parallelism</td><td><code>Executors.newFixedThreadPool(n)</code></td><td>The queue is unbounded by default</td></tr>
+          <tr><td>Bursty demand, cheap tasks</td><td><code>newCachedThreadPool()</code></td><td>Unbounded threads; can still melt down under load</td></tr>
+          <tr><td>Sequential execution with a task-queue guarantee</td><td><code>newSingleThreadExecutor()</code></td><td>Slow tasks block the whole queue — by design</td></tr>
+          <tr><td>Delayed or periodic tasks</td><td><code>ScheduledThreadPoolExecutor</code></td><td>Not <code>Timer</code>: one throwing task kills the timer</td></tr>
+          <tr><td>A result from a task</td><td><code>Callable</code> + <code>Future.get()</code></td><td><code>ExecutionException</code> unwrapping; <code>get</code> blocks forever without a timeout</td></tr>
+          <tr><td>Results in completion order</td><td><code>ExecutorCompletionService</code></td><td>Count submissions to know when the batch is done</td></tr>
+          <tr><td>A whole batch under one deadline</td><td><code>invokeAll(tasks, time, unit)</code></td><td>Cancelled tasks throw <code>CancellationException</code> from <code>get</code></td></tr>
+          <tr><td>One task under a deadline</td><td><code>future.get(timeLeft, NANOSECONDS)</code></td><td>Then <code>cancel(true)</code> if you no longer want the result</td></tr>
+          <tr><td>To stop a service</td><td><code>shutdown()</code> + <code>awaitTermination()</code></td><td>An un-shut-down executor keeps the JVM alive</td></tr>
+          <tr><td>To bound the backlog</td><td><code>ThreadPoolExecutor</code> with a bounded queue and a rejection policy</td><td>Rejection is a design decision, not an accident</td></tr>
+          <tr><td>More speed from one request</td><td>Split it into <em>many similar</em> tasks</td><td>Splitting into two different tasks caps the gain at 2×</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">✅</div><h5>Do</h5>
+        <p>Name the task boundary before writing code. Keep the execution policy in one place and make it configurable.
+        Bound both threads and the queue. Use a <code>ThreadFactory</code> that names threads. Shut executors down and wait
+        for them. Give every blocking <code>get</code> a deadline you computed once.</p></div>
+      <div class="tile"><div class="ico">🚫</div><h5>Avoid</h5>
+        <p>Creating threads ad hoc for tasks. Letting arrival rate decide your thread count. Polling <code>Future</code>s
+        with a zero timeout to find the first finished result. Resetting the timeout inside a loop over tasks. Using
+        <code>Timer</code> for anything that matters. Forgetting that a bounded pool with an unbounded queue still
+        OOMs.</p></div>
+      <div class="tile"><div class="ico">🧠</div><h5>The one habit</h5>
+        <p>When you write <code>new Thread(...)</code>, stop and ask what the execution policy is. If the answer is "whatever
+        happens", you have just chosen unbounded thread creation — and you have chosen it again every time that line
+        runs.</p></div>
+    </div>
+
+    <div class="card">
+      <h4>Five questions the chapter leaves you with</h4>
+      <ol>
+        <li>What is a task in this application, and is each one independent and small enough to schedule?</li>
+        <li>Where is the execution policy defined — and could it be changed without editing submission code?</li>
+        <li>What bounds the thread count, and what bounds the backlog when the queues fill?</li>
+        <li>If the process is asked to stop, does it drain in-flight work, and does it eventually terminate?</li>
+        <li>Am I parallelizing <em>n</em> similar things, or two different ones? If the latter, is 2× worth the complexity?</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= chapter 6 footnotes ================= -->
+  <div class="footnotes">
+    <h4 style="margin:0 0 10px;font-size:.8rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)">Notes carried over from the chapter</h4>
+    <ol>
+      <li>In some situations sequential processing may offer a simplicity or safety advantage; most GUI frameworks process tasks sequentially using a single thread (Chapter 9).</li>
+      <li>On 32-bit machines a major limiting factor is address space for thread stacks. Each thread maintains two execution stacks, one for Java code and one for native code; typical JVM defaults yield a combined stack size of around half a megabyte, adjustable with <code>-Xss</code> or the <code>Thread</code> constructor. Dividing that into 2<sup>32</sup> gives a limit of a few thousand to a few tens of thousands of threads — and OS limits may be stricter.</li>
+      <li>Throttling concurrent tasks so as not to exhaust limited resources is analogous to one of the roles of a transaction monitor in an enterprise application.</li>
+      <li>Single-threaded executors provide enough internal synchronization to guarantee that memory writes made by one task are visible to subsequent tasks, so objects can be safely confined to the "task thread" even though the thread may be replaced from time to time.</li>
+      <li>A pool may not fail from creating too many threads, but if the arrival rate exceeds the service rate for long enough it can still run out of memory from the growing queue of <code>Runnable</code>s. Address that with a bounded work queue (§8.3.2).</li>
+      <li><code>Timer</code> supports scheduling based on absolute rather than relative time, so tasks can be sensitive to changes in the system clock; <code>ScheduledThreadPoolExecutor</code> supports only relative time.</li>
+      <li>To express a non-value-returning task with <code>Callable</code>, use <code>Callable&lt;Void&gt;</code>.</li>
+      <li>The timeout passed to <code>get</code> is computed by subtracting the current time from the deadline; this may yield a negative number, but all the timed methods in <code>java.util.concurrent</code> treat negative timeouts as zero, so no extra code is needed.</li>
+      <li>The <code>true</code> parameter to <code>Future.cancel</code> means the task thread can be interrupted if the task is currently running (Chapter 7).</li>
+    </ol>
+    <p style="margin-top:14px">
+      Summary of <em>Java Concurrency in Practice</em>, Chapter 6 (Task Execution), pp. 71–84.
+      All code listings are the book's, with annotations added; the diagram is drawn for these notes.
+    </p>
+  </div>
+
 <footer>
-  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–5 ·
+  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–6 ·
   self-contained HTML (no external requests)
 </footer>
 </main>
@@ -6824,6 +8014,245 @@ function initChapter5Sim() {
   reset('m1');
 }
 
+/* ---- Chapter 6: one workload, four execution policies ---- */
+function initChapter6Sim() {
+  const axis = document.getElementById('ch6-axis');
+  const rowEls = [0, 1, 2, 3, 4, 5].map(function (i) { return document.getElementById('ch6-row' + i); });
+  const btnStep = document.getElementById('ch6-simStep');
+  const btnPlay = document.getElementById('ch6-simPlay');
+  const btnReset = document.getElementById('ch6-simReset');
+  const modeSeq = document.getElementById('ch6-modeSeq');
+  const modePerTask = document.getElementById('ch6-modePerTask');
+  const modeCached = document.getElementById('ch6-modeCached');
+  const modeFixed = document.getElementById('ch6-modeFixed');
+  const stTick = document.getElementById('ch6-stTick');
+  const stThreads = document.getElementById('ch6-stThreads');
+  const stPeak = document.getElementById('ch6-stPeak');
+  const stFirst = document.getElementById('ch6-stFirst');
+  const stLast = document.getElementById('ch6-stLast');
+  const stVerdict = document.getElementById('ch6-stVerdict');
+  const simMsg = document.getElementById('ch6-simMsg');
+
+  /*
+   * Six requests arrive over the first four ticks, each with a service time.
+   * The policies differ only in how threads are handed out: one thread, a
+   * brand new thread per task, a reusable cache of threads, or a fixed pool
+   * whose queue absorbs the surplus.
+   */
+  const TICKS = 15;
+
+  const REQUESTS = [
+    { id: 'R1', arrival: 0, service: 4 },   // the long request
+    { id: 'R2', arrival: 1, service: 1 },
+    { id: 'R3', arrival: 2, service: 3 },
+    { id: 'R4', arrival: 2, service: 2 },
+    { id: 'R5', arrival: 3, service: 1 },
+    { id: 'R6', arrival: 3, service: 2 }
+  ];
+
+  const MODES = {
+    seq: {
+      maxThreads: 1,
+      alwaysCreate: false,
+      verdict: 'first response t4 \u2717',
+      note: 'One thread, arrival order. R1 hogs it for four ticks, so R2 waits; R3, R4, R5 and R6 queue behind each other. The first byte of response arrives only after R1 finishes and the workload ends at t13 \u2014 an unresponsive server that also leaves the CPU idle every time the thread blocks.'
+    },
+    pertask: {
+      maxThreads: Infinity,
+      alwaysCreate: true,
+      verdict: '6 threads, 5 at once',
+      note: 'A new thread per request, so everything starts the moment it arrives: the first response lands at t2 and the workload is done at t5. But nothing is bounded \u2014 five requests run at once here, and in production "five" is whatever the arrival rate says it is.'
+    },
+    cached: {
+      maxThreads: Infinity,
+      alwaysCreate: false,
+      verdict: '5 threads reused \u2713',
+      note: 'Same timings as thread-per-task, but a finished thread is handed to the next arrival instead of thrown away: R5 reuses R2\'s thread, so five threads serve six requests. Creation is still unbounded when demand spikes, which is why a cached pool is not a resource policy on its own.'
+    },
+    fixed: {
+      maxThreads: 2,
+      alwaysCreate: false,
+      verdict: 'bounded \u2713 · +3 ticks',
+      note: 'Two workers and a work queue. Surplus requests queue instead of multiplying threads: peak concurrency 2, only two threads ever created. The price is latency \u2014 with the pool smaller than the demand, R6 does not finish until t8 \u2014 but the resource is strictly bounded, which is a trade you make on purpose.'
+    }
+  };
+
+  let mode = 'seq';
+  let tick = 0;
+  let timer = null;
+  let grid = [];
+  let threads = 0;
+  let peak = 0;
+  let firstResponse = null;
+  let lastResponse = null;
+
+  function simulate(m) {
+    const cfg = MODES[m];
+    const g = [];
+    for (let t = 0; t < TICKS; t++) g.push(['', '', '', '', '', '']);
+
+    let created = 0;
+    let idle = 0;
+    let peakRunning = 0;
+    let first = null;
+    let last = null;
+    const queue = [];
+    let running = [];
+
+    for (let t = 0; t < TICKS; t++) {
+      /* 1. arrivals join the queue (a done cell from t-1 stays put) */
+      REQUESTS.forEach(function (r, i) {
+        if (r.arrival === t) queue.push(i);
+      });
+
+      /* 2. hand out threads while there is work and something to run it */
+      while (queue.length > 0) {
+        let got = false;
+        if (cfg.alwaysCreate) { created += 1; got = true; }
+        else if (idle > 0) { idle -= 1; got = true; }
+        else if (created < cfg.maxThreads) { created += 1; got = true; }
+        if (!got) break;
+        const row = queue.shift();
+        running.push({ row: row, remaining: REQUESTS[row].service });
+      }
+
+      /* 3. run one tick of work */
+      const finishing = [];
+      running.forEach(function (job) {
+        g[t][job.row + 1] = 'run';
+        job.remaining -= 1;
+        if (job.remaining === 0) finishing.push(job);
+      });
+      if (running.length > peakRunning) peakRunning = running.length;
+
+      /* 4. completed tasks release their thread and are marked done */
+      finishing.forEach(function (job) {
+        if (first === null) first = t + 1;
+        last = t + 1;
+        if (t + 1 < TICKS) g[t + 1][job.row + 1] = 'done';
+        if (!cfg.alwaysCreate) idle += 1;
+      });
+      running = running.filter(function (job) { return job.remaining > 0; });
+
+      /* 5. anything still queued is visibly waiting this tick */
+      queue.forEach(function (row) {
+        if (g[t][row + 1] === '') g[t][row + 1] = 'wait';
+      });
+    }
+
+    return { grid: g, threads: created, peak: peakRunning, first: first, last: last };
+  }
+
+  function buildAxis() {
+    axis.innerHTML = '';
+    for (let t = 0; t < TICKS; t++) {
+      const c = document.createElement('div');
+      c.className = 'tl-cell axis-cell';
+      c.textContent = String(t);
+      axis.appendChild(c);
+    }
+  }
+
+  function paint() {
+    rowEls.forEach(function (row, r) {
+      row.innerHTML = '';
+      for (let t = 0; t < TICKS; t++) {
+        const glyph = grid[r][t + 1] || '';
+        const c = document.createElement('div');
+        c.className = 'tl-cell' + (glyph ? ' ' + glyph : '');
+        if (t > tick) c.classList.add('future');
+        if (t === tick && tick < TICKS) c.classList.add('now');
+        if (glyph === 'run') c.textContent = '\u25b6';
+        else if (glyph === 'done') c.textContent = '\u2713';
+        else if (glyph === 'wait') c.textContent = '\u00b7';
+        row.appendChild(c);
+      }
+    });
+    stTick.textContent = String(Math.min(tick, TICKS));
+    stThreads.textContent = String(threads);
+    stPeak.textContent = String(peak);
+  }
+
+  function step() {
+    if (tick >= TICKS) { stop(); return false; }
+    tick += 1;
+    paint();
+    if (tick >= TICKS) finish();
+    return true;
+  }
+
+  function finish() {
+    stop();
+    stFirst.textContent = firstResponse === null ? '\u2014' : 't' + firstResponse;
+    stLast.textContent = lastResponse === null ? '\u2014' : 't' + lastResponse;
+    stVerdict.textContent = MODES[mode].verdict;
+    stVerdict.className = MODES[mode].verdict.indexOf('\u2717') >= 0 ? 'bad' : 'good';
+    simMsg.textContent = MODES[mode].note;
+    btnStep.disabled = true;
+    btnPlay.disabled = true;
+  }
+
+  function play() {
+    if (tick >= TICKS) return;
+    btnPlay.textContent = 'Pause';
+    timer = setInterval(function () {
+      if (!step()) return;
+      if (tick >= TICKS) { clearInterval(timer); timer = null; btnPlay.textContent = 'Play'; }
+    }, 650);
+  }
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    btnPlay.textContent = (tick >= TICKS) ? 'Play' : 'Resume';
+  }
+
+  function reset(newMode) {
+    stop();
+    if (newMode) mode = newMode;
+    const result = simulate(mode);
+    grid = result.grid;
+    threads = result.threads;
+    peak = result.peak;
+    firstResponse = result.first;
+    lastResponse = result.last;
+    tick = 0;
+    btnStep.disabled = false;
+    btnPlay.disabled = false;
+    btnPlay.textContent = 'Play';
+    modeSeq.classList.toggle('on', mode === 'seq');
+    modePerTask.classList.toggle('on', mode === 'pertask');
+    modeCached.classList.toggle('on', mode === 'cached');
+    modeFixed.classList.toggle('on', mode === 'fixed');
+    stFirst.textContent = '\u2014';
+    stLast.textContent = '\u2014';
+    stVerdict.textContent = 'idle';
+    stVerdict.className = '';
+    buildAxis();
+    paint();
+    const hints = {
+      seq: 'Sequential: one thread, arrival order. Watch R2, R3, R4 queue behind R1.',
+      pertask: 'Thread per task: everyone starts on arrival, and the thread count is unbounded.',
+      cached: 'Cached pool: unbounded too, but idle threads are reused instead of discarded.',
+      fixed: 'Fixed pool of two: the queue absorbs the surplus instead of the thread count.'
+    };
+    simMsg.textContent = hints[mode];
+  }
+
+  btnStep.addEventListener('click', function () { step(); });
+  btnPlay.addEventListener('click', function () {
+    if (timer) { stop(); return; }
+    if (tick >= TICKS) reset();
+    play();
+  });
+  btnReset.addEventListener('click', function () { reset(); });
+  modeSeq.addEventListener('click', function () { reset('seq'); });
+  modePerTask.addEventListener('click', function () { reset('pertask'); });
+  modeCached.addEventListener('click', function () { reset('cached'); });
+  modeFixed.addEventListener('click', function () { reset('fixed'); });
+
+  reset('seq');
+}
+
 /* ------------------------------------------------------------------ *
  * Boot
  * ------------------------------------------------------------------ */
@@ -6832,6 +8261,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initChapter2Sim();
   initChapter3Sim();
   initChapter5Sim();
+  initChapter6Sim();
 
   /* nav dropdowns */
   const btns = document.querySelectorAll('.navbtn');
