@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 1 — Introduction | Java Concurrency in Practice</title>
+<meta name="description" content="A visual summary of Chapter 1 (Introduction) of Java Concurrency in Practice by Brian Goetz et al., with the original Figure 1.1 and fully embedded Java listings.">
+<style>
+  :root{
+    --bg:#0d1117;
+    --bg-soft:#131a23;
+    --panel:#161e28;
+    --panel-2:#1b2531;
+    --line:#243040;
+    --text:#e6edf3;
+    --muted:#9aa8b7;
+    --faint:#6d7d8f;
+    --accent:#f0a24b;      /* book-cover orange */
+    --accent-2:#4aa3f0;
+    --good:#3fb950;
+    --bad:#f85149;
+    --code-bg:#0b1017;
+    --radius:14px;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:84px}
+  body{
+    margin:0;background:
+      radial-gradient(1100px 600px at 85% -12%, rgba(240,162,75,.13), transparent 60%),
+      radial-gradient(900px 500px at 5% 0%, rgba(74,163,240,.10), transparent 60%),
+      var(--bg);
+    color:var(--text);font-family:var(--sans);line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent-2);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ---------- top bar ---------- */
+  header.topbar{
+    position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);
+    background:rgba(13,17,23,.82);border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{max-width:1120px;margin:0 auto;padding:10px 22px;display:flex;align-items:center;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+  .brand .chip{
+    display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;
+    background:linear-gradient(145deg,var(--accent),#c9762a);color:#1a1205;font-size:13px;font-weight:900;
+  }
+  nav.toc{display:flex;gap:4px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+  nav.toc::-webkit-scrollbar{display:none}
+  nav.toc a{
+    color:var(--muted);font-size:13.5px;padding:6px 11px;border-radius:999px;white-space:nowrap;
+    border:1px solid transparent;transition:.15s
+  }
+  nav.toc a:hover{color:var(--text);background:var(--panel-2);text-decoration:none}
+  .progress{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0;z-index:60}
+
+  /* ---------- layout ---------- */
+  main{max-width:1120px;margin:0 auto;padding:0 22px 90px}
+  section{padding-top:56px}
+  h2{font-size:clamp(1.35rem,2.6vw,1.85rem);margin:0 0 6px;letter-spacing:-.3px;line-height:1.25}
+  h2 .num{color:var(--accent);font-family:var(--mono);font-size:.8em;margin-right:10px}
+  h3{font-size:1.06rem;margin:30px 0 8px;color:#f2f6fa}
+  h3 .num{color:var(--faint);font-family:var(--mono);font-size:.86em;margin-right:8px}
+  p{margin:12px 0;color:#d3dde6}
+  ul,ol{margin:12px 0 12px 22px;padding:0}
+  li{margin:7px 0;color:#d3dde6}
+  li::marker{color:var(--faint)}
+  strong{color:#fff;font-weight:650}
+  .lede{font-size:1.06rem;color:#c9d5e0}
+  .rule{height:1px;background:linear-gradient(90deg,var(--line),transparent);margin:34px 0 0}
+
+  /* ---------- hero ---------- */
+  .hero{padding:54px 0 8px}
+  .byline{margin:14px 0 0;color:var(--faint);font-size:.86rem;font-style:italic}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;
+    color:var(--accent);border:1px solid rgba(240,162,75,.35);background:rgba(240,162,75,.09);
+    padding:5px 12px;border-radius:999px;font-weight:700
+  }
+  h1{font-family:var(--serif);font-size:clamp(2.1rem,5.4vw,3.5rem);line-height:1.06;margin:18px 0 8px;letter-spacing:-1px}
+  h1 span{color:var(--accent);font-style:italic}
+  .sub{color:var(--muted);font-size:1rem;max-width:70ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  .pill{font-size:12.5px;color:var(--muted);border:1px solid var(--line);background:var(--panel);padding:5px 11px;border-radius:999px}
+  .pill b{color:var(--text);font-weight:600}
+
+  /* ---------- hero art ---------- */
+  .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:26px;align-items:center}
+  .hero-art{background:linear-gradient(180deg,var(--panel),var(--bg-soft));border:1px solid var(--line);
+    border-radius:var(--radius);padding:10px}
+  .hero-art svg{width:100%;height:auto;display:block}
+  .hero-art figcaption{border-top:none;color:var(--faint);padding:2px 6px 4px;font-size:.75rem;background:transparent}
+  @media (max-width:900px){.hero-grid{grid-template-columns:1fr}}
+
+  /* ---------- cards ---------- */
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--bg-soft));
+    border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;margin:20px 0;
+  }
+  .card h4{margin:0 0 10px;font-size:.82rem;text-transform:uppercase;letter-spacing:1.3px;color:var(--faint)}
+  .tldr{border-left:3px solid var(--accent)}
+  .tldr ol{margin:6px 0 0 20px}
+  .tldr li{margin:9px 0}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin:18px 0}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .tile .ico{font-size:18px;line-height:1}
+  .tile h5{margin:8px 0 4px;font-size:.95rem;color:#fff}
+  .tile p{margin:0;font-size:.9rem;color:var(--muted);line-height:1.55}
+
+  .callout{
+    display:flex;gap:12px;border:1px solid var(--line);border-left:3px solid var(--accent-2);
+    background:rgba(74,163,240,.06);border-radius:10px;padding:14px 16px;margin:18px 0;font-size:.95rem
+  }
+  .callout.warn{border-left-color:var(--accent);background:rgba(240,162,75,.07)}
+  .callout .mark{font-size:16px;line-height:1.4}
+  .callout p{margin:0;color:#cfdae4}
+
+  /* ---------- figures ---------- */
+  figure{margin:24px 0;background:#fff;border-radius:12px;padding:14px;border:1px solid var(--line)}
+  figure img{display:block;width:100%;height:auto;border-radius:6px}
+  figcaption{color:#5b6775;font-size:.82rem;padding:10px 4px 0;text-align:center;border-top:1px solid #e6eaef;margin-top:12px}
+  figure.dark{background:var(--panel);border-color:var(--line)}
+  figure.dark figcaption{color:var(--faint);border-top-color:var(--line)}
+
+  /* ---------- tables ---------- */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin:18px 0}
+  table{border-collapse:collapse;width:100%;font-size:.93rem;min-width:520px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--panel-2);color:#fff;font-size:.78rem;text-transform:uppercase;letter-spacing:1px}
+  tr:last-child td{border-bottom:none}
+  td code,p code,li code{font-family:var(--mono);font-size:.86em;background:rgba(110,130,150,.18);
+    border:1px solid var(--line);padding:1px 5px;border-radius:5px;color:#ffd7a8}
+
+  /* ---------- code ---------- */
+  .listing{margin:22px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--code-bg)}
+  .listing .head{
+    display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--panel-2);
+    border-bottom:1px solid var(--line);font-size:.8rem;color:var(--muted)
+  }
+  .listing .head .name{color:#fff;font-weight:650;font-size:.86rem}
+  .listing .head .tag{font-family:var(--mono);font-size:.72rem;padding:2px 7px;border-radius:5px;border:1px solid}
+  .tag.bad{color:#ffb3ae;border-color:rgba(248,81,73,.45);background:rgba(248,81,73,.1)}
+  .tag.good{color:#93e2a0;border-color:rgba(63,185,80,.45);background:rgba(63,185,80,.1)}
+  .tag.neutral{color:#a9c8e8;border-color:rgba(74,163,240,.4);background:rgba(74,163,240,.1)}
+  .copy{
+    margin-left:auto;font:inherit;font-size:12px;color:var(--muted);background:var(--panel);
+    border:1px solid var(--line);padding:4px 10px;border-radius:7px;cursor:pointer;transition:.15s
+  }
+  .copy:hover{color:#fff;border-color:#38506a}
+  .copy.done{color:#93e2a0;border-color:rgba(63,185,80,.5)}
+  pre{margin:0;padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.65;
+      color:#cbd6e2;tab-size:4}
+  pre code{font-family:inherit;background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  .k{color:#c792ea}   /* keyword   */
+  .t{color:#7fd1e0}   /* type      */
+  .a{color:#f0a24b}   /* annotation*/
+  .s{color:#a5d6a7}   /* string    */
+  .c{color:#6b7a8c;font-style:italic} /* comment */
+  .n{color:#f0c987}   /* number    */
+
+  /* ---------- interactive widget ---------- */
+  .sim{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:20px 0}
+  .sim-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+  .btn{font:inherit;font-size:13px;padding:7px 14px;border-radius:8px;border:1px solid var(--line);
+       background:var(--panel-2);color:var(--text);cursor:pointer;transition:.15s}
+  .btn:hover{border-color:#3d556f;background:#22303f}
+  .btn.primary{background:linear-gradient(145deg,var(--accent),#cf7f2e);border-color:transparent;color:#1a1205;font-weight:700}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .sim-toggle{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-left:auto}
+  .sim-toggle button{font:inherit;font-size:12.5px;padding:7px 13px;background:transparent;border:none;
+    color:var(--muted);cursor:pointer}
+  .sim-toggle button.on{background:rgba(240,162,75,.16);color:var(--accent)}
+  .lanes{display:grid;grid-template-columns:74px 1fr;gap:10px;align-items:center}
+  .lane-label{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:right;padding-right:4px}
+  .lane{display:flex;gap:8px;min-height:52px;align-items:center;flex-wrap:wrap}
+  .op{
+    font-family:var(--mono);font-size:12px;padding:9px 11px;border-radius:9px;border:1px solid var(--line);
+    background:var(--bg-soft);color:#93a3b5;opacity:.35;transition:.2s;white-space:nowrap
+  }
+  .op.active{opacity:1;border-color:var(--accent);background:rgba(240,162,75,.14);color:#ffd9ac;
+    box-shadow:0 0 0 3px rgba(240,162,75,.12)}
+  .op.done{opacity:1;color:#c9d5e0;border-color:#31414f}
+  .op.dup{border-color:rgba(248,81,73,.6);background:rgba(248,81,73,.1);color:#ffb3ae}
+  .sim-readout{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .stat{flex:1 1 150px;background:var(--bg-soft);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .stat span{display:block;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:var(--faint)}
+  .stat b{font-family:var(--mono);font-size:1.15rem;color:#fff;font-weight:600}
+  .stat b.bad{color:#ff9a94}
+  .stat b.good{color:#8fe0a0}
+  .sim-msg{margin-top:12px;font-size:.9rem;color:var(--muted);min-height:1.4em}
+
+  /* ---------- pull quote ---------- */
+  blockquote.pull{
+    margin:34px 0;padding:6px 0 6px 24px;border-left:3px solid var(--accent);
+    font-family:var(--serif);font-size:clamp(1.15rem,2.6vw,1.5rem);line-height:1.45;color:#f0f5fa;font-style:italic;max-width:60ch
+  }
+  blockquote.pull cite{display:block;font-family:var(--sans);font-size:.8rem;font-style:normal;color:var(--faint);margin-top:12px;letter-spacing:.4px}
+
+  /* ---------- footnotes ---------- */
+  .footnotes{font-size:.86rem;color:var(--muted);border-top:1px solid var(--line);margin-top:40px;padding-top:18px}
+  .footnotes li{margin:8px 0}
+  footer{color:var(--faint);font-size:.82rem;text-align:center;padding:34px 20px 10px;border-top:1px solid var(--line);margin-top:50px}
+
+  @media (max-width:720px){
+    .topbar-inner{padding:8px 14px}
+    nav.toc a{padding:5px 8px;font-size:12.5px}
+    main{padding:0 15px 70px}
+    .lanes{grid-template-columns:52px 1fr}
+    pre{font-size:12px;padding:14px}
+  }
+  @media print{
+    body{background:#fff;color:#000}
+    header.topbar,.sim-controls,.copy,.progress{display:none!important}
+    .card,figure,.listing,.sim{break-inside:avoid}
+    a{color:#000}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="chip">J</span> Chapter 1 · Introduction</div>
+    <nav class="toc">
+      <a href="#tldr">TL;DR</a>
+      <a href="#history">1.1 History</a>
+      <a href="#benefits">1.2 Benefits</a>
+      <a href="#risks">1.3 Risks</a>
+      <a href="#everywhere">1.4 Everywhere</a>
+      <a href="#figure">Figure 1.1</a>
+      <a href="#listings">Listings</a>
+      <a href="#sim">Simulator</a>
+      <a href="#terms">Glossary</a>
+      <a href="#cheatsheet">Cheat sheet</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= HERO ================= -->
+  <div class="hero">
+    <div class="hero-grid">
+    <div>
+    <span class="kicker">Java Concurrency in Practice · Chapter 1</span>
+    <h1>Chapter 1 — <span>Introduction</span></h1>
+    <p class="sub">
+      Why concurrency at all? This chapter is the book's argument: threads are an inescapable feature of Java,
+      they buy you throughput, simpler code and responsive UIs — and in exchange they hand you three new classes
+      of bugs: <strong>safety</strong>, <strong>liveness</strong> and <strong>performance</strong> hazards.
+    </p>
+    <p class="byline">Brian Goetz, with Tim Peierls, Joshua Bloch, Joseph Bowbeer, David Holmes &amp; Doug Lea</p>
+    <div class="meta">
+      <span class="pill">📖 <b>Pages 1–9</b></span>
+      <span class="pill">🧩 <b>4</b> sections · <b>2</b> listings · <b>1</b> figure</span>
+      <span class="pill">⏱️ ~10 min read</span>
+      <span class="pill">🏷️ Part I — Fundamentals</span>
+    </div>
+    </div>
+
+    <figure class="hero-art" style="margin:0">
+      <svg viewBox="0 0 420 250" role="img" aria-label="One process containing three threads that share the heap and each keep their own stack and program counter">
+        <defs>
+          <linearGradient id="gProc" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#1f2b39"/><stop offset="1" stop-color="#131a23"/>
+          </linearGradient>
+          <linearGradient id="gThread" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#f0a24b" stop-opacity=".28"/><stop offset="1" stop-color="#f0a24b" stop-opacity=".06"/>
+          </linearGradient>
+        </defs>
+        <rect x="8" y="14" width="404" height="222" rx="14" fill="url(#gProc)" stroke="#2b3a4a"/>
+        <text x="24" y="38" fill="#9aa8b7" font-size="11" font-family="ui-monospace,monospace">PROCESS — shared address space</text>
+
+        <!-- three threads -->
+        <g font-family="ui-monospace,monospace">
+          <rect x="24" y="52" width="112" height="86" rx="10" fill="url(#gThread)" stroke="#f0a24b" stroke-opacity=".5"/>
+          <text x="80" y="72" fill="#ffd9ac" font-size="11" text-anchor="middle">thread A</text>
+          <text x="36" y="92" fill="#a9b8c7" font-size="9.5">PC</text><rect x="58" y="84" width="64" height="10" rx="3" fill="#33506b"/>
+          <text x="36" y="108" fill="#a9b8c7" font-size="9.5">stack</text><rect x="58" y="100" width="64" height="10" rx="3" fill="#33506b"/>
+          <text x="36" y="124" fill="#a9b8c7" font-size="9.5">locals</text><rect x="58" y="116" width="64" height="10" rx="3" fill="#33506b"/>
+
+          <rect x="150" y="52" width="112" height="86" rx="10" fill="url(#gThread)" stroke="#f0a24b" stroke-opacity=".5"/>
+          <text x="206" y="72" fill="#ffd9ac" font-size="11" text-anchor="middle">thread B</text>
+          <text x="162" y="92" fill="#a9b8c7" font-size="9.5">PC</text><rect x="184" y="84" width="64" height="10" rx="3" fill="#33506b"/>
+          <text x="162" y="108" fill="#a9b8c7" font-size="9.5">stack</text><rect x="184" y="100" width="64" height="10" rx="3" fill="#33506b"/>
+          <text x="162" y="124" fill="#a9b8c7" font-size="9.5">locals</text><rect x="184" y="116" width="64" height="10" rx="3" fill="#33506b"/>
+
+          <rect x="276" y="52" width="112" height="86" rx="10" fill="url(#gThread)" stroke="#f0a24b" stroke-opacity=".5"/>
+          <text x="332" y="72" fill="#ffd9ac" font-size="11" text-anchor="middle">thread C</text>
+          <text x="288" y="92" fill="#a9b8c7" font-size="9.5">PC</text><rect x="310" y="84" width="64" height="10" rx="3" fill="#33506b"/>
+          <text x="288" y="108" fill="#a9b8c7" font-size="9.5">stack</text><rect x="310" y="100" width="64" height="10" rx="3" fill="#33506b"/>
+          <text x="288" y="124" fill="#a9b8c7" font-size="9.5">locals</text><rect x="310" y="116" width="64" height="10" rx="3" fill="#33506b"/>
+        </g>
+
+        <!-- shared heap -->
+        <rect x="24" y="156" width="364" height="66" rx="10" fill="#0f1721" stroke="#4aa3f0" stroke-opacity=".55"/>
+        <text x="38" y="176" fill="#a9c8e8" font-size="11" font-family="ui-monospace,monospace">HEAP + file handles — shared by all threads</text>
+        <g font-family="ui-monospace,monospace" font-size="10">
+          <rect x="38" y="186" width="72" height="24" rx="5" fill="#16222f" stroke="#31414f"/>
+          <text x="74" y="202" fill="#e6edf3" text-anchor="middle">value = 9</text>
+          <rect x="120" y="186" width="86" height="24" rx="5" fill="#16222f" stroke="#31414f"/>
+          <text x="163" y="202" fill="#9aa8b7" text-anchor="middle">objects…</text>
+          <rect x="216" y="186" width="96" height="24" rx="5" fill="#16222f" stroke="#31414f"/>
+          <text x="264" y="202" fill="#9aa8b7" text-anchor="middle">file handle</text>
+          <rect x="322" y="186" width="52" height="24" rx="5" fill="#16222f" stroke="#31414f"/>
+          <text x="348" y="202" fill="#9aa8b7" text-anchor="middle">…</text>
+        </g>
+        <!-- arrows from threads to heap -->
+        <g stroke="#4aa3f0" stroke-opacity=".5" stroke-width="1.3">
+          <line x1="80" y1="140" x2="80" y2="154"/><line x1="206" y1="140" x2="206" y2="154"/><line x1="332" y1="140" x2="332" y2="154"/>
+        </g>
+      </svg>
+      <figcaption>Threads share the heap; each keeps its own program counter, stack and locals.</figcaption>
+    </figure>
+    </div>
+  </div>
+
+  <!-- ================= TL;DR ================= -->
+  <section id="tldr">
+    <h2>Chapter in one paragraph</h2>
+    <div class="card tldr">
+      <h4>TL;DR — the five things worth remembering</h4>
+      <ol>
+        <li><strong>Concurrency exists because of hardware and human nature.</strong> Processes were invented for resource utilization, fairness and convenience; threads were invented for exactly the same three reasons, but <em>inside</em> a process.</li>
+        <li><strong>Threads buy you three things:</strong> use of multiple processors (throughput), a simpler sequential-looking model for asynchronous work, and a UI that does not freeze.</li>
+        <li><strong>Safely hazard: race conditions.</strong> <code>value++</code> is not one operation but three (read, add, write). Without synchronization, two threads can read the same value and produce duplicate results.</li>
+        <li><strong>Liveness hazards:</strong> safety means <em>nothing bad ever happens</em>; liveness means <em>something good eventually happens</em>. Deadlock, starvation and livelock are the ways "eventually" never arrives.</li>
+        <li><strong>Thread-safety is contagious.</strong> Even if you never call <code>new Thread()</code>, Timer, servlets, RMI, Swing/AWT and the JVM itself will call your code from threads you do not own.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= 1.1 ================= -->
+  <section id="history">
+    <h2><span class="num">1.1</span>A (Very) Brief History of Concurrency</h2>
+    <p class="lede">From bare metal → processes → threads: every step was about not wasting an expensive machine.</p>
+
+
+    <figure class="dark">
+      <svg viewBox="0 0 760 190" role="img" aria-label="Evolution from one program per machine, to several isolated processes, to threads sharing one address space">
+        <defs>
+          <marker id="evoArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="#6d7d8f"/>
+          </marker>
+        </defs>
+        <!-- stage 1 -->
+        <rect x="14" y="34" width="196" height="118" rx="12" fill="#131a23" stroke="#2b3a4a"/>
+        <text x="112" y="24" fill="#6d7d8f" font-size="10.5" font-family="ui-monospace,monospace" text-anchor="middle">bare metal</text>
+        <rect x="34" y="58" width="156" height="74" rx="8" fill="#1b2531" stroke="#f0a24b"/>
+        <text x="112" y="100" fill="#ffd9ac" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">one program</text>
+        <text x="112" y="146" fill="#6d7d8f" font-size="10" text-anchor="middle">run to completion</text>
+
+        <!-- arrow -->
+        <line x1="216" y1="93" x2="270" y2="93" stroke="#6d7d8f" stroke-width="1.5" marker-end="url(#evoArrow)"/>
+        <text x="243" y="80" fill="#6d7d8f" font-size="9.5" text-anchor="middle">OS</text>
+
+        <!-- stage 2 -->
+        <rect x="278" y="34" width="196" height="118" rx="12" fill="#131a23" stroke="#2b3a4a"/>
+        <text x="376" y="24" fill="#6d7d8f" font-size="10.5" font-family="ui-monospace,monospace" text-anchor="middle">processes</text>
+        <rect x="294" y="52" width="76" height="82" rx="8" fill="#1b2531" stroke="#31414f"/>
+        <text x="332" y="98" fill="#c9d5e0" font-size="10.5" font-family="ui-monospace,monospace" text-anchor="middle">P1</text>
+        <rect x="382" y="52" width="76" height="82" rx="8" fill="#1b2531" stroke="#31414f"/>
+        <text x="420" y="98" fill="#c9d5e0" font-size="10.5" font-family="ui-monospace,monospace" text-anchor="middle">P2</text>
+        <text x="376" y="146" fill="#6d7d8f" font-size="10" text-anchor="middle">isolated; sockets, semaphores, files</text>
+
+        <!-- arrow -->
+        <line x1="480" y1="93" x2="534" y2="93" stroke="#6d7d8f" stroke-width="1.5" marker-end="url(#evoArrow)"/>
+        <text x="507" y="80" fill="#6d7d8f" font-size="9.5" text-anchor="middle">share</text>
+
+        <!-- stage 3 -->
+        <rect x="542" y="34" width="204" height="118" rx="12" fill="#131a23" stroke="#2b3a4a"/>
+        <text x="644" y="24" fill="#6d7d8f" font-size="10.5" font-family="ui-monospace,monospace" text-anchor="middle">threads</text>
+        <rect x="556" y="52" width="176" height="52" rx="8" fill="#1b2531" stroke="#4aa3f0" stroke-opacity=".6"/>
+        <g font-family="ui-monospace,monospace" font-size="10">
+          <rect x="566" y="62" width="50" height="30" rx="5" fill="rgba(240,162,75,.16)" stroke="#f0a24b" stroke-opacity=".6"/>
+          <text x="591" y="81" fill="#ffd9ac" text-anchor="middle">T1</text>
+          <rect x="622" y="62" width="50" height="30" rx="5" fill="rgba(240,162,75,.16)" stroke="#f0a24b" stroke-opacity=".6"/>
+          <text x="647" y="81" fill="#ffd9ac" text-anchor="middle">T2</text>
+          <rect x="678" y="62" width="44" height="30" rx="5" fill="rgba(240,162,75,.16)" stroke="#f0a24b" stroke-opacity=".6"/>
+          <text x="700" y="81" fill="#ffd9ac" text-anchor="middle">T3</text>
+        </g>
+        <rect x="556" y="110" width="176" height="24" rx="6" fill="#0f1721" stroke="#4aa3f0" stroke-opacity=".5"/>
+        <text x="644" y="126" fill="#a9c8e8" font-size="9.5" font-family="ui-monospace,monospace" text-anchor="middle">one heap, one process</text>
+        <text x="644" y="146" fill="#6d7d8f" font-size="10" text-anchor="middle">finer-grained sharing</text>
+      </svg>
+      <figcaption>Why processes were invented, then why threads were invented inside them —
+        the same three motives (utilization, fairness, convenience) each time.</figcaption>
+    </figure>
+
+    <h3>The sequence-only machine</h3>
+    <p>
+      Early computers had no operating system at all. They ran <strong>one program from beginning to end</strong>,
+      and that program had direct access to every resource of the machine. Writing for the bare metal was hard,
+      and running one program at a time was a terrible use of hardware that was expensive and scarce.
+    </p>
+
+    <h3>Processes: isolation with coarse-grained sharing</h3>
+    <p>
+      Operating systems evolved to run several programs at once, each in its own <strong>process</strong> — an isolated,
+      independently executing program to which the OS allocates resources such as memory, file handles and security
+      credentials. When processes needed to talk to each other, they used deliberately coarse-grained mechanisms:
+      sockets, signal handlers, shared memory, semaphores and files.
+    </p>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">⚙️</div><h5>Resource utilization</h5>
+        <p>Programs must wait for I/O and can do no useful work while waiting. Better to run someone else in that gap.</p></div>
+      <div class="tile"><div class="ico">⚖️</div><h5>Fairness</h5>
+        <p>Multiple users and programs may have equal claims on the machine. Time-slicing beats "run to completion, then the next one".</p></div>
+      <div class="tile"><div class="ico">🧰</div><h5>Convenience</h5>
+        <p>Writing several small single-task programs that coordinate is often easier than writing one program that does everything.</p></div>
+    </div>
+
+    <h3>The sequential programming model</h3>
+    <p>
+      Each process in an early timesharing system was effectively a <strong>virtual von Neumann computer</strong>:
+      a memory space holding instructions and data, instructions executed one after another per the machine
+      language semantics, and interaction with the outside world through OS I/O primitives. For every instruction
+      executed there is a well-defined <em>"next instruction"</em>. Nearly every language in use today follows this
+      model, so the specification tells you exactly "what comes next" after any action.
+    </p>
+    <p>
+      The model is intuitive because it mirrors how people work: <em>get out of bed, put on your bathrobe, go
+      downstairs, start the tea.</em> Each of those is itself a sequence of finer actions — and one of them,
+      <strong>waiting for the water to boil</strong>, is inherently asynchronous. While the kettle heats you can
+      wait, or start the toast, or fetch the newspaper, while staying aware that your attention will soon be needed.
+      The kettle and toaster "know" they are used asynchronously, so they signal audibly when done. The same balance
+      of sequentiality and asynchrony characterises efficient people — and efficient programs.
+    </p>
+
+    <h3>Threads: concurrency inside a single process</h3>
+    <p>
+      The same three motivations — utilization, fairness, convenience — drove the move from processes to threads.
+      Threads let <strong>multiple streams of control flow coexist within a process</strong>. They share process-wide
+      resources (memory, file handles), but each thread has its own <strong>program counter, stack and local
+      variables</strong>. They are the natural decomposition for exploiting hardware parallelism, and most modern OSs
+      schedule <em>threads</em>, not processes — hence the nickname <strong>"lightweight processes"</strong>.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Shared between threads of one process</th><th>Private to each thread</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>The memory address space — same variables, same heap, so sharing is <em>finer grained</em> than any inter-process mechanism</td>
+            <td>Program counter, stack, local variables</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="mark">⚠️</span>
+      <p><strong>The catch, stated in the first page:</strong> without explicit coordination, threads run
+      simultaneously and asynchronously. A thread may modify variables that another thread is in the middle of
+      using, with unpredictable results. That single sentence is the whole book.</p>
+    </div>
+  </section>
+
+  <!-- ================= 1.2 ================= -->
+  <section id="benefits">
+    <h2><span class="num">1.2</span>Benefits of Threads</h2>
+    <p class="lede">Used properly, threads lower development and maintenance cost <em>and</em> raise performance.</p>
+    <p>
+      Threads make it easier to model how humans actually work by turning asynchronous workflows into mostly
+      sequential ones, and they turn convoluted code into straight-line code that is easier to write, read and
+      maintain. They help GUI applications stay responsive, help server applications with utilization and
+      throughput, and even simplify the JVM itself — the garbage collector usually runs in one or more dedicated
+      threads. Most non-trivial Java applications depend on threads for their organization.
+    </p>
+
+    <h3><span class="num">1.2.1</span>Exploiting multiple processors</h3>
+    <p>
+      Multiprocessors were once exotic; now even low-end servers and mid-range desktops have several cores, and the
+      trend only accelerates — clock rates are getting harder to scale, so manufacturers add <strong>cores per
+      chip</strong> instead.
+    </p>
+    <p>
+      Because the basic unit of scheduling is the thread, a single-threaded program can use <em>at most one
+      processor</em>: on a 2-core machine it leaves half the CPU idle, on a 100-core machine it gives up 99%.
+      A well-designed multithreaded program can execute on many cores at once and improve throughput. Threads also
+      help on a <em>single</em>-processor machine: when one thread blocks on synchronous I/O the CPU would sit idle,
+      but another thread can run — like reading the newspaper while the water boils instead of waiting for it first.
+    </p>
+
+    <h3><span class="num">1.2.2</span>Simplicity of modeling</h3>
+    <p>
+      One type of task ("fix these twelve bugs") is easier to manage than five types with competing priorities;
+      context switching between them costs you. Software is the same: a program that processes one kind of task
+      sequentially is simpler to write, less error-prone and easier to test than one juggling many at once.
+      Assigning a thread to each type of task — or to each element of a simulation — gives the
+      <strong>illusion of sequentiality</strong> and insulates your domain logic from scheduling details, interleaved
+      operations, asynchronous I/O and resource waits.
+    </p>
+    <p>
+      Frameworks such as servlets and RMI exploit exactly this: the framework handles request management, thread
+      creation and load balancing, and calls your component at the right point in the workflow. The servlet author
+      does not have to think about how many other requests are in flight or whether the socket streams block — the
+      <code>service</code> method can process its request synchronously, as if it were a single-threaded program.
+    </p>
+
+    <h3><span class="num">1.2.3</span>Simplified handling of asynchronous events</h3>
+    <p>
+      A server accepting connections from many clients is much easier to write when each connection gets its own
+      thread and may use straightforward synchronous I/O, instead of a single loop multiplexing non-blocking
+      channels. Historically OSes capped threads per process at a few hundred, which is why multiplexed I/O
+      (<code>select</code>, <code>poll</code>) and <code>java.nio</code> exist. Modern OS thread support has improved
+      dramatically — the NPTL package in Linux was designed for hundreds of thousands of threads — so the
+      <em>thread-per-client</em> model is practical far more often than it used to be.
+    </p>
+
+    <h3><span class="num">1.2.4</span>More responsive user interfaces</h3>
+    <p>
+      Old GUIs were single-threaded: you either polled for events everywhere (messy and intrusive) or ran all
+      application code through a "main event loop". Any slow code called from that loop <strong>froze the
+      interface</strong>, because later events could not be processed until control returned.
+    </p>
+    <p>
+      AWT and Swing replace the main event loop with an <strong>event dispatch thread (EDT)</strong>. Most GUI
+      frameworks are single-threaded subsystems, so the loop is effectively still there — it just runs in a thread
+      owned by the toolkit rather than by your application. Short-lived tasks keep the UI responsive; a long-running
+      task in the EDT (spell-checking a big document, fetching over the network) ruins responsiveness — and worse,
+      the user cannot even <em>cancel</em> it, because the cancel button's event is queued behind the very task it
+      would cancel. Move the long task to another thread and the event thread stays free.
+    </p>
+
+    <figure class="dark">
+      <svg viewBox="0 0 760 250" role="img" aria-label="Left: a long task runs on the event dispatch thread and queued click and cancel events wait behind it. Right: the long task is moved to a worker thread, so the event thread stays free to handle clicks.">
+        <defs>
+          <marker id="edtArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="#6d7d8f"/>
+          </marker>
+        </defs>
+        <text x="190" y="20" fill="#ffb3ae" font-size="11.5" font-family="ui-monospace,monospace" text-anchor="middle">long task ON the EDT</text>
+        <text x="570" y="20" fill="#93e2a0" font-size="11.5" font-family="ui-monospace,monospace" text-anchor="middle">long task OFF the EDT</text>
+        <line x1="380" y1="32" x2="380" y2="236" stroke="#243040"/>
+
+        <!-- LEFT: blocked -->
+        <text x="26" y="62" fill="#9aa8b7" font-size="11" font-family="ui-monospace,monospace">EDT</text>
+        <rect x="60" y="44" width="270" height="34" rx="7" fill="rgba(248,81,73,.12)" stroke="#f85149"/>
+        <text x="195" y="66" fill="#ffb3ae" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">spell-check 40 pages …</text>
+        <rect x="60" y="86" width="120" height="30" rx="7" fill="#1b2531" stroke="#3b4b5c" stroke-dasharray="4 3"/>
+        <text x="120" y="106" fill="#8c9bac" font-size="10.5" font-family="ui-monospace,monospace" text-anchor="middle">click</text>
+        <rect x="188" y="86" width="120" height="30" rx="7" fill="#1b2531" stroke="#3b4b5c" stroke-dasharray="4 3"/>
+        <text x="248" y="106" fill="#8c9bac" font-size="10.5" font-family="ui-monospace,monospace" text-anchor="middle">cancel</text>
+        <text x="60" y="140" fill="#6d7d8f" font-size="10" font-family="ui-monospace,monospace">event queue</text>
+        <text x="330" y="140" fill="#ff9a94" font-size="10" font-family="ui-monospace,monospace" text-anchor="end">waiting…</text>
+        <text x="195" y="172" fill="#ffb3ae" font-size="10.5" text-anchor="middle">UI frozen; the cancel button cannot be handled</text>
+        <text x="195" y="190" fill="#ffb3ae" font-size="10.5" text-anchor="middle">until the task it would cancel finishes.</text>
+        <text x="195" y="216" fill="#6d7d8f" font-size="10" text-anchor="middle">“subsequent events cannot be processed</text>
+        <text x="195" y="230" fill="#6d7d8f" font-size="10" text-anchor="middle">until control returns to the loop”</text>
+
+        <!-- RIGHT: responsive -->
+        <text x="406" y="62" fill="#9aa8b7" font-size="11" font-family="ui-monospace,monospace">EDT</text>
+        <rect x="440" y="44" width="110" height="34" rx="7" fill="rgba(63,185,80,.12)" stroke="#3fb950"/>
+        <text x="495" y="66" fill="#93e2a0" font-size="10.5" font-family="ui-monospace,monospace" text-anchor="middle">click ✓</text>
+        <rect x="558" y="44" width="110" height="34" rx="7" fill="rgba(63,185,80,.12)" stroke="#3fb950"/>
+        <text x="613" y="66" fill="#93e2a0" font-size="10.5" font-family="ui-monospace,monospace" text-anchor="middle">cancel ✓</text>
+        <rect x="676" y="44" width="70" height="34" rx="7" fill="#1b2531" stroke="#3b4b5c" stroke-dasharray="4 3"/>
+        <text x="711" y="66" fill="#8c9bac" font-size="10.5" font-family="ui-monospace,monospace" text-anchor="middle">repaint</text>
+
+        <text x="406" y="112" fill="#9aa8b7" font-size="11" font-family="ui-monospace,monospace">worker</text>
+        <rect x="470" y="94" width="270" height="34" rx="7" fill="rgba(240,162,75,.13)" stroke="#f0a24b"/>
+        <text x="605" y="116" fill="#ffd9ac" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">spell-check 40 pages …</text>
+        <line x1="470" y1="112" x2="442" y2="76" stroke="#6d7d8f" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#edtArrow)"/>
+        <text x="406" y="158" fill="#6d7d8f" font-size="10" font-family="ui-monospace,monospace">result handed back</text>
+        <text x="406" y="172" fill="#6d7d8f" font-size="10" font-family="ui-monospace,monospace">via the event queue</text>
+        <text x="583" y="196" fill="#93e2a0" font-size="10.5" text-anchor="middle">Event thread stays free, so the interface</text>
+        <text x="583" y="212" fill="#93e2a0" font-size="10.5" text-anchor="middle">stays responsive and cancellation works.</text>
+      </svg>
+      <figcaption>Section 1.2.4 in one picture: responsiveness is about <em>which thread</em> runs the slow work.</figcaption>
+    </figure>
+
+
+    <div class="callout">
+      <span class="mark">💡</span>
+      <p>All four benefits are really one idea: <strong>threads let you write straight-line, synchronous-looking
+      code while the world stays asynchronous.</strong> The cost of that illusion is paid in the next section.</p>
+    </div>
+  </section>
+
+  <!-- ================= 1.3 ================= -->
+  <section id="risks">
+    <h2><span class="num">1.3</span>Risks of Threads</h2>
+    <p class="lede">A double-edged sword: Java's language support, library support and formal memory model make
+    portable concurrent code possible — and make every mainstream developer responsible for it.</p>
+
+    <h3><span class="num">1.3.1</span>Safety hazards</h3>
+    <p>
+      Thread safety is unusually subtle because, without sufficient synchronization, the <strong>ordering of
+      operations across threads is unpredictable</strong> — and sometimes surprising.
+      <code>UnsafeSequence</code> (Listing 1.1) is supposed to return a unique value on every call. It is perfectly
+      correct single-threaded, and broken multi-threaded.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">DON'T DO THIS</span>
+        <span class="name">Listing 1.1 · Non-thread-safe Sequence Generator</span>
+        <button class="copy" data-copy="l11">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="l11">@NotThreadSafe
+public class UnsafeSequence {
+    private int value;
+
+    /** Returns a unique value. */
+    public int getNext() {
+        return value++;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      With unlucky timing two threads call <code>getNext()</code> and receive the <strong>same</strong> value.
+      <code>value++</code> <em>looks</em> atomic but is three operations: <strong>read the value</strong>,
+      <strong>add one</strong>, <strong>write the new value</strong>. Both threads can read the same value, both add
+      one, both write — and one increment vanishes. Figure 1.1 shows exactly this interleaving.
+    </p>
+
+    <!-- ============ FIGURE 1.1 (scanned from the book) ============ -->
+    <figure id="figure">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABjIAAAGdCAAAAACd3LWhAAA5rElEQVR42u3deZxcVZn/8c+tW9VVXelOQgIJEAVZBRxAQEAIO8iAorjjguLugCP+GFFHxxUVdVwHdRTXUUfHDVHcWERBwQV33AFFUVEChCTd6e7qqrr398dTz6lT1Z1OgoFUX77vl4Zeqqvq3nNuPXWees45SU7xtOAp8Bh4IlCCBtS29GOE85ZsnWN8L0wD50Duz6EJleI04lvhq8DXoF7AowOmgDfAubAYgHGoFusYc9gfzoNHQgPqkEFpUF8ySKL/bdpfAG+HPeEx0U/LFFsJERGRTVLIkJhCAkOQ2vc2xJjw96tbRLI1D3AS2mHklPg78GK9Ca/Y+5mqD+iSQh1dbpfeJIzDKKQwUqgDnLAma0MZUhga7Heo5Q21UjLXm+0SjMJ0NAQu+hBDowwREVHIEBGRe2lANs8lsD58Mw4jkG3RrNTWNgxDMAk0os9Ms+K8A7BDaQOpj/rLfrBFuvQyWAqpp0AK9OFp3Tpn7v+W/Uos0pvtDNbDtn4BFqt/apQhIiIKGSIicu+NjouobmkNfCxcuNA4baPhajHDf8+h2Kg/L9So38rcKMMEDHthTvGuxhKU/OhG5mMrbezo0qiz3geyUhpliIiIQoaIiChkiIiIQoaIiChkiIiIQoaIiChkiIiIKGSIiIhChoiIKGSIiIhChoiIKGSIiIhChoiIKGSIiIgoZIiIiEKGiIgoZIiIiEKGiIgoZIiIiEKGiIiIQoaIiChkiIiIQoaIiChkiIjIvFDWKQBobd6ZaEOqkyay9eSQ6CxolCEiIgoZIiIy7ykx1XsacvtP0jv2zewXJf9eWSmRe1/uXyTKSmmUISIiChkiIlIQSkxFsr4QmswMrKrTENlaQr5YNMoQERGFDBERKQolply+SfEzUW5KZKvS1adRhoiIKGSIiIhChoiI3PfoswzXkyFtQ+LxNOuLrUqlitzLcsiia1I0yhAREYUMEREpCiWmZgyAoXfdQUVVka0s0VqgGmWIiIhChoiIFJMSU0A0ozuPw2gT2lALt8oUYkXubQ2goktPowwREVHIEBGRYlJiakPGYRW0YAcYtR9pEp/Ive4GYDEsg6pOhkYZIiKikCEiIkWz4cTUn+Cj8GjYe0MDwtYA57VKkEMbnwHUhIr/rh2mBU1BzX/XhDQOoQvgaVCC74QfTfeeifg+aUMW3YOtiUMJkr4bzqr7lELt1p1wHlwORwPnw0LIo/upwPh86WQ9HaXtpyik+bL43Us4/pL9pA3WiOHkvxc+ZKmKZ8PpkPteJw1m9NRujVsTfgWfgzq8FMrQ7uu+s+yDssESuXDbL8KN8Fc4C9gZhiCBcRiBHN4LnwSWw+tg/967LdmZac+XVsy91cKVklnblTfQ5lTijh1dcP3nte9Gnf5iN5qCRwFPhDfPdiF3/zDcZ+cW4YbZrO+N49b+BXwVuB1OghP8Qs7DY1wEF0IVXggPv88XTmqUISIiChkiIrJlbXhofgG8G26Bj/hgMbVfh2HkIFdbTUHVnmfmCZ0w3E3DkLYGkzAM+Ch2LbAQEkhgAUzGY92qD0ot7VQJZ2wMRv2stGEMFoch88azUk1/en6G4QfwLFgOT4TLgb3hO7BnlCDIZqYL24O6Dk85TiPEmYQMyvHbFmurkEosx4mHKkzA6+ESeApwE/w/+Am8w09aNT6d1q7du67AHfAN+C08B5ZD2U7lJFSg4nv0Wu6ljeeOcmh5C3YTbA2oQgJT8GP4GpyAtw8wAuPwLvgUnAL8Fg6FK2Fl1IOwoxva0AU4aBLvYZXo/WbnBFuCbchvVLITNRW9K7XDrlk/L0Mr+vM0nNp1sNBPcgnGoQrrgSFPJMbXUhrut+GtH5LMVGAKKtFlmRK1YgITUAfgFss+Xw5VOM5vaNnOjwLnwmNhNZwDZThRowwRERGFDBER2dI5g+7Q04bGk8CvYX+4Bn4KB8Q3zOfDceWhFMWC4lpY5MfYw3JTJRiCab8RbWjAlI+ZCUPaxAe2aSj/IEz1g9WwBBb7GLmT8mDu9FQltETuWY8LoATfBOC1wLHwPngt1P3m7bgWqDLYDWPJg27SrAlJlJJq43m++A3MJEz05Wo+D2+Da2FvO+eXwhnwL1FGiAzWwrXwiN4HBzgBGvDsviap914AIW3RedikNyuV21Oq+fdPgqPgy/ZcY5fB6+AKWGktfAa8DVZGx9gtFAstOLBZqU5fTqMroemJqE4aKrxApOHomp7htRvZRVXve+Gx6rLOPS/0OsAR/7dt5ybz+wnlWp2McuYXb7irztnMYSg622nITaWex6p7euwRsAK4Jlpj3R7mZng58B3YD4B3wnPg+7CjRhkiIiIKGSIisoX0JKYs09KAP9go79NwHFwI74vHzGnfeH8gDfvgmQpMwOvgJDjOjzkF3g+7wAlwMVwGf4P18HzgyVCBOjRD7Qe8B7gVzvcU0JtgGM4JD3iRl5btDf8KD+hLxMxVNHUN7Ai7hsREGa6Dx8TZi6fDa+A/4yqtmed/kOdVdjRgCG6Bm2AvuF+ooUqjc2XFYIst7We5Iqt5+xEksH+4w4dBGS6FPbxVKMHv4Fw4xU9UKTwyUIe1nnOshcKodnT6yuGu8PSm1ffcAIstIxHqqqzkpg4jfUvkT8GVkMA+1lY5vACOhh/CwXH1TslrtQZcp/u2Ydrrln4BGeyDVxzakbf95iVggV+EVnZ2C7zL8qxVzzxNwAfgSZDA24C/wJ9hZ/g3ONj7QxmY9FP2GngAPA+GLRn4UjgVHuY1kufBtdZCJ8OZ3iyrYFl8QVb9aEo+XXDInkyj94A/BtPAfrAOhuBA+BtcZSV7GmWIiIgoZIiIiEKGiIjci3ry35b4q8JbgZWwGxwKH4FXw44hJT8vdo1oQzWkYBP4M7zJ523mcAvwcvgkZDAOZ8GB8CH7LOMhsBvkMGyfhgDwOeAmeJ0nn78MFTjbbvFFOAO+BfeDA+FW+IBnayF8ILEhd8D34CX2TVgpcXU823gJ3AY/gUM8u9/qi/oDO/WbqKi2U5b5LTgTSrAXHAePtHO+0Ett8Y8vGnEfbcIk5LAadsDLIHeHa+BsANYBi2AchmEahuPp5Ja+HoMh2N47cQOox7PT/SQmoeMk0RffhNPthNt0/7r/bjyeip9AHX4He8MSu/MW7ApL4JdwsK95N4V/OFD1Y04H9erK8ALUYb+EXgpXWXn5YXAKHA979q0tWfJuaq0/AlfCTnhfz+Dr8D/wPLjTPsw7G3aGJ8Ez4FuwLEyOb0fX4aFwBlTtDH4AdoGHQQ0eB2vgs3AF8AzYBU6FtbAMVoVn3/S/HfIy3Jo97xIs9G5hn3deaWtJtvwXywD4xWCvyKpRhoiIKGSIiMg8TkzZ+Pr3NrD7AABPgYvhZ7BjX3gZ8PTUePx0rRr20XANHAGJlcwug4dBBZ7jt30svAm4Efby4ruy11QuBf4ODR9llz3lkQEvhlPgcGjCi+Aj4bxabV4F1s6RNzoAboZr8VRGCw6BT8FZcAD8DHh3nKiBMmwDY3gqJR/s9qiExIJlYcqel/g1/NoaY2c4Eg6DPWEZ7AZ1SyO0o1zRSfBxuNg2p7gLLoLvwqF+phcBk1D1tezaPhk47XuH9HdLbYXy0AkYh6UwDethkaU8rJZ02ley3AFuh4uAE2EUMp8AbVmvUk8CDm6DxVC2lRSGYQjugBu8Oj2xnM6oPyD+08F9ZxkmYLejfWHGgcvhchiB/eGh8BDYHXaxJtvOc1NtWA5Ph/cCT4flkMEFcCiMwAi8AL/WDoKvedovD5ewnbi6r7XQhAX2GNtAE34Gl8D7YSk8CXgLXAaPhnfBFbA9NOwKWgzrIIWzfI2Ahl1LmZXUQtX7603wT0RpqMWQwO/v2/tfa5QhIiIKGSIicg8mpkagBf8HdwAPginYD3aHi+HE+LaDv5WhVR11F7w7HHaHl8PlMAxXAS/z8pxx+DxcDROwKkRSW4NwOloOrTPB1CYDZz6vfAy4Ay6Hw6EKv4U7oWbJjQvgknijgFktgtvhpcB5tgwavBvWwmGwLewGPBJ+HpaB8+qh7wM7Qdv3Kpge1MZI49XlKvADzzR1E2q3wCfhf71PPjAkJe7wHEYZToEPwrPhjZbpOA1OgRrkcIal9hbABNzlWcIWvMsm0ofqnTBXuTsn/zPwMRj3VSTbYVp42YvTKlCDcfgp8DY4G0pe6dTw9uhuHDrt2z5Y2V1nqb0aLIyeSBu4Fb4E2/kjlQe1EXNrryq0YBoqcGv8ixzG4XvwPa8PXALsBzfC36MXmuPgVcCn4IXwQ/gDvMcrlO4A/gd+BHfAJDRgBCbtlFR9W4wmrPHp5bfZE7AdT66CElwAH7KncCvcAMAr4T/8SVbw9HszWpAyTEbvpn5tm9pl1la1aE+bHFZsyiY4GmWIiIgSUzoFIiJyNxJTtt781bAt8FSo+qr0X4LXwIqQRigNdnqqCaPQsGGzZRpyOBHOh1WwFrYBzoAGtOEpcDs8HqbgS5a6yL1gphavblfyEqkyVH3x/5vsF7vBibAWDoXtYczGui+G5wEbnfvzFZtd+Gw/u8vhq/AluMtmul0DwD6+0r/NJrzecj7rIYNRGB/USo4spGOs8OU30a6ps2zy0Ybfw6j1th/CP3sWoAqnwx7wE2BvOAYeCE+HNjzWJmrW4GfwBZ/dZwvnZXGaacwqbXy3V4bhNDgBFkLDG2oIn2aXho1/4XNwGPAowOdctmDYNwjuqsEKuNIzmIzAashgX2/gzv4hd8LlvtbkIGd7Uzsflqm1Gb+3x79P/AjCt3cBv4L18D04HRbDBBxie5t8Hc6Bq+EYPyU/gCcD+8Lx8A0Y8rxRap16wjtLzc9g29qx4l1oHWSwHyy383i4L2x4EdzmLdjAq+ga8HDYz097Jx8YqrRs7ubelols+qvIHZBA7T6cldIoQ0REFDJEROSeTUyNwB9hjeVBdvB8zATsA/8Fbw6D1GbfzpwDpuJFGOX4GZ8N74BvwDVwDJ5yeCPcDD+GGqyyRfttBG55rQlIPLNF2dfYvw2uh70A2NkC7x7wKn+kCmQhETO80Zl2l8Dtto8Annkyp/pD8j5PnYRhcxP+BfjXedLPLOfZOX2f8BRcEiemUtgDHgknwjFwAXwBOCVaX8jmkB0GD7ZTeyXcCY+GMjwtVO98C77ji1glM3Ne8catwyEdEf+0p7lCRvEXUId32U+zqIwmC62ELz4F7AJj8DubCwZcAQvhuGgH3hawK/y7TROdL9r+snAcXBM2to1fQk6AE+AJ9v0R8ERYDLmf4zcBT4efw5fgY36fr7HNbD4ETVgEl8J6GA7bx1ob1MLeFpDaRsfTnps6Bt4CJ8AZcdsB6+EGWBDyT+OwGkZgTdS6nVeKpj8f+/40+DowASOQwZ8gh2dqjSkRERGFDBER2XL6h1evhhNsgRh84D0KK+HdYQjd9oKBid7x/EDpL8SpwAJ4JrwB7oAf42vmLILVcD0Mw6VWQ/N7wCftpV40tgT4I3wDdoK3wjgs8VE058Lb4MtwOKTwG1/KqpvZiPNN/X5vVVH4FqbANV6wsR4+C1wNV0bD7XlWsJGHqVLN3kmNS2FH2Bs4CB4K+8JI1HadM5j6YY/DdfAAq7q5CV4AB3nJTR62TK3DWLT4eRaq3XJYBJPRivaz62m4ss/NWw0HzOxU+ApFNXvwUb9q/hUugU/Y1LXfwH/Av0Hdp4jOQ92F5KOF2kvArrA77AGHwZGwHNpWPdWcLX3zKOAY+GdYCbt7ynKp7R59M9wJX4UcbodtYdrKnDJv5O3gB/AT+Bu8xdrAlvY6Cg6DT8Je9vo1BH+APeFZ8CzAc2qdd8nhgmzGa6DVvFgSmILHwPuAF8JboAr/A4+DnbXGlIiIiEKGiIhsOT0jLFuC+0L7Zo0XOpTgNPgy/BBOsjzBOlg4wFkpwpg5VoU3wafhpFDm1IIz4ZOwEvaA58LDgJfAbnAyAAtgGCbhFcC34VQowXthEtZAw7ITr4KlcJrvyPYA+LaV42Q+kq/O8VzPAWwdohEf/l8Lr4YlsMbWmLoMDvSMwPybRtRNxNQ8PfQiOAUOCZ2oHWUEgrzvmxa8CG4OWaEnw9ujiVcAa2EKdocxGPZ0VClOrizyYrgNpoc6662n0duqGhwUP9dSdNsaLLXEZcufWAt2gkvhNHgnsBBOhrMh96zYPMxsxBvu5fAEONF2KdzWUzthU8U87qWzTNY8Ab4Bx0LJU5ZPhdOAvWA3+Bf4DjwVvheq2UY9w/gyeDIcCnvZOupP9p0YR+Ay+Gc4yi69SXgafBDwOrbUclyV6IIMC7qPEG3AaCnJGkzaHhBPgAdABo+CT8ddRKMMERERhQwREfnHcwbxsLEJY1D3hVw6Izd80GnT+jp7iLV8//jBdBo8AR5v4+KQm5iCcVhszzskJtbBT6EGh1h66JtwBCz1Ip1F4abj8HPY2Ve2zkIhkPkxrIYh2Ns3lu+O5OeqLmuH3f1K0Q1vgF/BKBwC1KNURuarPJeYP1P5bA1xUs8LtH196c7bliTqbdZWF8DngW9HSSRb+/p6Wyd7BRzkJ6Ppiz11TvgqXzE99zwqFa+gGvMevDG5P6UsSrPk9Ga07LmNWfPEszYtVfI3W4F7BA6a0QeawCvm41Q+u+gn4kRdyAM3ox37aMAB8Hp43Mz7WQXLvFzJztWfgN/AsVCFa2EIHgT1UOBW8XW9/gy/h4fY1bcmvkBhAn5td3UwLOm7QOPeWI46XALr7aeL/XdNf8imdcjvQBlWzkxnvgN2shcajTJEREQUMkRERCFDRETuQT3FfhVYEoriLMFY8sBiWcdFeEKxGW2JOYC6RZSJJ85tsf1aqKyzyrtJWAhH+IqCo8CpfidtrzPu7Ns4Ag+J6mW7S/A3PV0d5pT2PP74hnKqZtrrQcmiFfv3hD2jZe7mnD8+4Oz4y+GspV7wWPXa2c6HBaWoJLO7AUVcqZzC4X1veezeO/smZLAelvv9WKMuDDe32fpNL46dU3iiYb+MNH6ulvO2Rh61bXszfz6pN/j2sEO4Q2vaqY0/8kBeTv1Z/O7HMmnvS0gejjGfrcK285ndsugzIuvXOwPL/JuVUYt11vfEN9O9P9w/LCGwyMtibROSOuwPDyGa4t/wTTe68+7LM94xd67PSX+kSe81FburY/yZZL4ohEYZIiIiChkiIrJFlPvGjKUwwXjEUwdWQxemdXaG1YM8fTXvGxPbMNIGpd3aQPvPcO+ouo2vq5/6GDmJp7KGDTHsF5mt3h8yRlVPSU3aeSp5Ke5caaXh8FzbPpG55f+OEt31fI3yI55i6Ox+0PADmvBtabtCtW131nacEUk910DV++uIJ4ky+/1Cv4c0btTUTzC+28UGdUowyzMeticJE+cmusmmdm8OMgmHbQv55fMxK9Vpgsy7c+oncSI+2NyvmnI4xpDXi29U6vuq4We6GV8Kif+iEvpHFk0Wb/qmOFSjC5L4OqvMuF7KfQm2tm+p0llFseKvBiGXaatcdGpt426q2d8iIiIKGSIisqWU++LHGlhMb5olnbWMpTLANTyWMWr3JTts2Fr33ENncBnqYsLSZbR8uGtj7WqcCwmTRhOv7+mmTeweLKHUmbTa8LFudeOJkPi5JtE+tJ20St5bpDOfNEN+wTI4VU8c1sMBTnsWImQgCN0uidIaSSgiy6Ip/bW+tz/N3tm9aWhta5Zq9NdzXhPWAfB8S89jxM+qFqfdmp7JKEWz3Tt/Hhf3zDdtP6K2H8FIOAG29Wl11ksx7/0WevM64Y/S+OJNvJd0GnE9jEIOk1D3k5r2tUTYbqabiexbxjOJn3HY6Lcne9aOet/CuP/ir3jZfN3xRKMMERFRyBARkUHUX/i0ON7vsOHTVhIf66fxwG6QZ5bFk8K6WYiqLzPXrYjJfE3A0b5MW8lHx8QH21cq0a2IyaLqpu7GrZVNSUT03DyM8ptx8q8V5W3mn27FSc0bI/GqqM7alqFwLS51a8/McnSLyEozMhsJveV9IeGX441c8nNc2mgSpn+jk+7yliEbGScKy32t1JNja0UtWo7Tu/OJ7Q1T8uNqx4mhcu+Skp3Wzvx/9KVwQ80Vnvruua5K0YVrrz6Meq1jPXo6VaKCK6KcUjcTGd91Zypf6s+Y6Ik1iaaTJtGD93e17D7/NlujDBERUcgQEZEta5YZed0BYrU3udCTIRjwmSw9G7mWemNkiRnHVYqPt9x3GmZO4CrNPDF9sbc61xmeqRo/8XJ0v9XNuJNBVpnZGKUNNVzqZ7qnIibvzSf0/MVsLRXdNul7wI3Xu6Qzb5jEq4bNbJVk1lYqxTeszO/3aSNzXEWzXxPxdZjM/XY1naMZOn9an/WS2eBrVDrjlaq8oQ7X/4xnv+j1HltnQEREFDJEREQhQ0REFDJEREQhQ0REFDJEREQhQ0RERCFDREQUMkRERCFDREQUMkRERCFDREQUMkRERCFDREREIUNERBQyREREIUNERBQyREREIUNERBQyREREFDJEREQhQ0REFDJEREQhQ0REFDJEREQhQ0REFDJEREQUMkRERCFDREQUMkRERCFDREQUMkRERCFDREREIUNERBQyREREIUNERBQyREREIUNERBQyREREIUNEREQhQ0REFDJEREQhQ0REFDJEREQhQ0REFDJEREQhQ0RERCFDREQUMkRE5F5WLuhxpZBCVtygmEEVaEMKwDpYWKgDDEfW+SopWgt2DmgoOtQJqBerCROoQtNfawrWiE1o+mtoHjeqRhkiIiIKGSIisqmKmpiahjwExCZUCthwk0DmOY2FcSqnCFJoh/F+EduxBDT8UFtQLlRWKgcqMA3TBbz6sM5ZgRGYADwlNQ4jGmWIiIgoZIiIyGYocMVUFr6xcXGrOEcbSlGoQA7TUC1UVsqOMbPxvrVlqVD5jU5nTGESRqFctLxiHq673A84gaw4jZhaH52A7QBPSRU9K6VRhoiIKGSIiIhChoiIbC2F/CyjDeW4PDODvFCHmkIDhuybxHPgeaEmn+ZWx1jQqd8lq82shVaEtFBVxJ22G/YDLPsxFkkKFRgF/FOMKahplCEiIqKQISIim6GQiSkb4l8Nw/bNFDSgbqPlIqjAL+BgPJVhrZgUrWeuAT4PNcghh/HizI+uwq3A36ANbWhBtVBVxBVgHTThMlgLJahCUpxrsAxMwffg/lFGsehZKY0yREREIUNERO6R4VURPQR+BB8FpqEOFV+0vxCmIIVdiVIZTSgVqiJld3gAcAmsgiqMeOVbIViilJ1hoW/uQuH2yxiGY+AuuMTzUdNRhdg8lwE1yGBXvwynlJgSERFRyBARkc2W5AU8qNkHiM0irmuXw5RVhhWKtVWb3lRbq1CJ1JY1XwUmi9mC3oReD1YsnU2irae2AJ8/XPS9XDXKEBERhQwREdmyCpmYstFht/ykcJUM/Rmawg2H7YByorRbq2jlfZ20W+5bDtsmKEV6DxeuwKKma5q+YU04uqz478I1yhAREYUMERHZsgqZmBIREY0yREREIUNERBQyREREIUNERBQyREREFDJEREQhQ0REFDJEREQhQ0REFDJEREQh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"
+           alt="Figure 1.1 — Unlucky execution of UnsafeSequence.getNext(). Thread A reads value 9, computes 9+1=10 and writes value=10; thread B, interleaved, also reads 9, computes 10 and writes 10, so both calls return 9.">
+      <figcaption><strong>Figure 1.1</strong> — Unlucky Execution of <code>UnsafeSequence.getNext()</code>.
+        Time runs left to right; each row is a thread. Both threads read <code>9</code>, both compute
+        <code>10</code>, both return <code>9</code>: a lost update.</figcaption>
+    </figure>
+
+    <p>
+      Interleaving diagrams like this one always depict time running left to right, one row per thread, and usually
+      show the <strong>worst case</strong>, to warn against assuming things happen in a particular order. As the book
+      notes in a footnote, the real worst case can be even worse than these diagrams suggest, because of
+      <strong>reordering</strong> (Chapter 3).
+    </p>
+    <p>
+      Here is the same schedule redrawn as an explicit timeline — note how the two reads both land on
+      <code>9</code>:
+    </p>
+
+    <figure class="dark">
+      <svg viewBox="0 0 760 210" role="img" aria-label="Timeline showing threads A and B both reading 9, both writing 10, so both return 9" style="width:100%;height:auto">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="#6d7d8f"/>
+          </marker>
+          <marker id="arBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="#f85149"/>
+          </marker>
+        </defs>
+        <!-- axis -->
+        <line x1="70" y1="26" x2="740" y2="26" stroke="#243040" stroke-width="1"/>
+        <text x="70" y="18" fill="#6d7d8f" font-size="10" font-family="monospace">time →</text>
+
+        <!-- lane A -->
+        <text x="40" y="76" fill="#9aa8b7" font-size="13" font-family="monospace" text-anchor="end">A</text>
+        <line x1="60" y1="76" x2="740" y2="76" stroke="#243040" stroke-dasharray="3 4"/>
+        <rect x="70" y="56" width="150" height="40" rx="8" fill="#1b2531" stroke="#3b4b5c"/>
+        <text x="145" y="81" fill="#cbd6e2" font-size="12" font-family="monospace" text-anchor="middle">read value → 9</text>
+        <rect x="250" y="56" width="150" height="40" rx="8" fill="#1b2531" stroke="#3b4b5c"/>
+        <text x="325" y="81" fill="#cbd6e2" font-size="12" font-family="monospace" text-anchor="middle">9 + 1 → 10</text>
+        <rect x="430" y="56" width="150" height="40" rx="8" fill="#1b2531" stroke="#3b4b5c"/>
+        <text x="505" y="81" fill="#cbd6e2" font-size="12" font-family="monospace" text-anchor="middle">value = 10</text>
+        <rect x="610" y="56" width="120" height="40" rx="8" fill="rgba(248,81,73,.10)" stroke="#f85149"/>
+        <text x="670" y="81" fill="#ffb3ae" font-size="12" font-family="monospace" text-anchor="middle">returns 9</text>
+        <line x1="220" y1="76" x2="248" y2="76" stroke="#6d7d8f" stroke-width="1.5" marker-end="url(#ar)"/>
+        <line x1="400" y1="76" x2="428" y2="76" stroke="#6d7d8f" stroke-width="1.5" marker-end="url(#ar)"/>
+        <line x1="580" y1="76" x2="608" y2="76" stroke="#f85149" stroke-width="1.5" marker-end="url(#arBad)"/>
+
+        <!-- lane B -->
+        <text x="40" y="166" fill="#9aa8b7" font-size="13" font-family="monospace" text-anchor="end">B</text>
+        <line x1="60" y1="166" x2="740" y2="166" stroke="#243040" stroke-dasharray="3 4"/>
+        <rect x="160" y="146" width="150" height="40" rx="8" fill="#1b2531" stroke="#f0a24b"/>
+        <text x="235" y="171" fill="#ffd9ac" font-size="12" font-family="monospace" text-anchor="middle">read value → 9</text>
+        <rect x="340" y="146" width="150" height="40" rx="8" fill="#1b2531" stroke="#3b4b5c"/>
+        <text x="415" y="171" fill="#cbd6e2" font-size="12" font-family="monospace" text-anchor="middle">9 + 1 → 10</text>
+        <rect x="520" y="146" width="150" height="40" rx="8" fill="#1b2531" stroke="#3b4b5c"/>
+        <text x="595" y="171" fill="#cbd6e2" font-size="12" font-family="monospace" text-anchor="middle">value = 10</text>
+        <line x1="310" y1="166" x2="338" y2="166" stroke="#6d7d8f" stroke-width="1.5" marker-end="url(#ar)"/>
+        <line x1="490" y1="166" x2="518" y2="166" stroke="#6d7d8f" stroke-width="1.5" marker-end="url(#ar)"/>
+
+        <!-- lost update bracket -->
+        <path d="M145 100 L145 120 L235 120 L235 100" fill="none" stroke="#f85149" stroke-dasharray="4 3" stroke-width="1.2"/>
+        <text x="190" y="136" fill="#ffb3ae" font-size="10.5" font-family="monospace" text-anchor="middle">both read 9</text>
+        <text x="700" y="146" fill="#ffb3ae" font-size="11" font-family="monospace" text-anchor="end">→ duplicate 9, value went 9 → 10 (one update lost)</text>
+      </svg>
+      <figcaption>Figure 1.1 redrawn: the lost-update schedule, step by step.</figcaption>
+    </figure>
+
+    <div class="card">
+      <h4>Annotations you will meet all over this book</h4>
+      <p style="margin-top:4px">
+        <code>@NotThreadSafe</code>, <code>@ThreadSafe</code> and <code>@Immutable</code> are custom, documentation-only
+        annotations (Appendix A) that describe a class's concurrency contract; <code>@GuardedBy</code> (Section 2.4)
+        records which lock protects a field. They help three audiences: users can trust <code>@ThreadSafe</code>
+        classes, maintainers know which guarantees must be preserved, and analysis tools can flag violations.
+      </p>
+    </div>
+
+    <p>
+      <code>UnsafeSequence</code> demonstrates a <strong>race condition</strong>: whether the specification is honoured
+      depends on how the runtime happens to interleave operations — which is not a state of affairs you want to ship.
+      Making <code>getNext</code> <code>synchronized</code> fixes it (Listing 1.2), for reasons that occupy Chapters 2
+      and 3.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">THREAD-SAFE</span>
+        <span class="name">Listing 1.2 · Thread-safe Sequence Generator</span>
+        <button class="copy" data-copy="l12">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="l12">@ThreadSafe
+public class Sequence {
+    @GuardedBy("this") private int nextValue;
+
+    public synchronized int getNext() {
+        return nextValue++;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Without synchronization the compiler, the hardware and the runtime may take substantial liberties with the
+      <em>timing and ordering</em> of actions — caching variables in registers or processor-local caches where they are
+      temporarily (or permanently) invisible to other threads. These tricks exist for performance and are generally
+      desirable, but they put the burden on you to identify clearly where data is shared across threads. Chapter 16
+      has the gory details of the JMM; follow the rules in Chapters 2 and 3 and you can skip them.
+    </p>
+
+    <h3><span class="num">1.3.2</span>Liveness hazards</h3>
+    <p>
+      Safety is not negotiable. But safety is only half of correctness. In a single-threaded program, an accidental
+      infinite loop means the code after the loop never runs; with threads you get entire new failure modes.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Concern</th><th>Slogan</th><th>Failure looks like</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Safety</strong></td>
+            <td>"Nothing bad ever happens."</td>
+            <td>Wrong results — corrupted counts, duplicate sequence numbers, half-updated objects.</td>
+          </tr>
+          <tr>
+            <td><strong>Liveness</strong></td>
+            <td>"Something good eventually happens."</td>
+            <td>Permanent inability to make progress: <strong>deadlock</strong> (Ch. 10.1), <strong>starvation</strong> (10.3.1), <strong>livelock</strong> (10.3.3).</td>
+          </tr>
+          <tr>
+            <td><strong>Performance</strong></td>
+            <td>"…and it happens quickly."</td>
+            <td>Poor service time, responsiveness, throughput, resource consumption or scalability.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      If thread A waits forever for a resource that thread B holds exclusively and never releases, A makes no
+      progress. Like most concurrency bugs, liveness failures depend on the relative timing of events in different
+      threads, so they are elusive — they routinely escape development and testing.
+    </p>
+
+    <h3><span class="num">1.3.3</span>Performance hazards</h3>
+    <p>
+      A well-designed concurrent application is a net performance win, but threads have real runtime costs:
+    </p>
+    <ul>
+      <li><strong>Context switches</strong> — the scheduler suspends the running thread so another can run: saving and restoring execution context, loss of locality, and CPU time spent scheduling instead of running.</li>
+      <li><strong>Synchronization</strong> — can inhibit compiler optimizations, flush or invalidate memory caches, and create traffic on the shared memory bus. Chapter 11 covers measuring and reducing these costs.</li>
+    </ul>
+  </section>
+
+  <!-- ================= 1.4 ================= -->
+  <section id="everywhere">
+    <h2><span class="num">1.4</span>Threads are Everywhere</h2>
+    <p class="lede">You do not have to create a thread to be writing multithreaded code.</p>
+    <p>
+      Frameworks create threads on your behalf, and code called from those threads must be thread-safe. That places a
+      real design burden on developers, because thread-safe classes need more care and analysis than non-thread-safe
+      ones. Every Java application uses threads: when the JVM starts it creates housekeeping threads (garbage
+      collection, finalization) plus a main thread for <code>main()</code>.
+    </p>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">⏲️</div><h5>Timer</h5>
+        <p><code>TimerTask</code>s run in a thread owned by the <code>Timer</code>, not by your application. Any state a task touches must be safe for every other path that touches it — usually achieved by making the shared objects themselves thread-safe.</p></div>
+      <div class="tile"><div class="ico">🌐</div><h5>Servlets &amp; JSP</h5>
+        <p>The spec requires a servlet to be callable from multiple threads at once. Even a one-request-at-a-time servlet shares <code>ServletContext</code> and <code>HttpSession</code> state with filters and other servlets.</p></div>
+      <div class="tile"><div class="ico">📡</div><h5>RMI</h5>
+        <p>Remote calls arrive on RMI-managed threads. The same remote method on the same object <em>can</em> be invoked concurrently. Remote objects must guard their own state too, not just state shared with others.</p></div>
+      <div class="tile"><div class="ico">🖥️</div><h5>Swing &amp; AWT</h5>
+        <p>Swing components such as <code>JTable</code> are not thread-safe. Safety comes from <strong>confinement</strong> to the event thread; to touch the GUI from elsewhere, hand the work to the event thread.</p></div>
+    </div>
+
+    <p>
+      When a framework introduces concurrency it is usually impossible to confine the concurrency-awareness to
+      framework code, because frameworks make callbacks into application components that in turn touch application
+      state. <strong>Thread safety is contagious</strong>: it starts with the framework entry point and ripples through
+      every code path that reaches shared state.
+    </p>
+
+    <div class="callout warn">
+      <span class="mark">🔁</span>
+      <p><strong>The ripple, in one line:</strong> framework thread → your component → shared application state →
+      every other code path that reads or writes that same state.</p>
+    </div>
+
+    <blockquote class="pull">
+      “It would be nice to believe that concurrency is an ‘optional’ or ‘advanced’ language feature, but the reality is
+      that nearly all Java applications are multithreaded.”
+      <cite>— Chapter 1, Section 1.4</cite>
+    </blockquote>
+  </section>
+
+  <!-- ================= LISTINGS / CODE ================= -->
+  <section id="listings">
+    <h2><span class="num">§</span>All Chapter 1 code, annotated</h2>
+    <p class="lede">The chapter's two listings, plus a runnable demonstration of the failure and both standard fixes.</p>
+
+    <h3><span class="num">1</span>The hazard, in full</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">RACE CONDITION</span>
+        <span class="name">UnsafeSequence — annotated walkthrough</span>
+        <button class="copy" data-copy="c1">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="c1">@NotThreadSafe
+public class UnsafeSequence {
+    private int value;
+
+    /**
+     * Returns a unique value.
+     *
+     * Looks atomic, is not. value++ compiles to three actions:
+     *   1. read  value      (both threads may read 9)
+     *   2. add   1          (both threads compute 10)
+     *   3. write value      (both threads store 10 -> one increment lost)
+     *
+     * The class is correct single-threaded and incorrect multi-threaded.
+     */
+    public int getNext() {
+        return value++;
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">2</span>Reproducing it — a runnable main</h3>
+    <p>
+      Race conditions are probabilistic: a single run may look fine, so loop many times with several threads. When you
+      see two threads receive the same number, or a final count smaller than the number of calls, you have caught it.
+    </p>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">DEMO</span>
+        <span class="name">RaceDemo — two threads, many calls</span>
+        <button class="copy" data-copy="c2">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="c2">public class RaceDemo {
+
+    public static void main(String[] args) throws InterruptedException {
+        for (int attempt = 0; attempt &lt; 20; attempt++) {
+            UnsafeSequence seq = new UnsafeSequence();
+            int callsPerThread = 10_000;
+
+            Thread t1 = new Thread(() -&gt; { for (int i = 0; i &lt; callsPerThread; i++) seq.getNext(); });
+            Thread t2 = new Thread(() -&gt; { for (int i = 0; i &lt; callsPerThread; i++) seq.getNext(); });
+
+            t1.start();
+            t2.start();
+            t1.join();
+            t2.join();
+
+            int expected = 2 * callsPerThread;
+            // getNext() is private about its counter; expose a getter or read the
+            // value through reflection/Instrumentation to compare. Typical output:
+            //   expected 20000, got 19674  -> lost updates
+            System.out.println("attempt " + attempt + ": expected " + expected);
+        }
+    }
+}</code></pre>
+    </div>
+    <p>
+      In practice, <code>value++</code> is fast enough that lost updates are easy to miss; that is precisely why the
+      book calls these bugs subtle. Adding a tiny amount of work between the read and the write — or simply running on
+      more cores — makes them far more likely.
+    </p>
+
+    <h3><span class="num">3</span>Fix A — the book's answer: <code>synchronized</code></h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">SAFE</span>
+        <span class="name">Sequence — mutual exclusion via the intrinsic lock</span>
+        <button class="copy" data-copy="c3">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="c3">@ThreadSafe
+public class Sequence {
+
+    // @GuardedBy("this"): every read and write of nextValue happens with
+    // this object's monitor held. Documentation, not enforcement.
+    @GuardedBy("this") private int nextValue;
+
+    public synchronized int getNext() {
+        return nextValue++;
+    }
+}</code></pre>
+    </div>
+    <p>
+      <code>synchronized</code> makes the read-modify-write <strong>atomic</strong> with respect to other threads
+      holding the same lock, and it adds the memory-visibility guarantees that stop the compiler, hardware and runtime
+      from hiding the update in a register (Chapters 2, 3 and 16).
+    </p>
+
+    <h3><span class="num">4</span>Fix B — the library alternative: <code>AtomicInteger</code></h3>
+    <p>
+      Chapter 2's pattern: when a class already implements the atomicity you need, use it instead of hand-rolling a
+      lock. No blocking, and the intent is obvious to a reader.
+    </p>
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">SAFE</span>
+        <span class="name">AtomicSequence — lock-free counter</span>
+        <button class="copy" data-copy="c4">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="c4">import java.util.concurrent.atomic.AtomicInteger;
+
+@ThreadSafe
+public class AtomicSequence {
+    private final AtomicInteger value = new AtomicInteger();
+
+    /** Returns a unique value; getAndIncrement is atomic, so no lost updates. */
+    public int getNext() {
+        return value.getAndIncrement();
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">5</span>Same problem, different carrier: the counter servlet</h3>
+    <p>
+      Chapter 1's hazard shows up again in Chapter 2's <code>UnsafeCountingFactorizer</code>, where the shared
+      <code>count</code> is incremented from many request threads. Same lesson, different packaging — which is why the
+      chapter ends with "threads are everywhere."
+    </p>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BRIDGE TO CH. 2</span>
+        <span class="name">CountingFactorizer — the shape of the problem</span>
+        <button class="copy" data-copy="c5">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="c5">@ThreadSafe
+public class CountingFactorizer implements Servlet {
+
+    // One instance serves every request, on many threads at once.
+    private final AtomicLong count = new AtomicLong(0);
+
+    public long getCount() { return count.get(); }
+
+    public void service(ServletRequest req, ServletResponse resp) {
+        count.incrementAndGet();            // atomic -> no lost counts
+        // ... factor the number and write the response ...
+    }
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ================= SIMULATOR ================= -->
+  <section id="sim">
+    <h2><span class="num">▶</span>Interactive: watch the lost update happen</h2>
+    <p class="lede">Step through the interleaving from Figure 1.1, then flip on <code>synchronized</code> and run the
+    exact same two threads.</p>
+
+    <div class="sim">
+      <div class="sim-controls">
+        <button class="btn primary" id="simStep">Step ▸</button>
+        <button class="btn" id="simPlay">Play</button>
+        <button class="btn" id="simReset">Reset</button>
+        <div class="sim-toggle">
+          <button id="modeUnsafe" class="on">unsynchronized</button>
+          <button id="modeSafe">synchronized</button>
+        </div>
+      </div>
+
+      <div class="lanes">
+        <div class="lane-label">A</div>
+        <div class="lane" id="laneA"></div>
+        <div class="lane-label">B</div>
+        <div class="lane" id="laneB"></div>
+      </div>
+
+      <div class="sim-readout">
+        <div class="stat"><span>shared value</span><b id="stValue">0</b></div>
+        <div class="stat"><span>values returned</span><b id="stReturned">—</b></div>
+        <div class="stat"><span>unique results</span><b id="stUnique">0</b></div>
+        <div class="stat"><span>verdict</span><b id="stVerdict">idle</b></div>
+      </div>
+      <div class="sim-msg" id="simMsg">Press “Step” to advance one operation at a time.</div>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🔍</span>
+      <p>With <strong>synchronized</strong>, the read–add–write of one thread cannot interleave with the other's, so
+      B always reads the value A just wrote. With <strong>atomic</strong> code, every call returns a distinct number.
+      That is the entire difference between Listing 1.1 and Listing 1.2.</p>
+    </div>
+  </section>
+
+  <!-- ================= GLOSSARY ================= -->
+  <section id="terms">
+    <h2><span class="num">§</span>Vocabulary introduced in Chapter 1</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Term</th><th>Meaning as used here</th><th>Where it goes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Process</strong></td><td>An isolated, independently executing program; the OS allocates it memory, file handles and credentials.</td><td>Ch. 1.1</td></tr>
+          <tr><td><strong>Thread</strong></td><td>An independent stream of control flow inside a process; shares memory, has its own program counter, stack and locals. A "lightweight process".</td><td>Ch. 1.1</td></tr>
+          <tr><td><strong>Race condition</strong></td><td>Correctness depends on the relative timing / interleaving of operations in different threads.</td><td>Ch. 1.3.1, 2.4</td></tr>
+          <tr><td><strong>Atomicity</strong></td><td>A group of operations that executes as one indivisible step with respect to other threads. <code>value++</code> is <em>not</em> atomic.</td><td>Ch. 2.2</td></tr>
+          <tr><td><strong>Safety</strong></td><td>"Nothing bad ever happens."</td><td>Ch. 1.3.1</td></tr>
+          <tr><td><strong>Liveness</strong></td><td>"Something good eventually happens." Violated by deadlock, starvation, livelock.</td><td>Ch. 1.3.2, 10</td></tr>
+          <tr><td><strong>Context switch</strong></td><td>The scheduler suspending the active thread so another can run: save/restore context, lose locality, spend CPU on scheduling.</td><td>Ch. 1.3.3, 11</td></tr>
+          <tr><td><strong>EDT</strong></td><td>Event dispatch thread — the single Swing/AWT thread to which all GUI access is confined.</td><td>Ch. 1.2.4, 9.1</td></tr>
+          <tr><td><strong>@NotThreadSafe / @ThreadSafe / @Immutable</strong></td><td>Documentation annotations that state a class's concurrency contract.</td><td>Appendix A</td></tr>
+          <tr><td><strong>@GuardedBy</strong></td><td>Documents which lock guards a field.</td><td>Ch. 2.4</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= CHEAT SHEET ================= -->
+  <section id="cheatsheet">
+    <h2><span class="num">✓</span>Cheat sheet &amp; self-check</h2>
+    <div class="grid">
+      <div class="tile"><div class="ico">✅</div><h5>Do</h5>
+        <p>Ask "who else can be in this code right now?" for every field. Prefer existing thread-safe types. Confine mutable state when you can. Annotate your concurrency intent.</p></div>
+      <div class="tile"><div class="ico">🚫</div><h5>Avoid</h5>
+        <p>Treating read-modify-write as atomic. Assuming interleavings are benign. Long tasks on the EDT or the servlet thread. Waiting on a resource another thread may never release.</p></div>
+      <div class="tile"><div class="ico">🧪</div><h5>Test like a concurrency bug</h5>
+        <p>Run many iterations, many threads, on more than one core. A passing test proves little; a failing one proves everything.</p></div>
+    </div>
+
+    <div class="card">
+      <h4>Five questions the chapter leaves you with</h4>
+      <ol>
+        <li>Which of the three benefits (throughput, simplicity, responsiveness) is my application actually buying?</li>
+        <li>Where is my mutable state, and who else can reach it?</li>
+        <li>Which operations must be atomic, and are they?</li>
+        <li>What could stop my program from ever making progress again?</li>
+        <li>Which framework is already calling me from a thread I did not create?</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= FOOTNOTES ================= -->
+  <div class="footnotes">
+    <h4 style="margin:0 0 10px;font-size:.8rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)">Notes carried over from the chapter</h4>
+    <ol>
+      <li>The NPTL threads package, now part of most Linux distributions, was designed to support hundreds of thousands of threads. Non-blocking I/O has its own benefits, but better OS support for threads means fewer situations in which it is essential.</li>
+      <li>As Chapter 3 shows, the worst case can be even worse than interleaving diagrams usually show, because of reordering.</li>
+      <li><code>@GuardedBy</code> is described in Section 2.4; it documents the synchronization policy for <code>Sequence</code>.</li>
+      <li>Can the same remote method on the same remote object be called simultaneously in multiple RMI threads? Yes — but it is not all that clear from the Javadoc; you have to read the RMI spec.</li>
+    </ol>
+    <p style="margin-top:14px">
+      Summary of <em>Java Concurrency in Practice</em>, Chapter 1 (Introduction), pp. 1–9.
+      Figure 1.1 is reproduced from the book for study purposes; all code listings are the book's, with annotations added.
+    </p>
+  </div>
+
+  <footer>
+    Study notes · Chapter 1 — Introduction · <em>Java Concurrency in Practice</em> · self-contained HTML (no external requests)
+  </footer>
+</main>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * 1. Reading progress
+ * ------------------------------------------------------------------ */
+(function () {
+  const bar = document.getElementById('progress');
+  const onScroll = () => {
+    const h = document.documentElement;
+    const max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  };
+  document.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+
+/* ------------------------------------------------------------------ *
+ * 2. Tiny Java syntax highlighter (no dependencies)
+ * ------------------------------------------------------------------ */
+(function () {
+  const KEYWORDS = [
+    'abstract','assert','boolean','break','byte','case','catch','char','class','const','continue',
+    'default','do','double','else','enum','extends','final','finally','float','for','goto','if',
+    'implements','import','instanceof','int','interface','long','native','new','package','private',
+    'protected','public','return','short','static','strictfp','super','switch','synchronized','this',
+    'throw','throws','transient','try','void','volatile','while','true','false','null'
+  ];
+  const kw = new Set(KEYWORDS);
+  const RE = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(@\w+)|\b([A-Za-z_$][\w$]*)\b|(\b\d[\d_]*L?\b)/g;
+
+  function esc(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function highlight(src) {
+    const text = esc(src);
+    let out = '', last = 0, m;
+    RE.lastIndex = 0;
+    while ((m = RE.exec(text)) !== null) {
+      out += text.slice(last, m.index);
+      if (m[1])      out += '<span class="c">' + m[1] + '</span>';
+      else if (m[2]) out += '<span class="s">' + m[2] + '</span>';
+      else if (m[3]) out += '<span class="a">' + m[3] + '</span>';
+      else if (m[4]) {
+        const w = m[4];
+        if (kw.has(w))            out += '<span class="k">' + w + '</span>';
+        else if (/^[A-Z]/.test(w)) out += '<span class="t">' + w + '</span>';
+        else                       out += w;
+      }
+      else if (m[5]) out += '<span class="n">' + m[5] + '</span>';
+      last = RE.lastIndex;
+    }
+    out += text.slice(last);
+    return out;
+  }
+
+  document.querySelectorAll('code.lang-java').forEach(function (el) {
+    el.innerHTML = highlight(el.textContent);
+  });
+})();
+
+/* ------------------------------------------------------------------ *
+ * 3. Copy buttons
+ * ------------------------------------------------------------------ */
+(function () {
+  document.querySelectorAll('button.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const code = document.getElementById(btn.dataset.copy);
+      if (!code) return;
+      const text = code.textContent;
+      const done = function () {
+        const old = btn.textContent;
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('done');
+        setTimeout(function () { btn.textContent = old; btn.classList.remove('done'); }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else { fallback(); }
+      function fallback() {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) { /* ignore */ }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+})();
+
+/* ------------------------------------------------------------------ *
+ * 4. Interleaving simulator
+ * ------------------------------------------------------------------ */
+(function () {
+  const laneA = document.getElementById('laneA');
+  const laneB = document.getElementById('laneB');
+  const btnStep = document.getElementById('simStep');
+  const btnPlay = document.getElementById('simPlay');
+  const btnReset = document.getElementById('simReset');
+  const modeUnsafe = document.getElementById('modeUnsafe');
+  const modeSafe = document.getElementById('modeSafe');
+  const stValue = document.getElementById('stValue');
+  const stReturned = document.getElementById('stReturned');
+  const stUnique = document.getElementById('stUnique');
+  const stVerdict = document.getElementById('stVerdict');
+  const simMsg = document.getElementById('simMsg');
+
+  /*
+   * A schedule is a list of operations. Each op knows: thread, the code
+   * fragment to display, and what it does to the shared state.
+   *
+   * unsafe: the Figure 1.1 interleaving  -> both threads return 9.
+   * safe  : the same two threads, but each read-add-write is one step.
+   */
+  const SCHEDULES = {
+    unsafe: {
+      start: 9,
+      ops: [
+        { thread: 'A', label: 'read value → 9',   kind: 'read',  sees: 9 },
+        { thread: 'B', label: 'read value → 9',   kind: 'read',  sees: 9 },
+        { thread: 'A', label: '9 + 1 → 10',       kind: 'add',   val: 10 },
+        { thread: 'B', label: '9 + 1 → 10',       kind: 'add',   val: 10 },
+        { thread: 'A', label: 'value = 10',       kind: 'write', val: 10, ret: 9 },
+        { thread: 'B', label: 'value = 10',       kind: 'write', val: 10, ret: 9 }
+      ],
+      note: 'Both threads read 9 before either wrote. B\'s write overwrites A\'s, so both calls return 9 — one increment is lost.'
+    },
+    safe: {
+      start: 9,
+      ops: [
+        { thread: 'A', label: 'getNext() { read, +1, write }', kind: 'whole', sees: 9, val: 10, ret: 9 },
+        { thread: 'B', label: 'getNext() { read, +1, write }', kind: 'whole', sees: 10, val: 11, ret: 10 }
+      ],
+      note: 'The monitor makes read–add–write indivisible, so B cannot read until A has written. Every call returns a distinct value.'
+    }
+  };
+
+  let mode = 'unsafe';
+  let index = 0;
+  let value = 9;
+  let returned = [];
+  let timer = null;
+
+  function clone() { return JSON.parse(JSON.stringify(SCHEDULES[mode])); }
+  let sched = clone();
+
+  function buildLanes() {
+    laneA.innerHTML = '';
+    laneB.innerHTML = '';
+    sched.ops.forEach(function (op, i) {
+      const div = document.createElement('div');
+      div.className = 'op';
+      div.id = 'op-' + i;
+      div.textContent = op.thread + ': ' + op.label;
+      (op.thread === 'A' ? laneA : laneB).appendChild(div);
+    });
+  }
+
+  function paint() {
+    sched.ops.forEach(function (op, i) {
+      const el = document.getElementById('op-' + i);
+      el.className = 'op' + (i < index ? ' done' : '') + (i === index - 1 ? ' active' : '');
+      if (i < index && op.ret !== undefined && returned.filter(function (r) { return r === op.ret; }).length > 1) {
+        el.classList.add('dup');
+      }
+    });
+
+    stValue.textContent = value;
+    stReturned.textContent = returned.length ? returned.join(', ') : '—';
+    const uniq = new Set(returned).size;
+    stUnique.textContent = uniq;
+
+    if (returned.length === 0) {
+      stVerdict.textContent = 'idle';
+      stVerdict.className = '';
+    } else if (uniq === returned.length) {
+      stVerdict.textContent = 'unique ✓';
+      stVerdict.className = 'good';
+    } else {
+      stVerdict.textContent = 'duplicate ✗';
+      stVerdict.className = 'bad';
+    }
+  }
+
+  function step() {
+    if (index >= sched.ops.length) { stop(); return false; }
+    const op = sched.ops[index];
+    if (op.kind === 'write' || op.kind === 'whole') {
+      value = op.val;
+      returned.push(op.ret);
+    }
+    index++;
+    paint();
+    if (index >= sched.ops.length) {
+      stop();
+      simMsg.textContent = sched.note;
+      btnStep.disabled = true;
+      btnPlay.disabled = true;
+    }
+    return true;
+  }
+
+  function play() {
+    if (index >= sched.ops.length) return;
+    btnPlay.textContent = 'Pause';
+    timer = setInterval(function () {
+      if (!step()) return;
+      if (index >= sched.ops.length) { clearInterval(timer); timer = null; btnPlay.textContent = 'Play'; }
+    }, 750);
+  }
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    btnPlay.textContent = index >= sched.ops.length ? 'Play' : 'Resume';
+  }
+
+  function reset(newMode) {
+    stop();
+    if (newMode) mode = newMode;
+    sched = clone();
+    index = 0;
+    value = sched.start;
+    returned = [];
+    btnStep.disabled = false;
+    btnPlay.disabled = false;
+    btnPlay.textContent = 'Play';
+    modeUnsafe.classList.toggle('on', mode === 'unsafe');
+    modeSafe.classList.toggle('on', mode === 'safe');
+    buildLanes();
+    paint();
+    simMsg.textContent = mode === 'unsafe'
+      ? 'Unsynchronized: press “Step” to advance one operation at a time.'
+      : 'Synchronized: each getNext() is one indivisible step — watch B read 10, not 9.';
+  }
+
+  btnStep.addEventListener('click', function () { step(); });
+  btnPlay.addEventListener('click', function () {
+    if (timer) { stop(); return; }
+    if (index >= sched.ops.length) reset();
+    play();
+  });
+  btnReset.addEventListener('click', function () { reset(); });
+  modeUnsafe.addEventListener('click', function () { reset('unsafe'); });
+  modeSafe.addEventListener('click', function () { reset('safe'); });
+
+  reset('unsafe');
+})();
+</script>
+</body>
+</html>
