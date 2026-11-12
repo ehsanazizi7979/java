@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Java Concurrency in Practice — study notes (Chapters 1–9)</title>
-<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–9: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks, Task Execution, Cancellation and Shutdown, Applying Thread Pools, and GUI Applications, with the book's figures, all code listings and interactive simulators.">
+<title>Java Concurrency in Practice — study notes (Chapters 1–10)</title>
+<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–10: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks, Task Execution, Cancellation and Shutdown, Applying Thread Pools, GUI Applications, and Avoiding Liveness Hazards, with the book's figures, all code listings and interactive simulators.">
 <style>
   :root{
     --bg:#0d1117;
@@ -446,6 +446,23 @@
           <a href="#ch9-cheatsheet">Cheat sheet</a>
         </div>
       </div>
+      <div class="navmenu">
+        <button class="navbtn" aria-expanded="false" data-menu="menu-ch10">Chapter 10 · Avoiding Liveness Hazards ▾</button>
+        <div class="menu" id="menu-ch10">
+          <div class="grp">Sections</div>
+          <a href="#ch10-tldr">TL;DR</a>
+          <a href="#ch10-deadlock">10.1 Deadlock</a>
+          <a href="#ch10-avoiding">10.2 Avoiding and Diagnosing Deadlocks</a>
+          <a href="#ch10-other-hazards">10.3 Other Liveness Hazards</a>
+          <div class="grp">Figures</div>
+          <a href="#ch10-fig101">Figure 10.1</a>
+          <div class="grp">Extras</div>
+          <a href="#ch10-sim">Simulator: two locks, four protocols</a>
+          <a href="#ch10-listings">Patterns</a>
+          <a href="#ch10-terms">Glossary</a>
+          <a href="#ch10-cheatsheet">Cheat sheet</a>
+        </div>
+      </div>
       <a href="#top">↑ Top</a>
     </nav>
   </div>
@@ -510,11 +527,17 @@
         <span class="cc-title">GUI Applications</span>
         <span class="cc-meta">pp. 117–126 · the EDT, long tasks, split models</span>
       </a>
+
+      <a class="chapter-card" href="#ch10">
+        <span class="cc-num">Chapter 10</span>
+        <span class="cc-title">Avoiding Liveness Hazards</span>
+        <span class="cc-meta">pp. 127–136 · ordering, open calls, starvation, livelock</span>
+      </a>
     </div>
     <div class="meta">
-      <span class="pill">📚 <b>9</b> chapters · <b>130</b> book listings + extras</span>
-      <span class="pill">🖼️ Figures 1.1–9.2 embedded</span>
-      <span class="pill">▶️ <b>8</b> interactive simulators</span>
+      <span class="pill">📚 <b>10</b> chapters · <b>137</b> book listings + extras</span>
+      <span class="pill">🖼️ Figures 1.1–10.1 embedded</span>
+      <span class="pill">▶️ <b>9</b> interactive simulators</span>
       <span class="pill">🔌 Fully self-contained</span>
     </div>
     </div>
@@ -10801,8 +10824,904 @@ cancelButton.addActionListener(new ActionListener() {
     </p>
   </div>
 
+  <!-- ================= CHAPTER 10 ================= -->
+  <div class="page-hero chapter-start" id="ch10">
+    <span class="kicker">Java Concurrency in Practice · Chapter 10</span>
+    <h1>Chapter 10 — <span>Avoiding Liveness Hazards</span></h1>
+    <p class="sub">
+      Locking buys safety and can cost liveness. A deadlocked Java program does not recover — no victim is chosen, no
+      transaction is rolled back, nothing is logged unless you ask for a thread dump. That asymmetry is why the book
+      devotes a chapter to <strong>designing</strong> deadlock out rather than debugging it out: one lock at a time if you
+      can, a documented global order if you cannot, and <em>open calls</em> so that the places where you hold two locks are
+      few enough to audit.
+    </p>
+    <div class="meta">
+      <span class="pill">📖 <b>pp. 127–136</b></span>
+      <span class="pill">🧩 <b>3</b> sections · <b>7</b> listings · <b>1</b> figure</span>
+      <span class="pill">⏱️ ~20 min read</span>
+      <span class="pill">🏷️ Part III — Liveness, Performance, and Testing</span>
+    </div>
+  </div>
+
+  <!-- ================= TL;DR ================= -->
+  <section id="ch10-tldr">
+    <h2>Chapter in one paragraph</h2>
+    <div class="card tldr">
+      <h4>TL;DR — the six things worth remembering</h4>
+      <ol>
+        <li><strong>A deadlock is a cycle, and Java does not break it.</strong> The JVM has no victim-selection and no rollback: the threads involved are permanently out of commission, and the only fix is to restart the process (§10.1).</li>
+        <li><strong>Order the locks or die.</strong> A program is free of lock-ordering deadlock if every thread acquires the locks it needs in a fixed global order — and verifying that needs a <em>global</em> look, not a local one.</li>
+        <li><strong>Argument order is lock order.</strong> The classic <code>transferMoney(from, to)</code> bug happens because the lock order is decided by the caller. Induce an order with <code>System.identityHashCode</code> (or a unique key), plus a tie-breaking lock for hash collisions.</li>
+        <li><strong>Deadlock hides behind method calls.</strong> Two cooperating objects can each take one lock and still form a cycle; the warning sign is an <em>alien method</em> called with a lock held.</li>
+        <li><strong>Open calls are the design fix.</strong> Call out to other objects with no locks held. Shrinking the synchronized block may cost atomicity — decide deliberately whether that matters.</li>
+        <li><strong>Liveness has other failure modes.</strong> Resource deadlock, thread-starvation deadlock, starvation from thread priorities, poor responsiveness from long lock holds, and livelock — where threads run but nothing progresses.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= 10.1 ================= -->
+  <section id="ch10-deadlock">
+    <h2><span class="num">10.1</span>Deadlock</h2>
+    <p class="lede">Five philosophers, five chopsticks, and the oldest bug in concurrent programming.</p>
+
+    <p>
+      Dining philosophers: five people at a round table, one chopstick between each pair, and each diner needs
+      <em>two</em> chopsticks to eat. Some chopstick protocols let everyone eat eventually — grab both adjacent sticks, or
+      put down the one you hold and retry after a pause. Some do not: each philosopher grabs the stick on his left and then
+      waits for the one on his right, without ever releasing the left. That second protocol is deadlock: each holds a
+      resource another needs and waits for one another holds.
+    </p>
+
+    <div class="card">
+      <h4>The definition, and the graph</h4>
+      <p>
+        When thread A holds lock L and tries to acquire M, while thread B holds M and tries to acquire L, both wait
+        forever. This is the simplest case of <em>deadlock</em> (or <em>deadly embrace</em>): multiple threads waiting
+        forever because of a <strong>cyclic locking dependency</strong>.
+      </p>
+      <p style="margin:0">
+        Draw the threads as nodes of a directed graph, with an edge "A is waiting for a resource held by B". If that graph
+        contains a cycle, you have a deadlock. Every technique in this chapter is really a way of keeping that graph
+        acyclic — and every diagnostic tool is a way of finding the cycle after the fact.
+      </p>
+    </div>
+
+    <p>
+      Databases attack this head-on: a transaction may hold many locks until commit, so deadlocks are ordinary there. The
+      server searches the is-waiting-for graph for cycles, picks a <strong>victim</strong>, and aborts that transaction —
+      releasing its locks, letting the others proceed, and letting the application retry the victim.
+    </p>
+    <p>
+      The JVM is not nearly as helpful. When Java threads deadlock, that is the end of the game: those threads are
+      permanently out of commission. Depending on what they were doing, the application may stall completely, a subsystem
+      may stall, or throughput may merely sag. The only cure is to abort and restart — and hope it does not happen again.
+    </p>
+
+    <div class="callout">
+      <span class="mark">⏳</span>
+      <p>Deadlocks rarely manifest immediately. A class having a potential deadlock does not mean it ever will, only that it
+      <em>can</em> — and when it does, it is usually at the worst moment: under heavy production load, when the timing
+      window is finally hit.</p>
+    </div>
+
+    <h3><span class="num">10.1.1</span>Lock-ordering deadlocks</h3>
+    <p>
+      Listing 10.1 is the canonical case. <code>leftRight</code> takes <code>left</code> then <code>right</code>;
+      <code>rightLeft</code> takes them the other way round. Two threads, one calling each, and the unlucky interleaving of
+      Figure 10.1 completes a cycle.
+    </p>
+
+    <figure id="ch10-fig101">
+      <img src="data:image/png;base64,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H/ZN8QnGuWIwaMUbY585/vgTkmTz5k2VD6Ioih//678myZ133hnmovS70I033hiLOuSQQyp/8nve8+4kOe6440rmw/E4DIGjkmR+06Z6z72V0f9Ljetu8yjdZ66j+Y1zOZfVm2T4WeOr9MWnG0ZTr1f9CbpbNgbXwjxQb4D/25qdBPFz94bZmax5INSqmzGBlBYei4pbi3jNUqh5URTTYXMYaxULX14p2WdO9asHxcJC+pLYLxtKsc8MhtWr3rjsucfOFguP+4HSRSGn2bt5i0LOXxyEa7Zu3ZJTeGaHLBkCrTrdOFN8gnFu7+VtkGMjx35VFMWGjFf4zLm95LF2ai5MGW1c0mnLJ7q8fluvVrGonP7faD4iAwAAAAAAAA3myBMAAAAAAABoMEeeAAAAAAAAQIM58gQAAAAAAAAazJEnAAAAAAAA0GDdSYjWVtfidRtmZ5JkMBwlyXA4SJLp6emcSszOTHsSAI94w9Eohv1er96NJUtap1NZeCwq3kWz3HjjjTE8+5xzkuS1r3ltknz2s/9fkrz+9b8bi3rZy/7PJNm2bVuS7NixI0l27txZUtfQ2T784T9Pkle88hVJcsrJJ8eSVi+9NEl6GUPppptuimHZji5NvvWtbyXJ+eefH4uamppKktvvuCNJvvPtbyfJE57whFjUVVdemSSTSbppvfov/iLeuGXLliT54he/WPmTe13zAA+btcGgcvEqfV1aLXtrC6OynyTj8The1m77h7C59ttvv8onGGfR227751jUOWefnSRzc3NJMj8/nyQ/+tGPYlHXXnttkhx55JE5j/4DH/hgklz0xouS5KQTT8wpanFxMUn+PizQs7Ozoa2GOf02et3rXpckd95xZ7zs6o98JDTyhn2wX8Xt6Pve9ydJcsklF8cbjz322CT5+je+kS7i3/xmuvIefHAsateu9HndcMMNSbKyupokb3rTm2JR55//6rADSieZe+65J635178ei7rzzjvD3unDSTI9PVPj/aJUK++y0iFA7UZex41ZnJAzF0ceivIREaa11bV03zITPhovr6zEkuJlOXun0s4QL4ufu+N38pW8WuWIvb20w8fLWmHkrONyVvr1vpXxWaZ2HeJPjtva0nHaDcnuBxfSvdPGub08BGK/mmRckzmJTcZpYZ3QeqUftQahqDhUY636eS8FtWfpxaXlyjGY2a8y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"
+           alt="Figure 10.1 — Unlucky timing in LeftRightDeadlock. Thread A locks left, then tries to lock right and waits forever; thread B locks right, then tries to lock left and waits forever.">
+      <figcaption><strong>Figure 10.1</strong> — Unlucky Timing in <code>LeftRightDeadlock</code>. Each thread holds what
+        the other needs and will not let go: A waits for <code>right</code> forever, B waits for <code>left</code> forever.</figcaption>
+    </figure>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">DON'T</span>
+        <span class="name">Listing 10.1 · Simple lock-ordering deadlock</span>
+        <button class="copy" data-copy="ch10-l101">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch10-l101">// Warning: deadlock-prone!
+public class LeftRightDeadlock {
+    private final Object left = new Object();
+    private final Object right = new Object();
+
+    public void leftRight() {
+        synchronized (left) {
+            synchronized (right) {
+                doSomething();
+            }
+        }
+    }
+
+    public void rightLeft() {
+        synchronized (right) {
+            synchronized (left) {
+                doSomethingElse();
+            }
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      The fix is ordering, and the important word is <strong>global</strong>: a program is free of lock-ordering deadlocks
+      if all threads acquire the locks they need in a fixed global order. It is not sufficient to inspect each path that
+      acquires multiple locks — <code>leftRight</code> and <code>rightLeft</code> are both "reasonable" ways to acquire
+      those two locks, they are simply not compatible. When it comes to locking, the left hand needs to know what the right
+      hand is doing.
+    </p>
+
+    <h3><span class="num">10.1.2</span>Dynamic lock-order deadlocks</h3>
+    <p>
+      Listing 10.2 looks harmless: it locks both accounts before transferring, so balances stay atomic and the
+      "no negative balance" invariant holds. How can it deadlock? Because the lock order depends on the
+      <strong>argument order</strong>, and the arguments come from outside:
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">DON'T</span>
+        <span class="name">Listing 10.2 · Dynamic lock-ordering deadlock</span>
+        <button class="copy" data-copy="ch10-l102">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch10-l102">// Warning: deadlock-prone!
+public void transferMoney(Account fromAccount,
+                          Account toAccount,
+                          DollarAmount amount)
+        throws InsufficientFundsException {
+    synchronized (fromAccount) {
+        synchronized (toAccount) {
+            if (fromAccount.getBalance().compareTo(amount) &lt; 0)
+                throw new InsufficientFundsException();
+            else {
+                fromAccount.debit(amount);
+                toAccount.credit(amount);
+            }
+        }
+    }
+}</code></pre>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">CALLERS</span>
+        <span class="name">Two callers, opposite directions — the lock order is the argument order</span>
+        <button class="copy" data-copy="ch10-l102b">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch10-l102b">A: transferMoney(myAccount, yourAccount, 10);
+B: transferMoney(yourAccount, myAccount, 20);</code></pre>
+    </div>
+
+    <p>
+      With unlucky timing, A holds <code>myAccount</code> and waits for <code>yourAccount</code> while B holds
+      <code>yourAccount</code> and waits for <code>myAccount</code>. The deadlock is still visible as
+      <em>nested lock acquisitions</em>; the difference is that you cannot fix it locally, because you do not control the
+      call order. You must <strong>induce an ordering</strong> on the locks and use it everywhere.
+    </p>
+    <p>
+      One way is <code>System.identityHashCode</code>, which returns the value <code>Object.hashCode</code> would return
+      (and, unlike a class's own <code>hashCode</code>, cannot be overridden to something unstable). Listing 10.3 orders
+      the two accounts by that value. If the hashes are equal — vanishingly rare — a third
+      <strong>tie-breaking lock</strong> ensures only one thread at a time takes the two locks in an arbitrary order.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">FIX</span>
+        <span class="name">Listing 10.3 · Inducing a lock ordering to avoid deadlock</span>
+        <button class="copy" data-copy="ch10-l103">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch10-l103">private static final Object tieLock = new Object();
+
+public void transferMoney(final Account fromAcct,
+                          final Account toAcct,
+                          final DollarAmount amount)
+        throws InsufficientFundsException {
+    class Helper {
+        public void transfer() throws InsufficientFundsException {
+            if (fromAcct.getBalance().compareTo(amount) &lt; 0)
+                throw new InsufficientFundsException();
+            else {
+                fromAcct.debit(amount);
+                toAcct.credit(amount);
+            }
+        }
+    }
+    int fromHash = System.identityHashCode(fromAcct);
+    int toHash = System.identityHashCode(toAcct);
+
+    if (fromHash &lt; toHash) {
+        synchronized (fromAcct) {
+            synchronized (toAcct) {
+                new Helper().transfer();
+            }
+        }
+    } else if (fromHash &gt; toHash) {
+        synchronized (toAcct) {
+            synchronized (fromAcct) {
+                new Helper().transfer();
+            }
+        }
+    } else {
+        synchronized (tieLock) {
+            synchronized (fromAcct) {
+                synchronized (toAcct) {
+                   new Helper().transfer();
+                }
+            }
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      If <code>Account</code> has a unique, immutable, comparable key — an account number — the ordering is easier still:
+      order the objects by their key, and the tie-breaking lock disappears. If collisions were common the tie lock would
+      become a bottleneck (as a single program-wide lock would), but identity hash collisions are rare enough that this
+      buys the last bit of safety cheaply.
+    </p>
+
+    <div class="callout">
+      <span class="mark">🎯</span>
+      <p>"Locks are held only briefly, so the risk is small" is the wrong intuition. A production application may perform
+      <em>billions</em> of lock acquire-release cycles per day; only one needs to be timed just wrong. And holding locks
+      briefly — exactly what you are told to do for throughput — makes latent deadlocks <strong>less</strong> likely to
+      show up in testing. <code>DemonstrateDeadlock</code> (Listing 10.4) is included precisely because it deadlocks
+      quickly on most machines, so you can see what one looks like.</p>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 10.4 · Driver loop that induces deadlock under typical conditions</span>
+        <button class="copy" data-copy="ch10-l104">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch10-l104">public class DemonstrateDeadlock {
+    private static final int NUM_THREADS = 20;
+    private static final int NUM_ACCOUNTS = 5;
+    private static final int NUM_ITERATIONS = 1000000;
+
+    public static void main(String[] args) {
+        final Random rnd = new Random();
+        final Account[] accounts = new Account[NUM_ACCOUNTS];
+
+        for (int i = 0; i &lt; accounts.length; i++)
+            accounts[i] = new Account();
+
+        class TransferThread extends Thread {
+            public void run() {
+                for (int i=0; i&lt;NUM_ITERATIONS; i++) {
+                    int fromAcct = rnd.nextInt(NUM_ACCOUNTS);
+                    int toAcct = rnd.nextInt(NUM_ACCOUNTS);
+                    DollarAmount amount =
+                        new DollarAmount(rnd.nextInt(1000));
+                    transferMoney(accounts[fromAcct],
+                                  accounts[toAcct], amount);
+                }
+            }
+        }
+        for (int i = 0; i &lt; NUM_THREADS; i++)
+            new TransferThread().start();
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">10.1.3</span>Deadlocks between cooperating objects</h3>
+    <p>
+      Multiple lock acquisition is not always as visible as in <code>LeftRightDeadlock</code> or <code>transferMoney</code>:
+      the two locks need not be acquired by the same method. Listing 10.5 is a taxicab dispatcher — <code>Taxi</code> holds
+      a location and a destination, <code>Dispatcher</code> holds the fleet — and no single method takes two locks.
+    </p>
+    <p>
+      Yet a thread calling <code>setLocation</code> acquires the <code>Taxi</code> lock and then, inside it, calls
+      <code>dispatcher.notifyAvailable</code>, which needs the <code>Dispatcher</code> lock: <strong>Taxi → Dispatcher</strong>.
+      A thread calling <code>Dispatcher.getImage</code> acquires the <code>Dispatcher</code> lock and then, for each taxi,
+      calls <code>t.getLocation()</code>, which needs that <code>Taxi</code>'s lock: <strong>Dispatcher → Taxi</strong>.
+      Two locks, two threads, opposite orders — the same cycle as before, just spread across two classes.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">DON'T</span>
+        <span class="name">Listing 10.5 · Lock-ordering deadlock between cooperating objects</span>
+        <button class="copy" data-copy="ch10-l105">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch10-l105">// Warning: deadlock-prone!
+class Taxi {
+    @GuardedBy("this") private Point location, destination;
+    private final Dispatcher dispatcher;
+
+    public Taxi(Dispatcher dispatcher) {
+        this.dispatcher = dispatcher;
+    }
+
+    public synchronized Point getLocation() {
+        return location;
+    }
+
+    public synchronized void setLocation(Point location) {
+        this.location = location;
+        if (location.equals(destination))
+            dispatcher.notifyAvailable(this);
+    }
+}
+
+class Dispatcher {
+    @GuardedBy("this") private final Set&lt;Taxi&gt; taxis;
+    @GuardedBy("this") private final Set&lt;Taxi&gt; availableTaxis;
+
+    public Dispatcher() {
+        taxis = new HashSet&lt;Taxi&gt;();
+        availableTaxis = new HashSet&lt;Taxi&gt;();
+    }
+
+    public synchronized void notifyAvailable(Taxi taxi) {
+        availableTaxis.add(taxi);
+    }
+
+    public synchronized Image getImage() {
+        Image image = new Image();
+        for (Taxi t : taxis)
+            image.drawMarker(t.getLocation());
+        return image;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      The warning sign is subtler than "this method takes two locks": it is an <strong>alien method</strong> (Ch. 4,
+      p. 40) being called while a lock is held. Here <code>Taxi.setLocation</code> calls into another object —
+      <code>Dispatcher</code> — with its own lock held, and <code>Dispatcher.getImage</code> calls back into a
+      <code>Taxi</code> with <em>its</em> lock held. Invoking an alien method with a lock held is asking for liveness
+      trouble: the alien method may take other locks (risking deadlock) or block for a long time (stalling everyone who
+      needs the lock you hold).
+    </p>
+
+    <h3><span class="num">10.1.4</span>Open calls</h3>
+    <p>
+      <code>Taxi</code> and <code>Dispatcher</code> had no idea they were two halves of a deadlock, and they should not
+      have to: a method call is an abstraction barrier meant to hide what happens on the other side. But precisely
+      <em>because</em> you cannot see the other side, calling an alien method with a lock held is hard to analyze.
+    </p>
+    <p>
+      A call made with no locks held is an <strong>open call</strong>. Classes that rely on open calls are better behaved
+      and more composable than classes that call out with locks held — the same relationship that encapsulation has with
+      thread safety. The liveness analysis of a program that uses only open calls is far easier, because the places where
+      multiple locks are held are few and visible.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">FIX</span>
+        <span class="name">Listing 10.6 · Using open calls to avoid deadlock between cooperating objects</span>
+        <button class="copy" data-copy="ch10-l106">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch10-l106">@ThreadSafe
+class Taxi {
+    @GuardedBy("this") private Point location, destination;
+    private final Dispatcher dispatcher;
+    ...
+    public synchronized Point getLocation() {
+        return location;
+    }
+
+    public synchronized void setLocation(Point location) {
+        boolean reachedDestination;
+        synchronized  (this) {
+            this.location = location;
+            reachedDestination = location.equals(destination);
+        }
+        if (reachedDestination)
+            dispatcher.notifyAvailable(this);
+    }
+}
+
+@ThreadSafe
+class Dispatcher {
+    @GuardedBy("this") private final Set&lt;Taxi&gt; taxis;
+    @GuardedBy("this") private final Set&lt;Taxi&gt; availableTaxis;
+    ...
+    public synchronized void notifyAvailable(Taxi taxi) {
+        availableTaxis.add(taxi);
+    }
+
+    public Image getImage() {
+        Set&lt;Taxi&gt; copy;
+        synchronized  (this) {
+            copy = new HashSet&lt;Taxi&gt;(taxis);
+        }
+        Image image = new Image();
+        for (Taxi t : copy)
+            image.drawMarker(t.getLocation());
+        return image;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      The refactoring is mechanical: shrink the synchronized blocks so they guard only operations on shared state, compute
+      the decision inside the lock, and make the call after leaving it. Very often the cause of trouble like Listing 10.5
+      is simply that <code>synchronized</code> was put on whole methods for compactness, not because the whole method needed
+      guarding. (Bonus: smaller synchronized blocks usually improve scalability — see §11.4.1.)
+    </p>
+
+    <div class="callout">
+      <span class="mark">⚖️</span>
+      <p>Open calls have a price: an operation that was atomic becomes non-atomic. Often that is fine — updating a taxi's
+      location and telling the dispatcher needn't be one atomic step. Sometimes it is visible but acceptable — the
+      deadlock-prone <code>getImage</code> produced a perfect snapshot of the fleet, the fixed one samples each taxi at a
+      slightly different instant. Occasionally it is unacceptable, and then you need a different technique: use the lock to
+      flip state so that other threads <em>choose not to try</em>. Shutting a service down is the canonical example — set
+      the state to "shutting down" under the lock, release it, then wait for in-flight work, knowing no new work can start.
+      That replaces "keep other threads out of a critical section" with "construct a protocol so they don't want in".</p>
+    </div>
+
+    <h3><span class="num">10.1.5</span>Resource deadlocks</h3>
+    <p>
+      Threads can deadlock waiting for resources just as they can waiting for locks. Two connection pools, one task needing
+      a connection to each, and no global order on acquiring them: thread A holds D1 and waits for D2 while thread B holds
+      D2 and waits for D1. Resource pools are usually semaphores (§5.5.3), so the waiting is ordinary blocking. (Bigger
+      pools make it rarer — with N connections per pool, deadlock needs N sets of cyclically waiting threads and a lot of
+      bad luck — not impossible.)
+    </p>
+    <p>
+      The other resource deadlock is the one from Chapter 8: <strong>thread starvation deadlock</strong>. A task in a
+      single-threaded executor that submits a task and waits for its result waits forever, stalling the executor and every
+      task behind it. Tasks that wait for the results of other tasks are the primary source of this hazard, which is why
+      bounded pools and interdependent tasks do not mix.
+    </p>
+  </section>
+
+  <!-- ================= 10.2 ================= -->
+  <section id="ch10-avoiding">
+    <h2><span class="num">10.2</span>Avoiding and Diagnosing Deadlocks</h2>
+    <p class="lede">Prevention is a design property; diagnosis is a two-part audit plus a thread dump.</p>
+
+    <p>
+      A program that never acquires more than one lock at a time cannot experience lock-ordering deadlock. That is not
+      always practical, but if you can get away with it, it is a lot less work. If you must acquire multiple locks, lock
+      ordering has to be part of the design: minimise the number of possible locking interactions, and follow and
+      <em>document</em> a lock-ordering protocol for locks that may be acquired together.
+    </p>
+
+    <div class="card">
+      <h4>The two-part audit for fine-grained locking</h4>
+      <ol style="margin:0">
+        <li><strong>Identify where multiple locks can be acquired.</strong> Try to make that a small set; a code review, or
+        automated bytecode/source analysis, can find them if the program uses only open calls.</li>
+        <li><strong>Analyse those places globally.</strong> Confirm that lock ordering is consistent across the entire
+        program — not just within each class.</li>
+      </ol>
+    </div>
+
+    <h3><span class="num">10.2.1</span>Timed lock attempts</h3>
+    <p>
+      A different tactic is to detect and recover rather than prevent: use the timed <code>tryLock</code> of the explicit
+      <code>Lock</code> classes (Chapter 13) instead of intrinsic locking. Where <code>synchronized</code> waits forever, an
+      explicit lock lets you specify a timeout after which <code>tryLock</code> reports failure. Choose a timeout far longer
+      than you expect acquisition to take, and you regain control when something unexpected happens.
+    </p>
+    <p>
+      A failed timed attempt is not a diagnosis — maybe it was a deadlock, maybe a thread is in an infinite loop holding the
+      lock, maybe something is just slow. But at least you can log what you were trying to do and fail one operation
+      gracefully instead of killing the process. Used for <em>pairs</em> of locks, timed acquisition works even if the rest
+      of the program uses plain <code>synchronized</code>: on timeout you release what you hold, back off, and retry.
+      (It does not work when locks are nested through method calls, since you cannot release an outer lock you do not own
+      the shape of.)
+    </p>
+
+    <h3><span class="num">10.2.2</span>Deadlock analysis with thread dumps</h3>
+    <p>
+      Prevention is your problem, but the JVM will help you identify a deadlock after the fact. A <strong>thread dump</strong>
+      contains a stack trace for every running thread plus locking information: which locks each thread holds, in which
+      stack frame it acquired them, and which lock a blocked thread is waiting for. Before emitting the dump the JVM
+      searches the is-waiting-for graph for cycles and, if it finds one, prints the deadlock explicitly.
+    </p>
+    <p>
+      Trigger one with <code>SIGQUIT</code> (<code>kill -3</code>) on Unix, <kbd>Ctrl</kbd>+<kbd>\</kbd> on Unix or
+      <kbd>Ctrl</kbd>+<kbd>Break</kbd> on Windows, or from most IDEs. Periodic dumps are worth taking even when nothing is
+      wrong — they show you how your program actually locks.
+    </p>
+
+    <div class="callout">
+      <span class="mark">🧷</span>
+      <p><strong>Explicit locks are harder to diagnose.</strong> Java 5.0 cannot associate <code>Lock</code> information
+      with a thread dump at all — explicit locks simply do not appear. Java 6 adds thread-dump support and deadlock
+      detection for them, but the information is less precise: an intrinsic lock is associated with the stack frame that
+      acquired it, whereas an explicit <code>Lock</code> is associated only with the thread holding it.</p>
+    </div>
+
+    <p>
+      Listing 10.7 is a real dump from a production J2EE application. The deadlock involved three components — the
+      application, the container, and a JDBC driver — each from a different vendor, all extensively tested. Each had a bug
+      that was harmless alone; together they were fatal.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 10.7 · Portion of thread dump after deadlock</span>
+        <button class="copy" data-copy="ch10-l107">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch10-l107">Found one Java-level deadlock:
+=============================
+"ApplicationServerThread":
+  waiting to lock monitor 0x080f0cdc (a MumbleDBConnection),
+  which is held by "ApplicationServerThread"
+"ApplicationServerThread":
+  waiting to lock monitor 0x080f0ed4 (a MumbleDBCallableStatement),
+  which is held by "ApplicationServerThread"
+
+Java stack information for the threads listed above:
+"ApplicationServerThread":
+        at MumbleDBConnection.remove_statement
+        - waiting to lock &lt;0x650f7f30&gt; (a MumbleDBConnection)
+        at MumbleDBStatement.close
+        - locked &lt;0x6024ffb0&gt; (a MumbleDBCallableStatement)
+     ...
+
+"ApplicationServerThread":
+        at MumbleDBCallableStatement.sendBatch
+        - waiting to lock &lt;0x6024ffb0&gt; (a MumbleDBCallableStatement)
+        at MumbleDBConnection.commit
+        - locked &lt;0x650f7f30&gt; (a MumbleDBConnection)
+     ...</code></pre>
+    </div>
+
+    <p>
+      Read it as a cycle: one thread holds the <code>MumbleDBConnection</code> and wants the
+      <code>MumbleDBCallableStatement</code>; the other holds the statement and wants the connection. The driver has a
+      lock-ordering bug — different call chains acquire several JDBC objects in different orders. But that bug was
+      <em>latent</em> until a second bug exposed it: multiple threads were using the same <code>JDBC Connection</code>
+      concurrently, which the application was never supposed to do. Nothing in the JDBC specification requires a
+      <code>Connection</code> to be thread-safe; confining it to one thread, as intended here, is the normal design. The
+      vendor had tried to deliver a thread-safe driver and synchronized on several objects without ordering them. Neither
+      bug was fatal on its own, so both survived extensive testing.
+    </p>
+  </section>
+
+  <!-- ================= 10.3 ================= -->
+  <section id="ch10-other-hazards">
+    <h2><span class="num">10.3</span>Other Liveness Hazards</h2>
+    <p class="lede">Deadlock is the famous one. Starvation, poor responsiveness and livelock are the ones that get filed as
+    "the app is slow" and never diagnosed.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Hazard</th><th>What is happening</th><th>The tell</th><th>The fix</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Deadlock</strong></td><td>A cycle of threads each waiting for a lock or resource another holds</td><td>Thread dump; nothing progresses at all</td><td>Lock ordering, open calls, one lock at a time, timed <code>tryLock</code></td></tr>
+          <tr><td><strong>Starvation</strong></td><td>A thread is perpetually denied the resource (usually CPU) it needs</td><td>One thread's throughput collapses while others run fine</td><td>Drop the priority tweaking; avoid unbounded work under a lock</td></tr>
+          <tr><td><strong>Poor responsiveness</strong></td><td>Locks or CPU held long enough that interactive work waits</td><td>UI stutters while background jobs run</td><td>Smaller synchronized blocks; lower priority for true background work</td></tr>
+          <tr><td><strong>Livelock</strong></td><td>Threads are running, not blocked, and still never progress</td><td>CPU is busy, throughput is zero, retries in the logs</td><td>Randomised back-off; treat unrecoverable errors as unrecoverable</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3><span class="num">10.3.1</span>Starvation</h3>
+    <p>
+      Starvation is a thread perpetually denied access to the resources it needs to make progress; the resource is usually
+      CPU cycles. In Java it can come from inappropriate use of <strong>thread priorities</strong>, or from executing
+      non-terminating constructs — infinite loops, waits that never end — while holding a lock, so that everyone who needs
+      that lock is starved too.
+    </p>
+    <p>
+      Priorities are only scheduling hints. The <code>Thread</code> API defines ten levels that the JVM maps to OS
+      priorities as it sees fit, and the mapping is platform-specific: two Java priorities may collapse to one OS priority
+      on a system with fewer levels. Operating systems already go to great lengths for fairness beyond what the language
+      requires, and most applications run every thread at <code>NORM_PRIORITY</code> anyway. Boosting a thread may do
+      nothing at all, or may reliably starve another.
+    </p>
+
+    <div class="callout">
+      <span class="mark">🚩</span>
+      <p>You can often spot a program that has been fighting priority problems by the <code>Thread.sleep</code> and
+      <code>Thread.yield</code> calls in odd places — someone trying to give lower-priority threads a turn. It does not
+      work: the semantics of <code>Thread.yield</code> and <code>Thread.sleep(0)</code> are undefined
+      [<em>JLS</em> 17.9]; a JVM may implement them as no-ops or as hints, and is not required to reproduce Unix
+      <code>sleep(0)</code> behaviour (put the current thread at the end of its priority's run queue).</p>
+    </div>
+
+    <h3><span class="num">10.3.2</span>Poor responsiveness</h3>
+    <p>
+      One step removed from starvation. Chapter 9 built a framework for pushing long tasks onto background threads so the
+      UI stays responsive — but a CPU-intensive background task still competes for cycles with the event thread, so the UI
+      can still stutter. This is one of the few places where priorities <em>do</em> make sense: if the work really is
+      background work, lowering its priority makes foreground tasks more responsive.
+    </p>
+    <p>
+      Poor responsiveness also comes from poor lock management: a thread that holds a lock while iterating a large
+      collection and doing substantial work per element makes everyone who needs that collection wait.
+    </p>
+
+    <h3><span class="num">10.3.3</span>Livelock</h3>
+    <p>
+      Livelock is a liveness failure in which a thread is <em>not blocked</em> but still cannot make progress, because it
+      keeps retrying an operation that always fails. The canonical form is the <strong>poison message</strong> in
+      transactional messaging: a message that the handler cannot process is rolled back and returned to the head of the
+      queue, then dequeued and handed to the same broken handler, forever. The thread is busy the whole time. This variety
+      usually comes from over-eager error recovery that treats an unrecoverable error as a recoverable one.
+    </p>
+    <p>
+      The other form is cooperative: threads keep changing state in response to each other so that nobody can proceed — two
+      people stepping aside for each other in a corridor, repeatedly. The fix is to introduce
+      <strong>randomness into the retry</strong>. Two Ethernet stations that retry a collision after exactly one second
+      collide forever; retry after a random delay (with exponential back-off for repeated collisions) and the problem
+      disappears. Randomised waits and back-off are just as effective in concurrent applications.
+    </p>
+
+    <div class="callout">
+      <span class="mark">📖</span>
+      <p><strong>The chapter's Summary.</strong> Liveness failures are serious because there is no recovery short of
+      aborting the application. The most common form is lock-ordering deadlock, and avoiding it starts at design time:
+      ensure that when threads acquire multiple locks they do so in a consistent order. The best way to do that is to use
+      open calls throughout the program, which greatly reduces the number of places where multiple locks are held at once
+      and makes it more obvious where those places are.</p>
+    </div>
+  </section>
+  <!-- ================= simulator ================= -->
+  <section id="ch10-sim">
+    <h2><span class="num">▶</span>Interactive: two threads, two locks, four protocols</h2>
+    <p class="lede">Thread A transfers from X to Y; thread B transfers from Y to X. Both hold one lock and want the other.
+    Only the acquisition protocol changes — and that decides whether the program finishes or stops forever.</p>
+
+    <div class="sim">
+      <div class="sim-controls">
+        <button class="btn primary" id="ch10-simStep">Step ▸</button>
+        <button class="btn" id="ch10-simPlay">Play</button>
+        <button class="btn" id="ch10-simReset">Reset</button>
+        <div class="sim-toggle">
+          <button id="ch10-modeDynamic" class="on">from→to</button>
+          <button id="ch10-modeOrdered">ordered</button>
+          <button id="ch10-modeTie">tie lock</button>
+          <button id="ch10-modeOpen">back off</button>
+        </div>
+      </div>
+
+      <div class="lanes">
+        <div class="lane-label">thread A</div>
+        <div class="lane" id="ch10-laneA"></div>
+        <div class="lane-label">thread B</div>
+        <div class="lane" id="ch10-laneB"></div>
+        <div class="lane-label">locks</div>
+        <div class="lane" id="ch10-laneLocks"></div>
+      </div>
+
+      <div class="sim-readout">
+        <div class="stat"><span>tick</span><b id="ch10-stTicks">0</b></div>
+        <div class="stat"><span>transfers done</span><b id="ch10-stDone">0 / 2</b></div>
+        <div class="stat"><span>blocked waits</span><b id="ch10-stWaits">0</b></div>
+        <div class="stat"><span>retries</span><b id="ch10-stRetry">0</b></div>
+        <div class="stat"><span>verdict</span><b id="ch10-stVerdict">idle</b></div>
+      </div>
+      <div class="sim-msg" id="ch10-simMsg">Press “Step”. Both threads try to take the first lock in their plan.</div>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🔍</span>
+      <p><strong>from→to</strong>: the plan is <code>[fromAccount, toAccount]</code>, so A takes X then wants Y while B
+      takes Y then wants X — a cycle, and both wait forever. This is Listing 10.2. <strong>ordered</strong>: both plans are
+      sorted by identity hash, so both threads want the same lock first; one gets it, the other waits, and there is no
+      cycle. <strong>tie lock</strong>: a forced hash collision makes both threads take the tie-breaking lock first, which
+      serialises them completely — safe, but the two transfers no longer overlap. <strong>back off</strong>: the pair is
+      acquired with timed <code>tryLock</code>, and on failure the thread releases what it holds and retries after a random
+      delay, so the cycle is broken by randomness rather than by ordering.</p>
+    </div>
+  </section>
+
+  <!-- ================= patterns ================= -->
+  <section id="ch10-listings">
+    <h2><span class="num">§</span>Patterns worth stealing</h2>
+    <p class="lede">The seven listings above are the book's. These two turn deadlock avoidance into something you can put in
+    a shared utility class: a lock-order comparator, and a tryLock-with-backoff pair.</p>
+
+    <h3><span class="num">1</span>Order any two objects, deterministically</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">Lock ordering by identity hash, a stable key, or a tie-breaking lock</span>
+        <button class="copy" data-copy="ch10-c1">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch10-c1">public final class LockOrder {
+    private final Object tieLock = new Object();
+
+    /** Stable order for any two objects: consistent for every caller, forever. */
+    public static int compare(Object a, Object b) {
+        if (a == b) return 0;
+        int ha = System.identityHashCode(a);
+        int hb = System.identityHashCode(b);
+        if (ha &lt; hb) return -1;
+        if (ha &gt; hb) return 1;
+        // Hashes collide: fall back to a deterministic total order on the
+        // objects themselves, or serialise through a tie lock below.
+        return Integer.compare(System.identityHashCode(a.toString()),
+                               System.identityHashCode(b.toString()));
+    }
+
+    /**
+     * Run body with both objects locked, in a global order.
+     * Deadlock-free however the two accounts are passed in.
+     */
+    public void withBoth(final Object a, final Object b, Runnable body) {
+        int c = compare(a, b);
+        if (c == 0) {                      // a == b: reentrant, lock once
+            synchronized (a) { body.run(); }
+            return;
+        }
+        if (System.identityHashCode(a) != System.identityHashCode(b)) {
+            Object first = c &lt; 0 ? a : b;
+            Object second = c &lt; 0 ? b : a;
+            synchronized (first) {
+                synchronized (second) { body.run(); }
+            }
+        } else {                           // true hash collision: serialise
+            synchronized (tieLock) {       // rare, and only around the pair
+                synchronized (a) {
+                    synchronized (b) { body.run(); }
+                }
+            }
+        }
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">2</span>Acquire both or take neither</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">Timed tryLock with random back-off: probabilistic deadlock avoidance</span>
+        <button class="copy" data-copy="ch10-c2">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch10-c2">/**
+ * Avoids deadlock without a global order: never hold one lock while
+ * blocking indefinitely for the other. Use when you cannot impose an
+ * order (third-party callbacks, user-supplied comparators) and when a
+ * retry is cheap.
+ */
+public final class LockPair {
+    private static final Random RND = new Random();
+    private static final long TIMEOUT_MS = 50;      // far above the real hold time
+    private static final int MAX_ATTEMPTS = 5;
+
+    public static void withBoth(Lock a, Lock b, Runnable body) throws InterruptedException {
+        for (int attempt = 1; ; attempt++) {
+            if (attempt &gt; MAX_ATTEMPTS)
+                throw new IllegalStateException("could not acquire both locks");
+            boolean haveA = false, haveB = false;
+            try {
+                haveA = a.tryLock(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                if (!haveA) continue;
+                haveB = b.tryLock(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                if (!haveB) continue;               // finally releases a
+                body.run();
+                return;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // restore, then give up
+                throw e;
+            } finally {
+                if (haveB) b.unlock();
+                if (haveA) a.unlock();
+            }
+            // unreachable: the loop always continues or returns
+        }
+    }
+
+    /** Randomised back-off, so two threads do not collide the same way twice. */
+    private static void pause(int attempt) throws InterruptedException {
+        long base = 1L &lt;&lt; Math.min(attempt, 6);        // 2, 4, 8 ... 64 ms
+        Thread.sleep(base + RND.nextInt(50));
+    }
+}</code></pre>
+    </div>
+
+    <div class="callout">
+      <span class="mark">💡</span>
+      <p>Prefer the first pattern; keep the second as a fallback. Ordering is a <em>design</em> fix — provable, cheap and
+      analysable. Back-off is a <em>recovery</em> fix: it costs retries, it cannot bound the worst case, and it needs the
+      caller to accept that an operation may fail. The one thing you must never do is neither: acquire two locks in
+      caller-controlled order and hope.</p>
+    </div>
+  </section>
+  <!-- ================= glossary ================= -->
+  <section id="ch10-terms">
+    <h2><span class="num">§</span>Vocabulary introduced in Chapter 10</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Term</th><th>Meaning as used here</th><th>Where it goes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Liveness</strong></td><td>The property that something good eventually happens: threads keep making progress. Its failure modes all look like "it stopped".</td><td>Ch. 10 intro</td></tr>
+          <tr><td><strong>Deadlock</strong></td><td>Multiple threads waiting forever because of a cyclic dependency — on locks, on resources, or on other tasks.</td><td>Ch. 10.1</td></tr>
+          <tr><td><strong>Deadly embrace</strong></td><td>The two-thread, two-lock case: A holds L and wants M, B holds M and wants L.</td><td>Ch. 10.1</td></tr>
+          <tr><td><strong>Is-waiting-for graph</strong></td><td>Threads as nodes, "A waits for something B holds" as edges. A cycle in this graph <em>is</em> the deadlock — the graph databases search and thread dumps print.</td><td>Ch. 10.1</td></tr>
+          <tr><td><strong>Lock-ordering deadlock</strong></td><td>Deadlock caused by two code paths acquiring the same locks in different orders.</td><td>Ch. 10.1.1</td></tr>
+          <tr><td><strong>Global lock order</strong></td><td>A single, documented order in which every thread acquires any two locks it needs. The design-time cure.</td><td>Ch. 10.1.1</td></tr>
+          <tr><td><strong>Dynamic lock order</strong></td><td>Lock order determined at run time by arguments or data — the <code>transferMoney(from, to)</code> bug.</td><td>Ch. 10.1.2</td></tr>
+          <tr><td><strong>Tie-breaking lock</strong></td><td>A third lock taken before an arbitrarily ordered pair, used only when their identity hashes collide.</td><td>Ch. 10.1.2</td></tr>
+          <tr><td><strong>Alien method</strong></td><td>A method belonging to another object (Ch. 4, p. 40). Calling one while holding a lock is the warning sign for hidden lock orders.</td><td>Ch. 10.1.3</td></tr>
+          <tr><td><strong>Open call</strong></td><td>A method call made with no locks held. Programs built from open calls are analysable; programs that call out under locks are not.</td><td>Ch. 10.1.4</td></tr>
+          <tr><td><strong>Resource deadlock</strong></td><td>A cycle over pooled resources rather than locks — two connection pools taken in different orders, for example.</td><td>Ch. 10.1.5</td></tr>
+          <tr><td><strong>Thread-starvation deadlock</strong></td><td>A pool task that waits for a task that can never get a thread; the executor version of the same cycle (Ch. 8.1.1).</td><td>Ch. 10.1.5</td></tr>
+          <tr><td><strong>Timed lock attempt</strong></td><td><code>tryLock(timeout)</code>: give up instead of waiting forever, then release, back off, retry or report.</td><td>Ch. 10.2.1</td></tr>
+          <tr><td><strong>Thread dump</strong></td><td>Every thread's stack plus its held and awaited locks; the JVM also reports deadlock cycles it finds.</td><td>Ch. 10.2.2</td></tr>
+          <tr><td><strong>Starvation</strong></td><td>A thread perpetually denied the resource it needs — usually CPU, usually because of thread priorities.</td><td>Ch. 10.3.1</td></tr>
+          <tr><td><strong>Livelock</strong></td><td>Threads that are running, not blocked, and still never make progress — the poison message, the corridor shuffle.</td><td>Ch. 10.3.3</td></tr>
+          <tr><td><strong>Poison message</strong></td><td>A message that always fails, is rolled back, and returns to the head of the queue to fail again.</td><td>Ch. 10.3.3</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= cheat sheet ================= -->
+  <section id="ch10-cheatsheet">
+    <h2><span class="num">✓</span>Cheat sheet &amp; self-check</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>Server stops serving; threads all <code>BLOCKED</code></td><td>Lock-ordering deadlock</td><td>Thread dump to confirm the cycle, then impose and document a global lock order</td></tr>
+          <tr><td>Deadlock only under load, never in tests</td><td>A narrow interleaving; brief lock holds make it rarer to reproduce</td><td>Static audit for nested lock acquisition; <code>DemonstrateDeadlock</code>-style stress runs</td></tr>
+          <tr><td>Deadlock in a transfer/banking style API</td><td>Lock order taken from argument order</td><td>Sort the pair by identity hash or a unique key; tie-breaking lock for collisions</td></tr>
+          <tr><td>Two classes deadlock, neither takes two locks</td><td>Alien method invoked under a lock (callbacks, listeners, <code>toString</code>)</td><td>Make it an open call: compute under the lock, notify outside it</td></tr>
+          <tr><td>Pool hangs with dependent tasks</td><td>Thread-starvation deadlock</td><td>Unbounded pool, caller-runs, or restructure so tasks do not wait on tasks</td></tr>
+          <tr><td>Two pools exhausted at once</td><td>Resource deadlock over pooled connections</td><td>Acquire resources in a fixed order, or use one pool / one resource per task</td></tr>
+          <tr><td>One thread never gets CPU</td><td>Thread priorities, or unbounded work under a lock</td><td>Stop tuning priorities; bound the work done while holding locks</td></tr>
+          <tr><td>CPU busy, throughput zero, retries in the log</td><td>Livelock — a poisoned message or a symmetric retry loop</td><td>Treat unrecoverable errors as unrecoverable; add randomised back-off</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">✅</div><h5>Do</h5>
+        <p>Keep the number of locks held at once at one, if you can. If not, order them globally and write the order down.
+        Prefer open calls. Audit nested acquisition globally. Take a thread dump before you guess.</p></div>
+      <div class="tile"><div class="ico">🚫</div><h5>Avoid</h5>
+        <p>Locking in the order arguments arrive. Calling alien methods under a lock. Public <code>synchronized</code>
+        methods that call out. Tuning thread priorities. Sleeping or yielding to "fix" scheduling. Retrying a forever-failing
+        operation unchanged.</p></div>
+      <div class="tile"><div class="ico">🧠</div><h5>The one habit</h5>
+        <p>Whenever you write a second <code>synchronized</code> block inside a first, ask: <em>what order does every other
+        thread in this program take these two locks in?</em> If the answer is not immediate, the code is not yet
+        finished.</p></div>
+    </div>
+
+    <div class="card">
+      <h4>Five questions the chapter leaves you with</h4>
+      <ol>
+        <li>Does any code path in this program hold two locks at once — and can I name the order it uses?</li>
+        <li>Which of my <code>synchronized</code> methods call into another object while holding the lock?</li>
+        <li>If this process deadlocked tonight, would anyone be able to produce a thread dump, and would they recognise the cycle?</li>
+        <li>Do any of my tasks wait for other tasks in a bounded pool or a bounded resource pool?</li>
+        <li>Which of my retry loops could run forever without making progress, and what randomisation or poison-message handling stops them?</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= chapter 10 footnotes ================= -->
+  <div class="footnotes">
+    <h4 style="margin:0 0 10px;font-size:.8rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)">Notes carried over from the chapter</h4>
+    <ol>
+      <li>Ironically, holding locks for short periods — what you are supposed to do to reduce contention — increases the likelihood that testing will not disclose a latent deadlock.</li>
+      <li><code>DemonstrateDeadlock</code> ignores the question of negative account balances, for simplicity.</li>
+      <li>The need to rely on open calls and careful lock ordering reflects the fundamental messiness of composing synchronized objects rather than synchronizing composed objects.</li>
+      <li>Thread-dump locking information is useful even without a deadlock: periodically triggering dumps lets you observe your program's locking behaviour.</li>
+      <li>The semantics of <code>Thread.yield</code> and <code>Thread.sleep(0)</code> are undefined [<em>JLS</em> 17.9]; a JVM may implement them as no-ops or as hints, and is not required to reproduce Unix <code>sleep(0)</code> semantics (placing the current thread at the end of the run queue for its priority), though some JVMs do.</li>
+      <li>Missed signals, the remaining liveness hazard mentioned in §10.3, are covered in §14.2.3 of the book.</li>
+      <li><code>transferMoney</code> can also be written with polled <code>tryLock</code> and retries for probabilistic deadlock avoidance — the book's Listing 13.3, p. 280.</li>
+    </ol>
+    <p style="margin-top:14px">
+      Summary of <em>Java Concurrency in Practice</em>, Chapter 10 (Avoiding Liveness Hazards), pp. 127–136.
+      All code listings are the book's, with annotations added; Figure 10.1 is reproduced from the book PDF for study
+      purposes, and the chapter's other diagrams are drawn for these notes.
+    </p>
+  </div>
+
 <footer>
-  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–9 ·
+  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–10 ·
   self-contained HTML (no external requests)
 </footer>
 </main>
@@ -12579,6 +13498,259 @@ function initChapter9Sim() {
 }
 
 /* ------------------------------------------------------------------ *
+ * Chapter 10 simulator
+ * ------------------------------------------------------------------ */
+/* ---- Chapter 10: two threads, two locks, four acquisition protocols ---- */
+function initChapter10Sim() {
+  const laneA = document.getElementById('ch10-laneA');
+  const laneB = document.getElementById('ch10-laneB');
+  const laneLocks = document.getElementById('ch10-laneLocks');
+  const btnStep = document.getElementById('ch10-simStep');
+  const btnPlay = document.getElementById('ch10-simPlay');
+  const btnReset = document.getElementById('ch10-simReset');
+  const modeDynamic = document.getElementById('ch10-modeDynamic');
+  const modeOrdered = document.getElementById('ch10-modeOrdered');
+  const modeTie = document.getElementById('ch10-modeTie');
+  const modeOpen = document.getElementById('ch10-modeOpen');
+  const stTicks = document.getElementById('ch10-stTicks');
+  const stDone = document.getElementById('ch10-stDone');
+  const stWaits = document.getElementById('ch10-stWaits');
+  const stRetry = document.getElementById('ch10-stRetry');
+  const stVerdict = document.getElementById('ch10-stVerdict');
+  const simMsg = document.getElementById('ch10-simMsg');
+
+  /*
+   * Thread A transfers X -> Y, thread B transfers Y -> X. Each transfer
+   * needs both locks and then TICKS of work. Two transfers per thread.
+   */
+  const TICKS = 2;
+  const MAX_TICKS = 30;
+  const TARGET = 2;
+
+  const MODES = {
+    dynamic: {
+      plan: { A: ['X', 'Y'], B: ['Y', 'X'] },
+      note: 'Each thread locks its source account and then its destination, so the lock order is decided by the direction of the transfer. A holds X and wants Y; B holds Y and wants X. The is-waiting-for graph has a cycle, and nothing in the JVM will break it: both threads are permanently out of commission and the only fix is to restart the process.',
+      verdict: 'deadlock \u2717'
+    },
+    ordered: {
+      plan: { A: ['X', 'Y'], B: ['X', 'Y'] },
+      note: 'Both threads sort the pair by System.identityHashCode before locking, so both want X first. One gets it and the other waits -- a wait, but not a cycle: the holder finishes and releases, the waiter proceeds. Same work, same locks, no deadlock. This is Listing 10.3.',
+      verdict: 'ordered, no cycle \u2713'
+    },
+    tie: {
+      plan: { A: ['T', 'X', 'Y'], B: ['T', 'X', 'Y'] },
+      note: 'Identity hashes collide, so both threads take the tie-breaking lock first. Correct and deadlock-free -- but the tie lock serialises the two transfers completely, which is precisely the cost the book warns about if collisions were common. Safety bought with concurrency.',
+      verdict: 'safe but serialised \u2713'
+    },
+    open: {
+      plan: { A: ['X', 'Y'], B: ['Y', 'X'] },
+      note: 'No global order is imposed; instead neither thread will wait indefinitely. A timed tryLock fails, the thread releases everything it holds, backs off for a random interval and retries. The cycle never persists long enough to matter. Costs: wasted work, possible starvation in theory, and the caller must be able to retry.',
+      verdict: 'recovers by back-off \u2713'
+    }
+  };
+
+  let mode = 'dynamic';
+  let tick = 0;
+  let threads = [];
+  let owners = {};
+  let waits = 0;
+  let retries = 0;
+  let deadlocked = false;
+  let finished = false;
+  let timer = null;
+
+  function makeThreads() {
+    const plan = MODES[mode].plan;
+    threads = [
+      { name: 'A', plan: plan.A.slice(), held: [], working: 0, done: 0, blocked: false, wants: null },
+      { name: 'B', plan: plan.B.slice(), held: [], working: 0, done: 0, blocked: false, wants: null }
+    ];
+    owners = {};
+    waits = 0;
+    retries = 0;
+    deadlocked = false;
+    finished = false;
+  }
+
+  function release(t) {
+    t.held.forEach(function (l) { if (owners[l] === t.name) delete owners[l]; });
+    t.held = [];
+  }
+
+  function acquire(t) {
+    if (t.working > 0) {
+      t.working -= 1;
+      if (t.working === 0) {
+        release(t);
+        t.done += 1;
+        const plan = MODES[mode].plan;
+        t.plan = (t.name === 'A' ? plan.A : plan.B).slice();
+        t.blocked = false;
+      }
+      return true;
+    }
+    if (t.plan.length === 0) {
+      if (t.held.length && t.done < TARGET) { t.working = TICKS; return true; }
+      return false;
+    }
+    const want = t.plan[0];
+    const owner = owners[want];
+    if (owner === undefined || owner === t.name) {
+      owners[want] = t.name;
+      t.held.push(want);
+      t.plan.shift();
+      t.blocked = false;
+      t.wants = null;
+      return true;
+    }
+    if (!t.blocked) waits += 1;      // count the stall, not every tick of it
+    t.blocked = true;
+    t.wants = want;
+    if (mode === 'open') {
+      release(t);
+      retries += 1;
+      t.blocked = false;
+    }
+    return false;
+  }
+
+  function slot(text, cls) {
+    const d = document.createElement('div');
+    d.className = 'op' + (cls ? ' ' + cls : '');
+    d.textContent = text;
+    return d;
+  }
+
+  function threadLabel(t) {
+    if (t.done >= TARGET) return 'done ' + t.done + '/' + TARGET;
+    if (t.working > 0) return 'transferring (' + t.held.join('+') + ')';
+    if (t.blocked) return 'wants ' + t.wants + ' — blocked';
+    if (t.held.length) return 'holds ' + t.held.join('+');
+    return 'plan ' + (t.plan.length ? t.plan.join('→') : '—');
+  }
+
+  function paint() {
+    laneA.innerHTML = '';
+    laneA.appendChild(slot(threadLabel(threads[0]), threads[0].blocked ? 'dup' : (threads[0].done >= TARGET ? 'done' : 'active')));
+    laneB.innerHTML = '';
+    laneB.appendChild(slot(threadLabel(threads[1]), threads[1].blocked ? 'dup' : (threads[1].done >= TARGET ? 'done' : 'active')));
+
+    laneLocks.innerHTML = '';
+    ['X', 'Y', 'T'].forEach(function (l) {
+      if (l === 'T' && mode !== 'tie') return;
+      const o = owners[l];
+      laneLocks.appendChild(slot(l + ' · ' + (o ? 'held by ' + o : 'free'), o ? 'active' : ''));
+    });
+
+    const totalDone = threads[0].done + threads[1].done;
+    stTicks.textContent = tick + ' / ' + MAX_TICKS;
+    stDone.textContent = totalDone + ' / ' + (TARGET * 2);
+    stDone.className = totalDone === TARGET * 2 ? 'good' : (deadlocked ? 'bad' : '');
+    stWaits.textContent = String(waits);
+    stWaits.className = waits > 0 ? 'bad' : 'good';
+    stRetry.textContent = String(retries);
+    if (finished) {
+      stVerdict.textContent = MODES[mode].verdict;
+      stVerdict.className = deadlocked ? 'bad' : 'good';
+    } else {
+      stVerdict.textContent = deadlocked ? 'deadlocked' : 'running';
+      stVerdict.className = deadlocked ? 'bad' : '';
+    }
+  }
+
+  function step() {
+    if (finished) return false;
+    tick += 1;
+
+    let progressed = false;
+    threads.forEach(function (t) {
+      if (t.done >= TARGET) return;
+      if (acquire(t)) progressed = true;
+    });
+
+    /* both threads want a lock the other holds: that is the cycle */
+    if (!progressed && threads.every(function (t) { return t.done < TARGET && t.blocked; })) {
+      deadlocked = true;
+    }
+
+    paint();
+
+    const allDone = threads[0].done >= TARGET && threads[1].done >= TARGET;
+    if (deadlocked || allDone || tick >= MAX_TICKS) {
+      finished = true;
+      stop();
+      btnStep.disabled = true;
+      btnPlay.disabled = true;
+      let extra = '';
+      if (deadlocked) {
+        extra = ' Both threads are waiting forever: A holds ' + threads[0].held.join('+') + ' and wants ' +
+                threads[0].wants + '; B holds ' + threads[1].held.join('+') + ' and wants ' + threads[1].wants + '.';
+      } else if (allDone) {
+        extra = ' Four transfers completed in ' + tick + ' ticks, with ' + waits + ' lock stall(s)' +
+                (retries ? ' and ' + retries + ' back-off retries' : '') +
+                (mode === 'tie' ? ' — note that the tie lock let only one thread work at a time.' : '.');
+      } else {
+        extra = ' Still making progress when the tick budget ran out.';
+      }
+      paint();
+      simMsg.textContent = MODES[mode].note + extra;
+      return false;
+    }
+    return true;
+  }
+
+  function play() {
+    if (timer) return;
+    btnPlay.textContent = 'Pause';
+    timer = setInterval(function () {
+      if (!step()) { timer = null; btnPlay.textContent = 'Play'; }
+    }, 520);
+  }
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    btnPlay.textContent = 'Play';
+  }
+
+  function reset(newMode) {
+    stop();
+    if (newMode) mode = newMode;
+    tick = 0;
+    makeThreads();
+    btnStep.disabled = false;
+    btnPlay.disabled = false;
+    btnPlay.textContent = 'Play';
+    modeDynamic.classList.toggle('on', mode === 'dynamic');
+    modeOrdered.classList.toggle('on', mode === 'ordered');
+    modeTie.classList.toggle('on', mode === 'tie');
+    modeOpen.classList.toggle('on', mode === 'open');
+    paint();
+    const hints = {
+      dynamic: 'A plans [X, Y], B plans [Y, X]: the lock order follows the transfer direction.',
+      ordered: 'Both plans are sorted by identity hash, so both threads want X first.',
+      tie: 'A forced hash collision: both threads take the tie-breaking lock T before anything else.',
+      open: 'Timed tryLock: whoever fails releases everything and backs off for a while.'
+    };
+    simMsg.textContent = hints[mode];
+  }
+
+  btnStep.addEventListener('click', function () { step(); });
+  btnPlay.addEventListener('click', function () {
+    if (timer) { stop(); return; }
+    if (finished) reset();
+    play();
+  });
+  btnReset.addEventListener('click', function () { reset(); });
+  modeDynamic.addEventListener('click', function () { reset('dynamic'); });
+  modeOrdered.addEventListener('click', function () { reset('ordered'); });
+  modeTie.addEventListener('click', function () { reset('tie'); });
+  modeOpen.addEventListener('click', function () { reset('open'); });
+
+  reset('dynamic');
+}
+
+/* ------------------------------------------------------------------ *
  * Boot
  * ------------------------------------------------------------------ */
 document.addEventListener('DOMContentLoaded', function () {
@@ -12590,6 +13762,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initChapter7Sim();
   initChapter8Sim();
   initChapter9Sim();
+  initChapter10Sim();
 
   /* nav dropdowns */
   const btns = document.querySelectorAll('.navbtn');
