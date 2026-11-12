@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Java Concurrency in Practice — study notes (Chapters 1–7)</title>
-<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–7: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks, Task Execution, and Cancellation and Shutdown, with the book's figures, all code listings and interactive simulators.">
+<title>Java Concurrency in Practice — study notes (Chapters 1–8)</title>
+<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–8: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks, Task Execution, Cancellation and Shutdown, and Applying Thread Pools, with the book's figures, all code listings and interactive simulators.">
 <style>
   :root{
     --bg:#0d1117;
@@ -409,6 +409,23 @@
           <a href="#ch7-cheatsheet">Cheat sheet</a>
         </div>
       </div>
+      <div class="navmenu">
+        <button class="navbtn" aria-expanded="false" data-menu="menu-ch8">Chapter 8 · Applying Thread Pools ▾</button>
+        <div class="menu" id="menu-ch8">
+          <div class="grp">Sections</div>
+          <a href="#ch8-tldr">TL;DR</a>
+          <a href="#ch8-couplings">8.1 Task–Policy Coupling</a>
+          <a href="#ch8-sizing">8.2 Sizing Thread Pools</a>
+          <a href="#ch8-configuring">8.3 Configuring ThreadPoolExecutor</a>
+          <a href="#ch8-extending">8.4 Extending ThreadPoolExecutor</a>
+          <a href="#ch8-recursive">8.5 Parallelizing Recursive Algorithms</a>
+          <div class="grp">Extras</div>
+          <a href="#ch8-sim">Simulator: when the queue fills</a>
+          <a href="#ch8-listings">Patterns</a>
+          <a href="#ch8-terms">Glossary</a>
+          <a href="#ch8-cheatsheet">Cheat sheet</a>
+        </div>
+      </div>
       <a href="#top">↑ Top</a>
     </nav>
   </div>
@@ -461,11 +478,17 @@
         <span class="cc-title">Cancellation &amp; Shutdown</span>
         <span class="cc-meta">pp. 85–104 · interruption, policies, service lifecycles, hooks</span>
       </a>
+
+      <a class="chapter-card" href="#ch8">
+        <span class="cc-num">Chapter 8</span>
+        <span class="cc-title">Applying Thread Pools</span>
+        <span class="cc-meta">pp. 105–116 · task–policy coupling, sizing, saturation, hooks</span>
+      </a>
     </div>
     <div class="meta">
-      <span class="pill">📚 <b>7</b> chapters · <b>104</b> book listings + extras</span>
+      <span class="pill">📚 <b>8</b> chapters · <b>122</b> book listings + extras</span>
       <span class="pill">🖼️ Figures 1.1–5.4 embedded</span>
-      <span class="pill">▶️ <b>6</b> interactive simulators</span>
+      <span class="pill">▶️ <b>7</b> interactive simulators</span>
       <span class="pill">🔌 Fully self-contained</span>
     </div>
     </div>
@@ -8709,8 +8732,1097 @@ Shutdown.install();</code></pre>
     </p>
   </div>
 
+  <div class="page-hero chapter-start" id="ch8">
+    <span class="kicker">Java Concurrency in Practice · Chapter 8</span>
+    <h1>Chapter 8 — <span>Applying Thread Pools</span></h1>
+    <p class="sub">
+      Chapter 6 said the Executor framework decouples submission from execution. This chapter is the fine print: it is
+      only a <em>partial</em> decoupling. Some tasks <strong>require</strong> a particular execution policy, some
+      combinations of pool settings are quietly broken, and the difference between a pool that degrades and one that
+      deadlocks is usually a queue size and a saturation policy.
+    </p>
+    <div class="meta">
+      <span class="pill">📖 <b>pp. 105–116</b></span>
+      <span class="pill">🧩 <b>5</b> sections · <b>18</b> listings · <b>no figures</b></span>
+      <span class="pill">⏱️ ~24 min read</span>
+      <span class="pill">🏷️ Part II — Structuring Concurrent Applications</span>
+    </div>
+  </div>
+
+  <!-- ================= TL;DR ================= -->
+  <section id="ch8-tldr">
+    <h2>Chapter in one paragraph</h2>
+    <div class="card tldr">
+      <h4>TL;DR — the six things worth remembering</h4>
+      <ol>
+        <li><strong>Not every task fits every policy.</strong> Dependent tasks need a pool big enough that nothing queues; tasks relying on thread confinement need a single-threaded executor; <code>ThreadLocal</code> in a pool is only safe when its lifetime is bounded by one task.</li>
+        <li><strong>Thread starvation deadlock is the tax on dependent tasks.</strong> A task that submits work to its own pool and waits can deadlock even in a large pool — and an unrelated resource pool (JDBC connections) can impose a hidden, smaller bound.</li>
+        <li><strong>Size pools from workload, not from habit.</strong> <code>N<sub>threads</sub> = N<sub>cpu</sub> × U<sub>cpu</sub> × (1 + W/C)</code> for CPU-bound work with waiting; for any other scarce resource, divide the resource by what each task holds.</li>
+        <li><strong>Three queue strategies, three failure modes.</strong> Unbounded queues hide overload until memory runs out; bounded queues force a saturation policy; synchronous handoff needs capacity or a rejection policy.</li>
+        <li><strong>Choose the saturation policy deliberately.</strong> Abort, discard, discard-oldest, or caller-runs — and remember caller-runs pushes overload back out through your application to the client.</li>
+        <li><strong>The framework is meant to be extended.</strong> Thread factories for names and exception handlers, <code>beforeExecute</code>/<code>afterExecute</code>/<code>terminated</code> for timing, and parallel recursion — with the work queue replacing the call stack.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= 8.1 ================= -->
+  <section id="ch8-couplings">
+    <h2><span class="num">8.1</span>Implicit Couplings Between Tasks and Execution Policies</h2>
+    <p class="lede">"Decoupled" was an overstatement. The framework gives you a lot of freedom in specifying an execution
+    policy, but <strong>not all tasks are compatible with all policies</strong>.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Task characteristic</th><th>What it requires of the policy</th><th>What breaks otherwise</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Independent</strong> tasks</td><td>Nothing — any pool size or configuration works</td><td>Only performance changes</td></tr>
+          <tr><td><strong>Dependent</strong> tasks (submit and wait)</td><td>Pool large enough that tasks never queue or get rejected; or an unbounded pool</td><td>Thread starvation deadlock (§8.1.1)</td></tr>
+          <tr><td>Tasks that <strong>exploit thread confinement</strong></td><td>Sequential execution — a single-threaded executor, whose stronger guarantees let task code skip synchronization</td><td>Safety is silently lost if moved to a pool</td></tr>
+          <tr><td><strong>Response-time-sensitive</strong> tasks</td><td>Few long tasks per thread; keep the pool free</td><td>UI stalls, sluggish service</td></tr>
+          <tr><td>Tasks using <strong><code>ThreadLocal</code></strong></td><td>Per-task lifetime only — never as a channel between tasks</td><td>Stale values: pool threads are reused, reaped, and replaced</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Thread pools work best with <strong>homogeneous, independent</strong> tasks. Mixing long- and short-running tasks
+      risks clogging the pool unless it is very large; submitting tasks that depend on each other risks deadlock unless
+      the pool is unbounded. Fortunately, the requests of a typical network server usually meet these guidelines. Where
+      they don't, <strong>document the requirement</strong> next to the executor configuration, so a future maintainer
+      doesn't "optimise" the pool and quietly trade safety or liveness for a benchmark number.
+    </p>
+
+    <h3><span class="num">8.1.1</span>Thread starvation deadlock</h3>
+    <p>
+      In a single-threaded executor, a task that submits another task to the <em>same</em> executor and waits for its
+      result will <strong>always</strong> deadlock: the second task waits on the work queue for the first to finish, and
+      the first waits for the second. The same thing happens in a larger pool once every thread is blocked waiting for a
+      task still sitting in the queue. This is <strong>thread starvation deadlock</strong>, and it can occur whenever a
+      pool task starts an unbounded blocking wait for something only another pool task can provide.
+    </p>
+    <p>
+      <code>ThreadDeadlock</code> is the canonical example — a page renderer that submits header and footer tasks to its
+      own single-threaded executor and then blocks on their futures. Tasks coordinating through a barrier can deadlock the
+      same way if the pool is too small for all the parties.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">DEADLOCK — DON'T DO THIS</span>
+        <span class="name">Listing 8.1 · Task that deadlocks in a single-threaded executor</span>
+        <button class="copy" data-copy="ch8-l81">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l81">public class ThreadDeadlock {
+    ExecutorService exec = Executors.newSingleThreadExecutor();
+
+    public class RenderPageTask implements Callable&lt;String&gt; {
+        public String call() throws Exception {
+            Future&lt;String&gt; header, footer;
+            header = exec.submit(new LoadFileTask("header.html"));
+            footer = exec.submit(new LoadFileTask("footer.html"));
+            String page = renderBody();
+            // Will deadlock -- task waiting for result of subtask
+            return header.get() + page + footer.get();
+        }
+    }
+}</code></pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="mark">⚠️</span>
+      <p>Pool size is not the only bound. If the application uses a JDBC pool of ten connections and every task needs
+      one, then <strong>the thread pool is effectively ten threads</strong> — the rest block waiting for a connection. Any
+      scarce pooled resource imports its own limit into your execution policy.</p>
+    </div>
+
+    <h3><span class="num">8.1.2</span>Long-running tasks</h3>
+    <p>
+      Even without deadlock, a pool can be <strong>clogged</strong>: if tasks block for extended periods, short tasks queue
+      behind them and service time rises for everyone. One mitigation is to use <strong>timed waits</strong> instead of
+      unbounded ones — <code>Thread.join</code>, <code>BlockingQueue.put</code>, <code>CountDownLatch.await</code>,
+      <code>Selector.select</code> all have timed forms. On timeout, mark the task failed and abort it or requeue it for
+      later. Every task then makes progress towards success <em>or</em> failure, and threads are released. A pool that is
+      frequently full of blocked tasks is a signal in itself: either the pool is too small or the tasks are holding
+      threads they should not.
+    </p>
+  </section>
+
+  <!-- ================= 8.2 ================= -->
+  <section id="ch8-sizing">
+    <h2><span class="num">8.2</span>Sizing Thread Pools</h2>
+    <p class="lede">Pool sizes should rarely be hard-coded — and you only need to avoid the extremes.</p>
+    <p>
+      The ideal size depends on the tasks and the deployment machine, so it belongs in configuration or in a computation
+      over <code>Runtime.availableProcessors()</code>. Too big, and threads compete for scarce CPU and memory, raising
+      memory use and risking exhaustion; too small, and processors sit idle while work waits.
+    </p>
+    <div class="grid">
+      <div class="tile"><div class="ico">⚙️</div><h5>Compute-bound</h5>
+        <p>An <code>N<sub>cpu</sub></code>-processor machine usually achieves optimum utilization with
+        <strong><code>N<sub>cpu</sub> + 1</code></strong> threads — the extra one covers the occasional page fault or
+        scheduling pause.</p></div>
+      <div class="tile"><div class="ico">🌐</div><h5>I/O-bound</h5>
+        <p>Larger, because threads spend part of their time not schedulable. Estimate the ratio of wait time to compute
+        time — profiling, instrumentation, or simply running a benchmark at several pool sizes and watching CPU
+        utilization.</p></div>
+      <div class="tile"><div class="ico">🔒</div><h5>Resource-bound</h5>
+        <p>For memory, file handles, sockets or connections, the arithmetic is easy: total resource ÷ resource per task =
+        an upper bound on the pool.</p></div>
+    </div>
+    <p>The sizing formula, for keeping processors at a target utilization:</p>
+    <div class="card" style="text-align:center">
+      <p style="font-family:var(--mono);font-size:1.05rem;margin:6px 0;color:#fff">
+        N<sub>threads</sub> = N<sub>cpu</sub> × U<sub>cpu</sub> × (1 + W/C)
+      </p>
+      <p style="margin:0;font-size:.85rem;color:var(--muted)">
+        N<sub>cpu</sub> = <code>Runtime.getRuntime().availableProcessors()</code> ·
+        U<sub>cpu</sub> = target CPU utilization, 0 ≤ U ≤ 1 ·
+        W/C = ratio of wait time to compute time
+      </p>
+    </div>
+    <p>
+      Note that the target utilization <em>is</em> the throttle: asking for 100% leaves no headroom. And thread pool size
+      and resource pool size interact in both directions — if every task needs a connection, the thread pool is bounded by
+      the connection pool; if pool tasks are the only consumers of connections, the connection pool is bounded by the
+      thread pool.
+    </p>
+  </section>
+
+  <!-- ================= 8.3 ================= -->
+  <section id="ch8-configuring">
+    <h2><span class="num">8.3</span>Configuring ThreadPoolExecutor</h2>
+    <p class="lede">Every factory method in <code>Executors</code> is a preset over one class. Learn the constructor and you
+    can build any policy you need.</p>
+    <p>
+      <code>ThreadPoolExecutor</code> is the base implementation behind <code>newCachedThreadPool</code>,
+      <code>newFixedThreadPool</code> and <code>newScheduledThreadExecutor</code>. When the standard policies don't fit,
+      construct it directly — the source of <code>Executors</code> is the best documentation of the presets, and a good
+      starting point to copy from.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">CONSTRUCTOR</span>
+        <span class="name">Listing 8.2 · General constructor for ThreadPoolExecutor</span>
+        <button class="copy" data-copy="ch8-l82">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l82">public ThreadPoolExecutor(int corePoolSize,
+                          int maximumPoolSize,
+                          long keepAliveTime,
+                          TimeUnit unit,
+                          BlockingQueue&lt;Runnable&gt; workQueue,
+                          ThreadFactory threadFactory,
+                          RejectedExecutionHandler handler) { ... }</code></pre>
+    </div>
+
+    <h3><span class="num">8.3.1</span>Thread creation and teardown</h3>
+    <p>
+      Three parameters govern thread lifecycle. <strong>Core size</strong> is the target: the pool tries to keep this many
+      threads even when idle, and will not exceed it unless the work queue is full. <strong>Maximum size</strong> is the
+      ceiling on concurrently active threads. <strong>Keep-alive</strong> is how long an idle thread may live before
+      becoming a candidate for reaping, which only happens if the pool is above its core size.
+    </p>
+    <p>
+      Reaping idle threads gives resources back to the rest of the system, at the cost of re-creating them later — the
+      same trade as everything else here. The factories are just points on this curve:
+      <code>newFixedThreadPool</code> sets core = max, which has the effect of an infinite timeout;
+      <code>newCachedThreadPool</code> sets core to 0, max to <code>Integer.MAX_VALUE</code> and a one-minute timeout,
+      giving an infinitely expandable pool that contracts when demand falls.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">BOUNDED + CALLER-RUNS</span>
+        <span class="name">Listing 8.3 · Creating a fixed-size thread pool with a bounded queue and the caller-runs saturation policy</span>
+        <button class="copy" data-copy="ch8-l83">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l83">ThreadPoolExecutor executor
+    = new ThreadPoolExecutor(N_THREADS, N_THREADS,
+        0L, TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue&lt;Runnable&gt;(CAPACITY));
+executor.setRejectedExecutionHandler(
+    new ThreadPoolExecutor.CallerRunsPolicy());</code></pre>
+    </div>
+
+    <h3><span class="num">8.3.2</span>Managing queued tasks</h3>
+    <p>
+      A bounded pool limits concurrency, but <em>not</em> resource use: if requests arrive faster than they are handled
+      they still queue — as <code>Runnable</code>s plus list nodes rather than threads, which is much cheaper, but still
+      unbounded growth. Bursts are normal and queues smooth them; sustained overload has to be throttled somewhere, or
+      you run out of memory. Even before that, response time degrades steadily as the queue grows.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Queue strategy</th><th>Used by</th><th>Effect</th><th>Risk</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Unbounded</strong> (<code>LinkedBlockingQueue</code>)</td><td><code>newFixedThreadPool</code>, <code>newSingleThreadExecutor</code></td><td>Tasks always accepted; pool size stays at core</td><td>Queue grows without bound — <code>OutOfMemoryError</code></td></tr>
+          <tr><td><strong>Bounded</strong> (<code>ArrayBlockingQueue</code>, bounded <code>LinkedBlockingQueue</code>/<code>PriorityBlockingQueue</code>)</td><td>Hand-built executors</td><td>Prevents exhaustion; forces a saturation policy</td><td>Must tune queue size and pool size <em>together</em></td></tr>
+          <tr><td><strong>Synchronous handoff</strong> (<code>SynchronousQueue</code>)</td><td><code>newCachedThreadPool</code></td><td>No queue at all: direct producer→worker handoff, lower latency</td><td>Needs an unbounded pool or a rejection policy</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      A large queue with a small pool reduces memory, CPU and context switching at the cost of throughput and latency; a
+      small queue with a large pool reacts faster but accepts less slack. <code>PriorityBlockingQueue</code> gives you
+      control over <em>order</em> (natural ordering or a <code>Comparator</code>) rather than just capacity — at the price
+      of the queue not being FIFO. And a warning that returns in §8.3.3: <strong>bounding either the pool or the queue is
+      only safe for independent tasks</strong>; with dependent tasks it converts overload into starvation deadlock. The
+      alternative configuration for tasks that submit and wait is a bounded pool with a <code>SynchronousQueue</code> and
+      the caller-runs policy.
+    </p>
+
+    <h3><span class="num">8.3.3</span>Saturation policies</h3>
+    <p>
+      When the queue is full — and also when a task is submitted to an executor that has been shut down — the
+      <strong>saturation policy</strong> decides what happens. Set it with
+      <code>setRejectedExecutionHandler</code>; four implementations ship with the library.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Policy</th><th>What it does</th><th>When it's the right choice</th></tr></thead>
+        <tbody>
+          <tr><td><code>AbortPolicy</code> <em>(default)</em></td><td>Throws <code>RejectedExecutionException</code></td><td>You want to handle overflow yourself, and a loud failure is safer than a silent drop</td></tr>
+          <tr><td><code>DiscardPolicy</code></td><td>Silently discards the new task</td><td>Tasks are idempotent and losing one is genuinely acceptable</td></tr>
+          <tr><td><code>DiscardOldestPolicy</code></td><td>Drops the task that would run next, then retries the new one</td><td>Only for FIFO-ish queues — with a priority queue it discards the <em>highest-priority</em> element</td></tr>
+          <tr><td><code>CallerRunsPolicy</code></td><td>Runs the task in the submitting thread</td><td>You want throttling with no loss and no exceptions — the usual choice for a server</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Caller-runs is the interesting one, because it implements <strong>throttling by pushing work back to the caller</strong>.
+      In a web server, once the pool is busy and the queue full, the next task runs in the acceptor thread. That thread is
+      then busy for a while: it cannot submit more tasks <em>and</em> it cannot call <code>accept</code>, so incoming
+      requests queue in the TCP layer instead of the application. If overload persists, the TCP layer decides it has
+      buffered enough and starts refusing connections too. The overload is pushed outward — from pool threads to the work
+      queue to the application to the TCP layer to the client — which is precisely graceful degradation.
+    </p>
+    <p>
+      There is no built-in policy that makes <code>execute</code> <em>block</em>. For that, bound the injection rate with a
+      semaphore: use an unbounded queue (there is no reason to bound both) and set the permit count to pool size plus the
+      number of queued tasks you are willing to hold, since the semaphore counts tasks both running and waiting.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">THROTTLE</span>
+        <span class="name">Listing 8.4 · Using a Semaphore to throttle task submission</span>
+        <button class="copy" data-copy="ch8-l84">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l84">@ThreadSafe
+public class BoundedExecutor {
+    private final Executor exec;
+    private final Semaphore semaphore;
+
+    public BoundedExecutor(Executor exec, int bound) {
+        this.exec = exec;
+        this.semaphore = new Semaphore(bound);
+    }
+
+    public void submitTask(final Runnable command)
+            throws InterruptedException {
+        semaphore.acquire();
+        try {
+            exec.execute(new Runnable() {
+                public void run() {
+                    try {
+                        command.run();
+                    } finally {
+                        semaphore.release();
+                    }
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            semaphore.release();
+        }
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">8.3.4</span>Thread factories</h3>
+    <p>
+      Every thread the pool creates comes from a <strong>thread factory</strong>. The default creates a non-daemon thread
+      with no special configuration; supplying your own lets you fix what the default leaves out.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">INTERFACE</span>
+        <span class="name">Listing 8.5 · ThreadFactory interface</span>
+        <button class="copy" data-copy="ch8-l85">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l85">public interface ThreadFactory {
+    Thread newThread(Runnable r);
+}</code></pre>
+    </div>
+
+    <p>
+      Reasons to write one: install an <code>UncaughtExceptionHandler</code> (§7.3.1); instantiate a custom
+      <code>Thread</code> subclass that logs its lifecycle; and — the reason you will actually use — give threads
+      <strong>meaningful names</strong>, which is the difference between a readable thread dump and a wall of
+      <code>pool-3-thread-7</code>. Changing priority or daemon status is possible and generally a bad idea (§10.3.1,
+      §7.4.2).
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">FACTORY</span>
+        <span class="name">Listing 8.6 · Custom thread factory</span>
+        <button class="copy" data-copy="ch8-l86">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l86">public class MyThreadFactory implements ThreadFactory {
+    private final String poolName;
+
+    public MyThreadFactory(String poolName) {
+        this.poolName = poolName;
+    }
+
+    public Thread newThread(Runnable runnable) {
+        return new MyAppThread(runnable, poolName);
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      The interesting part is the thread class: a name, a custom <code>UncaughtExceptionHandler</code> that logs to a
+      <code>Logger</code>, counters for threads created and alive, and optional debug logging when a thread is created or
+      terminates. Capturing the debug flag into a local at the top of <code>run</code> keeps its value consistent for the
+      thread's whole life.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">INSTRUMENTED THREAD</span>
+        <span class="name">Listing 8.7 · Custom thread base class</span>
+        <button class="copy" data-copy="ch8-l87">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l87">public class MyAppThread extends Thread {
+    public static final String DEFAULT_NAME = "MyAppThread";
+    private static volatile boolean debugLifecycle = false;
+    private static final AtomicInteger created = new AtomicInteger();
+    private static final AtomicInteger alive = new AtomicInteger();
+    private static final Logger log = Logger.getAnonymousLogger();
+
+    public MyAppThread(Runnable r) { this(r, DEFAULT_NAME); }
+
+    public MyAppThread(Runnable runnable, String name) {
+        super(runnable, name + "-" + created.incrementAndGet());
+        setUncaughtExceptionHandler(
+            new Thread.UncaughtExceptionHandler() {
+                public void uncaughtException(Thread t,
+                                              Throwable e) {
+                    log.log(Level.SEVERE,
+                        "UNCAUGHT in thread " + t.getName(), e);
+                }
+            });
+    }
+
+    public void run() {
+        // Copy debug flag to ensure consistent value throughout.
+        boolean debug = debugLifecycle;
+        if (debug) log.log(Level.FINE, "Created "+getName());
+        try {
+            alive.incrementAndGet();
+            super.run();
+        } finally {
+            alive.decrementAndGet();
+            if (debug) log.log(Level.FINE, "Exiting "+getName());
+        }
+    }
+
+    public static int getThreadsCreated() { return created.get(); }
+    public static int getThreadsAlive() { return alive.get(); }
+    public static boolean getDebug() { return debugLifecycle; }
+    public static void setDebug(boolean b) { debugLifecycle = b; }
+}</code></pre>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🔐</span>
+      <p>If your application grants permissions to particular codebases, use
+      <code>Executors.privilegedThreadFactory()</code>: it creates pool threads with the same permissions,
+      <code>AccessControlContext</code> and context class loader as the creating thread. Otherwise pool threads inherit
+      permissions from whichever client happened to call <code>execute</code> when a thread was needed — a recipe for
+      confusing security exceptions.</p>
+    </div>
+
+    <h3><span class="num">8.3.5</span>Customizing after construction</h3>
+    <p>
+      Most constructor options have setters — core size, maximum size, keep-alive, thread factory, rejected execution
+      handler. Executors from the standard factories (except <code>newSingleThreadExecutor</code>) can be cast to
+      <code>ThreadPoolExecutor</code> to reach them. <code>unconfigurableExecutorService</code> wraps an executor so only
+      <code>ExecutorService</code> methods remain visible; the single-threaded factory returns a wrapped instance, because
+      increasing the pool size of a "single-threaded" executor would silently break the guarantee that made task code
+      safe.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">SETTERS</span>
+        <span class="name">Listing 8.8 · Modifying an executor created with the standard factories</span>
+        <button class="copy" data-copy="ch8-l88">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l88">ExecutorService exec = Executors.newCachedThreadPool();
+if (exec instanceof ThreadPoolExecutor)
+    ((ThreadPoolExecutor) exec).setCorePoolSize(10);
+else
+    throw new AssertionError("Oops, bad assumption");</code></pre>
+    </div>
+  </section>
+
+  <!-- ================= 8.4 ================= -->
+  <section id="ch8-extending">
+    <h2><span class="num">8.4</span>Extending ThreadPoolExecutor</h2>
+    <p class="lede">Three hooks — <code>beforeExecute</code>, <code>afterExecute</code>, <code>terminated</code> — turn a
+    pool into a place to put logging, timing and statistics.</p>
+    <p>
+      The first two run in the thread that executes the task, which is what makes them useful and what you must keep in
+      mind: <code>beforeExecute</code> can store a value in a <code>ThreadLocal</code> and <code>afterExecute</code> will
+      find it in the same thread. <code>afterExecute</code> is called whether the task returns normally or throws an
+      exception — but not if it throws an <code>Error</code>, and not if <code>beforeExecute</code> itself throws a
+      <code>RuntimeException</code> (in which case the task never runs). <code>terminated</code> runs once, after the pool
+      has finished shutting down, and is the place to flush whatever the hooks collected.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">TIMING</span>
+        <span class="name">Listing 8.9 · Thread pool extended with logging and timing</span>
+        <button class="copy" data-copy="ch8-l89">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l89">public class TimingThreadPool extends ThreadPoolExecutor {
+    private final ThreadLocal&lt;Long&gt; startTime
+            = new ThreadLocal&lt;Long&gt;();
+    private final Logger log = Logger.getLogger("TimingThreadPool");
+    private final AtomicLong numTasks = new AtomicLong();
+    private final AtomicLong totalTime = new AtomicLong();
+
+    protected void beforeExecute(Thread t, Runnable r) {
+        super.beforeExecute(t, r);
+        log.fine(String.format("Thread %s: start %s", t, r));
+        startTime.set(System.nanoTime());
+    }
+
+    protected void afterExecute(Runnable r, Throwable t) {
+        try {
+            long endTime = System.nanoTime();
+            long taskTime = endTime - startTime.get();
+            numTasks.incrementAndGet();
+            totalTime.addAndGet(taskTime);
+            log.fine(String.format("Thread %s: end %s, time=%dns",
+                    t, r, taskTime));
+        } finally {
+            super.afterExecute(r, t);
+        }
+    }
+
+    protected void terminated() {
+        try {
+            log.info(String.format("Terminated: avg time=%dns",
+                    totalTime.get() / numTasks.get()));
+        } finally {
+            super.terminated();
+        }
+    }
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ================= 8.5 ================= -->
+  <section id="ch8-recursive">
+    <h2><span class="num">8.5</span>Parallelizing Recursive Algorithms</h2>
+    <p class="lede">Loops with independent iterations and nontrivial bodies are the easy win. Recursion is the same idea
+    with the stack replaced by a work queue.</p>
+    <p>
+      If the loop iterations are independent and you needn't wait for all of them before proceeding, an
+      <code>Executor</code> turns a sequential loop into a parallel one. <code>processInParallel</code> returns as soon as
+      every task is queued rather than when they finish; use <code>invokeAll</code> to wait for all of them, or a
+      <code>CompletionService</code> to consume results as they arrive. Iterations are worth parallelizing when they are
+      independent <em>and</em> the body does enough work to justify the cost of managing a task.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">LOOP</span>
+        <span class="name">Listing 8.10 · Transforming sequential execution into parallel execution</span>
+        <button class="copy" data-copy="ch8-l810">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l810">void processSequentially(List&lt;Element&gt; elements) {
+    for (Element e : elements)
+        process(e);
+}
+
+void processInParallel(Executor exec, List&lt;Element&gt; elements) {
+    for (final Element e : elements)
+        exec.execute(new Runnable() {
+            public void run() { process(e); }
+        });
+}</code></pre>
+    </div>
+
+    <p>
+      The easier recursive case is where an iteration does not need the results of the recursive calls it makes.
+      <code>sequentialRecursive</code> walks a tree depth-first, computing each node's result as it visits;
+      <code>parallelRecursive</code> walks the same tree but <em>submits</em> the computation, so the traversal stays
+      sequential and only the computations run in parallel. The caller then needs a way to know when the work is done —
+      typically a private executor, <code>shutdown</code>, and <code>awaitTermination</code>, collecting into a
+      <code>ConcurrentLinkedQueue</code>.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">RECURSION</span>
+        <span class="name">Listing 8.11 · Transforming sequential tail-recursion into parallelized recursion</span>
+        <button class="copy" data-copy="ch8-l811">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l811">public&lt;T&gt; void sequentialRecursive(List&lt;Node&lt;T&gt;&gt; nodes,
+                                   Collection&lt;T&gt; results) {
+    for (Node&lt;T&gt; n : nodes) {
+        results.add(n.compute());
+        sequentialRecursive(n.getChildren(), results);
+    }
+}
+
+public&lt;T&gt; void parallelRecursive(final Executor exec,
+                                 List&lt;Node&lt;T&gt;&gt; nodes,
+                                 final Collection&lt;T&gt; results) {
+    for (final Node&lt;T&gt; n : nodes) {
+        exec.execute(new Runnable() {
+            public void run() {
+                results.add(n.compute());
+            }
+        });
+        parallelRecursive(exec, n.getChildren(), results);
+    }
+}</code></pre>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">WAIT FOR ALL</span>
+        <span class="name">Listing 8.12 · Waiting for results to be calculated in parallel</span>
+        <button class="copy" data-copy="ch8-l812">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l812">public&lt;T&gt; Collection&lt;T&gt; getParallelResults(List&lt;Node&lt;T&gt;&gt; nodes)
+        throws InterruptedException {
+    ExecutorService exec = Executors.newCachedThreadPool();
+    Queue&lt;T&gt; resultQueue = new ConcurrentLinkedQueue&lt;T&gt;();
+    parallelRecursive(exec, nodes, resultQueue);
+    exec.shutdown();
+    exec.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+    return resultQueue;
+}</code></pre>
+    </div>
+
+    <h3><span class="num">8.5.1</span>Example: a puzzle framework</h3>
+    <p>
+      The payoff case is a puzzle solver: find a sequence of moves from a start position to a goal. A
+      <code>Puzzle&lt;P, M&gt;</code> is an initial position, a goal test, the legal moves from a position, and the result
+      of applying a move. A <code>Node</code> is an immutable link — position, the move that produced it, and the previous
+      node — so following the links back reconstructs the solution.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">ABSTRACTION</span>
+        <span class="name">Listing 8.13 · Abstraction for puzzles like the "sliding blocks puzzle"</span>
+        <button class="copy" data-copy="ch8-l813">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l813">public interface Puzzle&lt;P, M&gt; {
+    P initialPosition();
+    boolean isGoal(P position);
+    Set&lt;M&gt; legalMoves(P position);
+    P move(P position, M move);
+}</code></pre>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">IMMUTABLE NODE</span>
+        <span class="name">Listing 8.14 · Link node for the puzzle solver framework</span>
+        <button class="copy" data-copy="ch8-l814">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l814">@Immutable
+static class Node&lt;P, M&gt; {
+    final P pos;
+    final M move;
+    final Node&lt;P, M&gt; prev;
+
+    Node(P pos, M move, Node&lt;P, M&gt; prev) {...}
+
+    List&lt;M&gt; asMoveList() {
+        List&lt;M&gt; solution = new LinkedList&lt;M&gt;();
+        for (Node&lt;P, M&gt; n = this; n.move != null; n = n.prev)
+            solution.add(0, n.move);
+        return solution;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      The sequential solver is a plain depth-first search that returns the first solution found — not necessarily the
+      shortest — and terminates when it finds one or exhausts the space.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">SEQUENTIAL</span>
+        <span class="name">Listing 8.15 · Sequential puzzle solver</span>
+        <button class="copy" data-copy="ch8-l815">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l815">public class SequentialPuzzleSolver&lt;P, M&gt; {
+    private final Puzzle&lt;P, M&gt; puzzle;
+    private final Set&lt;P&gt; seen = new HashSet&lt;P&gt;();
+
+    public SequentialPuzzleSolver(Puzzle&lt;P, M&gt; puzzle) {
+        this.puzzle = puzzle;
+    }
+
+    public List&lt;M&gt; solve() {
+        P pos = puzzle.initialPosition();
+        return search(new Node&lt;P, M&gt;(pos, null, null));
+    }
+
+    private List&lt;M&gt; search(Node&lt;P, M&gt; node) {
+        if (!seen.contains(node.pos)) {
+            seen.add(node.pos);
+            if (puzzle.isGoal(node.pos))
+                return node.asMoveList();
+            for (M move : puzzle.legalMoves(node.pos)) {
+                P pos = puzzle.move(node.pos, move);
+                Node&lt;P, M&gt; child = new Node&lt;P, M&gt;(pos, move, node);
+                List&lt;M&gt; result = search(child);
+                if (result != null)
+                    return result;
+            }
+        }
+        return null;
+    }
+
+    static class Node&lt;P, M&gt; {  /*  Listing 8.14  */  }
+}</code></pre>
+    </div>
+
+    <p>
+      The concurrent version makes each solver task a <code>Node</code> that is also a <code>Runnable</code>: it evaluates
+      legal moves, prunes positions already seen, checks whether anyone has solved the puzzle yet, and submits the
+      unsearched positions. Two details do the real work. The <code>seen</code> set becomes a
+      <code>ConcurrentHashMap</code>, because <code>putIfAbsent</code> makes "add this position only if it is new"
+      atomic — the same race as Memorizer, one chapter's worth of experience later. And the <strong>thread pool's work
+      queue replaces the call stack</strong>, so the search is bounded by memory rather than stack depth — which also
+      changes the search order from depth-first to breadth-first.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">CONCURRENT</span>
+        <span class="name">Listing 8.16 · Concurrent version of puzzle solver</span>
+        <button class="copy" data-copy="ch8-l816">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l816">public class ConcurrentPuzzleSolver&lt;P, M&gt; {
+    private final Puzzle&lt;P, M&gt; puzzle;
+    private final ExecutorService exec;
+    private final ConcurrentMap&lt;P, Boolean&gt; seen;
+    final ValueLatch&lt;Node&lt;P, M&gt;&gt; solution
+            = new ValueLatch&lt;Node&lt;P, M&gt;&gt;();
+    ...
+
+    public List&lt;M&gt; solve() throws InterruptedException {
+        try {
+            P p = puzzle.initialPosition();
+            exec.execute(newTask(p, null, null));
+            // block until solution found
+            Node&lt;P, M&gt; solnNode = solution.getValue();
+            return (solnNode == null) ? null : solnNode.asMoveList();
+        } finally {
+            exec.shutdown();
+        }
+    }
+
+    protected Runnable newTask(P p, M m, Node&lt;P,M&gt; n) {
+        return new SolverTask(p, m, n);
+    }
+
+    class SolverTask extends Node&lt;P, M&gt; implements Runnable {
+        ...
+        public void run() {
+            if (solution.isSet()
+                    || seen.putIfAbsent(pos, true) != null)
+                return; // already solved or seen this position
+            if (puzzle.isGoal(pos))
+                solution.setValue(this);
+            else
+                for (M m : puzzle.legalMoves(pos))
+                    exec.execute(
+                        newTask(puzzle.move(pos, m), m, this));
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Stopping the search needs a latch that also carries a result: <code>ValueLatch</code> holds one value that only the
+      first setter installs, lets callers test whether it has been set, and lets the main thread block until it is.
+      The first task to find a solution also shuts the executor down so no new tasks are accepted; setting the rejection
+      handler to <em>discard</em> means subsequent submissions fail silently instead of throwing, and the pool drains and
+      terminates.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">RESULT LATCH</span>
+        <span class="name">Listing 8.17 · Result-bearing latch used by ConcurrentPuzzleSolver</span>
+        <button class="copy" data-copy="ch8-l817">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l817">@ThreadSafe
+public class ValueLatch&lt;T&gt; {
+    @GuardedBy("this") private T value = null;
+    private final CountDownLatch done = new CountDownLatch(1);
+
+    public boolean isSet() {
+        return (done.getCount() == 0);
+    }
+
+    public synchronized void setValue(T newValue) {
+        if (!isSet()) {
+            value = newValue;
+            done.countDown();
+        }
+    }
+
+    public T getValue() throws InterruptedException {
+        done.await();
+        synchronized (this) {
+            return value;
+        }
+    }
+}</code></pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="mark">♾️</span>
+      <p><strong>The unsolvable case.</strong> If there is no solution, the concurrent solver waits in
+      <code>getValue</code> forever — the sequential version terminated when the space was exhausted, but "the space is
+      exhausted" is no longer one thread's local knowledge. Keep a count of active tasks and set the value to
+      <code>null</code> when it drops to zero. Other termination conditions are a time limit (a timed
+      <code>getValue</code>, then shutdown and declare failure), a puzzle-specific bound such as a maximum number of
+      positions, or an explicit cancellation mechanism for the client.</p>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">TERMINATES ON FAILURE</span>
+        <span class="name">Listing 8.18 · Solver that recognizes when no solution exists</span>
+        <button class="copy" data-copy="ch8-l818">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-l818">public class PuzzleSolver&lt;P,M&gt; extends ConcurrentPuzzleSolver&lt;P,M&gt; {
+    ...
+    private final AtomicInteger taskCount = new AtomicInteger(0);
+
+    protected Runnable newTask(P p, M m, Node&lt;P,M&gt; n) {
+        return new CountingSolverTask(p, m, n);
+    }
+
+    class CountingSolverTask extends SolverTask {
+        CountingSolverTask(P pos, M move, Node&lt;P, M&gt; prev) {
+            super(pos, move, prev);
+            taskCount.incrementAndGet();
+        }
+        public void run() {
+            try {
+                super.run();
+            } finally {
+                if (taskCount.decrementAndGet() == 0)
+                    solution.setValue(null);
+            }
+        }
+    }
+}</code></pre>
+    </div>
+
+    <div class="card">
+      <h4>Chapter summary, in the book's words</h4>
+      <p style="margin-top:0">
+        The Executor framework is a powerful and flexible framework for concurrently executing tasks. It offers a number
+        of tuning options, such as policies for creating and tearing down threads, handling queued tasks, and what to do
+        with excess tasks, and provides several hooks for extending its behaviour. As in most powerful frameworks,
+        however, there are combinations of settings that do not work well together; some types of tasks require specific
+        execution policies, and some combinations of tuning parameters may produce strange results.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= simulator ================= -->
+  <section id="ch8-sim">
+    <h2><span class="num">▶</span>Interactive: what a pool does when the queue fills</h2>
+    <p class="lede">Twelve tasks arrive two per tick against a pool of two threads with a queue of three, and each task takes
+    four ticks. Only the saturation policy changes — watch who runs the overflow, and which tasks never run at all.</p>
+
+    <div class="sim">
+      <div class="sim-controls">
+        <button class="btn primary" id="ch8-simStep">Step ▸</button>
+        <button class="btn" id="ch8-simPlay">Play</button>
+        <button class="btn" id="ch8-simReset">Reset</button>
+        <div class="sim-toggle">
+          <button id="ch8-modeAbort" class="on">abort</button>
+          <button id="ch8-modeCaller">caller-runs</button>
+          <button id="ch8-modeDiscard">discard</button>
+          <button id="ch8-modeOldest">discard-oldest</button>
+        </div>
+      </div>
+
+      <div class="lanes">
+        <div class="lane-label">pool</div>
+        <div class="lane" id="ch8-lanePool"></div>
+        <div class="lane-label">queue</div>
+        <div class="lane" id="ch8-laneQueue"></div>
+        <div class="lane-label">caller</div>
+        <div class="lane" id="ch8-laneCaller"></div>
+      </div>
+
+      <div class="sim-readout">
+        <div class="stat"><span>submitted</span><b id="ch8-stSub">0 / 12</b></div>
+        <div class="stat"><span>executed</span><b id="ch8-stDone">0</b></div>
+        <div class="stat"><span>rejected</span><b id="ch8-stRej">0</b></div>
+        <div class="stat"><span>caller thread busy</span><b id="ch8-stCaller">no</b></div>
+        <div class="stat"><span>verdict</span><b id="ch8-stVerdict">idle</b></div>
+      </div>
+      <div class="sim-msg" id="ch8-simMsg">Press “Step” to submit one task at a time.</div>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🔍</span>
+      <p><strong>abort</strong>: once the queue is full, submission throws — the caller decides what to do, and
+      <code>execute</code> stops being a "fire and forget". <strong>caller-runs</strong>: nothing is lost and nothing
+      throws, but the overhead is repaid by <em>the caller doing the work</em>, so it cannot submit (or accept) while it
+      is busy — backpressure all the way to the TCP layer. <strong>discard</strong>: the newest request vanishes silently
+      and the pool runs smoothly through what it accepted — fast, and fine only if a lost request is acceptable.
+      <strong>discard-oldest</strong>: the queue sheds its oldest waiting task to make room, which keeps the newest work
+      and quietly drops guaranteed-accepted work instead.</p>
+    </div>
+  </section>
+
+  <!-- ================= patterns ================= -->
+  <section id="ch8-listings">
+    <h2><span class="num">§</span>Patterns worth stealing</h2>
+    <p class="lede">The eighteen listings above are the book's. These two put the chapter's tuning knobs together the way a
+    service actually configures them.</p>
+
+    <h3><span class="num">1</span>One executor factory, sized from the machine</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">Pool sized from N_cpu and W/C, bounded queue, caller-runs, named threads</span>
+        <button class="copy" data-copy="ch8-c1">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-c1">public final class Pools {
+    private static final int N_CPU =
+            Runtime.getRuntime().availableProcessors();
+
+    /**
+     * N_threads = N_cpu * U_cpu * (1 + W/C)
+     *   U_cpu - target utilization, 0..1
+     *   W/C   - ratio of wait time to compute time (profile it, don't guess)
+     */
+    public static int sizeFor(double targetUtil, double waitToCompute) {
+        if (targetUtil &lt;= 0 || targetUtil &gt; 1 || waitToCompute &lt; 0)
+            throw new IllegalArgumentException("bad sizing input");
+        return Math.max(1,
+                (int) Math.ceil(N_CPU * targetUtil * (1 + waitToCompute)));
+    }
+
+    /** CPU-bound work: N_cpu + 1 covers page faults and scheduling gaps. */
+    public static ThreadPoolExecutor computePool(String name) {
+        int n = N_CPU + 1;
+        return new ThreadPoolExecutor(n, n, 0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue&lt;Runnable&gt;(1000),   // bounded: no silent growth
+                named(name),
+                new ThreadPoolExecutor.CallerRunsPolicy());  // backpressure, no loss
+    }
+
+    /** I/O-bound work: more threads, same discipline. */
+    public static ThreadPoolExecutor ioPool(String name, int maxBacklog) {
+        int n = sizeFor(0.9, 4.0);          // e.g. 4x wait-to-compute
+        return new ThreadPoolExecutor(n, n, 60L, TimeUnit.SECONDS,
+                new ArrayBlockingQueue&lt;Runnable&gt;(maxBacklog),
+                named(name),
+                new ThreadPoolExecutor.AbortPolicy());       // we handle overflow
+    }
+
+    /** Threads you can find in a thread dump, with deaths that get logged. */
+    private static ThreadFactory named(final String prefix) {
+        final AtomicInteger n = new AtomicInteger();
+        return new ThreadFactory() {
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r, prefix + "-" + n.incrementAndGet());
+                t.setUncaughtExceptionHandler((th, e) -&gt;
+                        System.err.println("uncaught in " + th.getName() + ": " + e));
+                return t;                   // non-daemon: we own the lifecycle
+            }
+        };
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">2</span>A pool that reports itself</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">Hooks for latency percentiles, plus the gauges that tell you the pool is clogged</span>
+        <button class="copy" data-copy="ch8-c2">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch8-c2">public class InstrumentedPool extends ThreadPoolExecutor {
+    private final ThreadLocal&lt;Long&gt; started = new ThreadLocal&lt;Long&gt;();
+    private final LongAdder count = new LongAdder();
+    private final LongAdder totalNanos = new LongAdder();
+    private final AtomicLong maxNanos = new AtomicLong();
+
+    public InstrumentedPool(int core, int max, BlockingQueue&lt;Runnable&gt; q,
+                            ThreadFactory tf, RejectedExecutionHandler h) {
+        super(core, max, 60L, TimeUnit.SECONDS, q, tf, h);
+        // Let core threads time out: an idle pool should shrink (Java 6+).
+        allowCoreThreadTimeOut(true);
+    }
+
+    @Override protected void beforeExecute(Thread t, Runnable r) {
+        super.beforeExecute(t, r);
+        started.set(System.nanoTime());
+    }
+
+    @Override protected void afterExecute(Runnable r, Throwable failure) {
+        try {
+            Long begin = started.get();
+            if (begin != null) {
+                long elapsed = System.nanoTime() - begin;
+                count.increment();
+                totalNanos.add(elapsed);
+                long seen;
+                do {                              // max, without a lock or a reset
+                    seen = maxNanos.get();
+                } while (elapsed &gt; seen &amp;&amp; !maxNanos.compareAndSet(seen, elapsed));
+                started.remove();                 // never leak into the next task
+            }
+            if (failure != null)      // non-null for Errors only: execute()
+                System.err.println("task died: " + failure);  // reports Exceptions via UEH
+        } finally {
+            super.afterExecute(r, failure);
+        }
+    }
+
+    @Override protected void terminated() {
+        try {
+            long n = count.sum();
+            System.out.printf("pool done: %d tasks, avg %.1f ms, max %.1f ms%n",
+                    n,
+                    n == 0 ? 0.0 : totalNanos.sum() / 1e6 / n,
+                    maxNanos.get() / 1e6);
+        } finally {
+            super.terminated();
+        }
+    }
+
+    /** Queue depth is the leading indicator of a clogged pool. */
+    public String health() {
+        return String.format("active=%d queued=%d completed=%d poolSize=%d",
+                getActiveCount(), getQueue().size(),
+                getCompletedTaskCount(), getPoolSize());
+    }
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ================= glossary ================= -->
+  <section id="ch8-terms">
+    <h2><span class="num">§</span>Vocabulary introduced in Chapter 8</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Term</th><th>Meaning as used here</th><th>Where it goes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Implicit coupling</strong></td><td>A task that only works under a particular execution policy, even though the API does not say so.</td><td>Ch. 8.1</td></tr>
+          <tr><td><strong>Thread starvation deadlock</strong></td><td>Every pool thread blocked waiting for work that is itself waiting in the pool's queue.</td><td>Ch. 8.1.1</td></tr>
+          <tr><td><strong>Clogged pool</strong></td><td>A pool whose threads are all held by long or blocked tasks, so short tasks queue behind them.</td><td>Ch. 8.1.2</td></tr>
+          <tr><td><strong>N<sub>cpu</sub> + 1</strong></td><td>The usual optimum for purely compute-bound work — the extra thread covers page faults and pauses.</td><td>Ch. 8.2</td></tr>
+          <tr><td><strong>W/C ratio</strong></td><td>Wait time ÷ compute time; the factor that makes I/O-bound pools larger than CPU-bound ones.</td><td>Ch. 8.2</td></tr>
+          <tr><td><strong>Core pool size</strong></td><td>The target size kept even when idle; the pool exceeds it only when the queue is full.</td><td>Ch. 8.3.1</td></tr>
+          <tr><td><strong>Maximum pool size</strong></td><td>The ceiling on active threads.</td><td>Ch. 8.3.1</td></tr>
+          <tr><td><strong>Keep-alive time</strong></td><td>How long an above-core idle thread may live before it can be reaped.</td><td>Ch. 8.3.1</td></tr>
+          <tr><td><strong>Synchronous handoff</strong></td><td>A <code>SynchronousQueue</code>-based policy with no queue: task goes straight to a waiting worker, or is rejected.</td><td>Ch. 8.3.2</td></tr>
+          <tr><td><strong>Saturation policy</strong></td><td>What happens when the queue is full — and when tasks are submitted after shutdown.</td><td>Ch. 8.3.3</td></tr>
+          <tr><td><strong>Caller-runs</strong></td><td>Run the overflow task in the submitting thread; backpressure instead of loss or exceptions.</td><td>Ch. 8.3.3</td></tr>
+          <tr><td><strong>Thread factory</strong></td><td>The callback that creates pool threads — names, exception handlers, subclasses.</td><td>Ch. 8.3.4</td></tr>
+          <tr><td><strong>Unconfigurable executor</strong></td><td>A wrapper hiding the configuration setters so an execution policy cannot be changed by its clients.</td><td>Ch. 8.3.5</td></tr>
+          <tr><td><strong>Execution hooks</strong></td><td><code>beforeExecute</code>, <code>afterExecute</code>, <code>terminated</code> — the supported way to extend a pool.</td><td>Ch. 8.4</td></tr>
+          <tr><td><strong>Result-bearing latch</strong></td><td>A <code>CountDownLatch</code> plus a value that only the first setter wins (<code>ValueLatch</code>).</td><td>Ch. 8.5.1</td></tr>
+          <tr><td><strong>Work queue as call stack</strong></td><td>Recursive search whose frontier lives in the pool rather than the stack — deeper by memory, breadth-first by order.</td><td>Ch. 8.5.1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= cheat sheet ================= -->
+  <section id="ch8-cheatsheet">
+    <h2><span class="num">✓</span>Cheat sheet &amp; self-check</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>Everything hangs with dependent tasks</td><td>Thread starvation deadlock — pool too small or bounded queue</td><td>Unbounded pool, or caller-runs with <code>SynchronousQueue</code>, or restructure to avoid waiting</td></tr>
+          <tr><td>Pool works in test, dies in production</td><td>Unbounded queue absorbing load until memory runs out</td><td>Bounded queue + saturation policy</td></tr>
+          <tr><td>Throughput collapses under load</td><td>Long tasks clogging a small pool</td><td>Timed waits, separate pools per workload class, bigger pool sized by W/C</td></tr>
+          <tr><td>CPU at 40% with a full queue</td><td>Pool too small, or a hidden resource bound (connections)</td><td>Size from the real bottleneck, not from thread count</td></tr>
+          <tr><td>Thread dumps are unreadable</td><td>Default thread names</td><td>Custom <code>ThreadFactory</code></td></tr>
+          <tr><td>Task failures vanish</td><td><code>submit</code> swallows exceptions into the <code>Future</code></td><td><code>Future.get</code>, <code>afterExecute</code>, or an uncaught exception handler</td></tr>
+          <tr><td>JVM never exits</td><td>Non-daemon pool threads, pool never shut down</td><td><code>shutdown</code> + <code>awaitTermination</code>; or <code>allowCoreThreadTimeOut</code></td></tr>
+          <tr><td>Pool behaviour changes after deployment</td><td>Someone called a setter on a shared executor</td><td>Publish it as an <code>unconfigurableExecutorService</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">✅</div><h5>Do</h5>
+        <p>Size from <code>N<sub>cpu</sub></code>, utilization and W/C — or from the scarcest resource. Bound the queue and
+        choose the saturation policy on purpose. Name your threads. Instrument with the hooks. Document every policy
+        requirement next to the configuration.</p></div>
+      <div class="tile"><div class="ico">🚫</div><h5>Avoid</h5>
+        <p>Submitting a task that waits on another task in the same bounded pool. Hard-coding pool sizes. <code>core=0</code>
+        with a queue that has capacity. Relying on <code>ThreadLocal</code> to pass state between tasks.
+        <code>DiscardOldestPolicy</code> with a priority queue.</p></div>
+      <div class="tile"><div class="ico">🧠</div><h5>The one habit</h5>
+        <p>Before tuning a pool, ask what its <em>steady state</em> is: how many tasks arrive per second, how long each
+        holds a thread, and what else they hold while doing it. Those three numbers decide pool size, queue size and
+        policy — everything else is guesswork.</p></div>
+    </div>
+
+    <div class="card">
+      <h4>Five questions the chapter leaves you with</h4>
+      <ol>
+        <li>Do any of my tasks wait for another task — and if so, what guarantees the second one a thread?</li>
+        <li>What is my pool's W/C ratio, and is the pool size derived from it or from folklore?</li>
+        <li>Which scarce resource limits this pool in practice — CPU, memory, connections, or the queue itself?</li>
+        <li>When the queue is full, do I lose work, throw, run it myself, or block the producer? Am I happy with that?</li>
+        <li>If the pool were 90% clogged right now, which number in my metrics would tell me?</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= chapter 8 footnotes ================= -->
+  <div class="footnotes">
+    <h4 style="margin:0 0 10px;font-size:.8rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)">Notes carried over from the chapter</h4>
+    <ol>
+      <li>The single-threaded requirement is not quite as strong as it sounds: it would be enough that tasks never execute concurrently <em>and</em> that enough synchronization exists for one task's memory effects to be visible to the next — which is precisely what <code>newSingleThreadExecutor</code> guarantees.</li>
+      <li>Core threads are not started when a <code>ThreadPoolExecutor</code> is created; they start as tasks are submitted, unless you call <code>prestartAllCoreThreads</code>.</li>
+      <li>Setting the core size to zero in the hope that threads get torn down produces strange behaviour with any queue that has capacity: if the pool is at core size, a new thread is created only when the queue is <em>full</em>, so tasks wait until the queue fills. In Java 6, <code>allowCoreThreadTimeOut</code> lets all pool threads time out — enable it with a zero core size if you want a bounded pool and bounded queue that still releases every thread when idle.</li>
+      <li>Queues can smooth transient bursts, but sustained overload must be throttled — analogous to flow control in a communications network: you can buffer some data, but eventually the sender must be told to slow down, or the excess dropped.</li>
+      <li>The throughput advantage of <code>newCachedThreadPool</code> comes from <code>SynchronousQueue</code> rather than <code>LinkedBlockingQueue</code>; <code>SynchronousQueue</code> was replaced in Java 6 with a non-blocking algorithm that improved Executor benchmark throughput by a factor of three over the Java 5.0 implementation (Scherer et al., 2006).</li>
+      <li>An alternative configuration for tasks that submit other tasks and wait for their results is a bounded thread pool with a <code>SynchronousQueue</code> work queue and the caller-runs saturation policy.</li>
+      <li>The sliding-block puzzles referenced in §8.5.1 are described at puzzleworld.org.</li>
+    </ol>
+    <p style="margin-top:14px">
+      Summary of <em>Java Concurrency in Practice</em>, Chapter 8 (Applying Thread Pools), pp. 105–116.
+      All code listings are the book's, with annotations added; diagrams are drawn for these notes.
+    </p>
+  </div>
+
 <footer>
-  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–7 ·
+  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–8 ·
   self-contained HTML (no external requests)
 </footer>
 </main>
@@ -9956,6 +11068,234 @@ function initChapter7Sim() {
 }
 
 /* ------------------------------------------------------------------ *
+ * Chapter 8 simulator
+ * ------------------------------------------------------------------ */
+/* ---- Chapter 8: what a bounded pool does when the queue fills ---- */
+function initChapter8Sim() {
+  const lanePool = document.getElementById('ch8-lanePool');
+  const laneQueue = document.getElementById('ch8-laneQueue');
+  const laneCaller = document.getElementById('ch8-laneCaller');
+  const btnStep = document.getElementById('ch8-simStep');
+  const btnPlay = document.getElementById('ch8-simPlay');
+  const btnReset = document.getElementById('ch8-simReset');
+  const modeAbort = document.getElementById('ch8-modeAbort');
+  const modeCaller = document.getElementById('ch8-modeCaller');
+  const modeDiscard = document.getElementById('ch8-modeDiscard');
+  const modeOldest = document.getElementById('ch8-modeOldest');
+  const stSub = document.getElementById('ch8-stSub');
+  const stDone = document.getElementById('ch8-stDone');
+  const stRej = document.getElementById('ch8-stRej');
+  const stCaller = document.getElementById('ch8-stCaller');
+  const stVerdict = document.getElementById('ch8-stVerdict');
+  const simMsg = document.getElementById('ch8-simMsg');
+
+  /*
+   * Twelve tasks arrive back to back; each takes TICKS of service.
+   * The pool has POOL threads and a bounded queue of QUEUE_CAP slots.
+   * Only the saturation policy differs between runs.
+   */
+  const TOTAL = 12;
+  const POOL = 2;
+  const QUEUE_CAP = 3;
+  const TICKS = 4;
+  const BURST = 2;
+
+  const MODES = {
+    abort: {
+      note: 'Both threads are busy and the queue is full, so execute() throws RejectedExecutionException. The caller finds out immediately and can choose -- retry later, shed, log, or fail the request. Nothing vanishes quietly; the price is that submission (and any task you submit inside a pool task) now has to handle failure.',
+      verdict: 'rejects the surplus'
+    },
+    caller: {
+      note: 'The overflowing task runs in the submitting thread instead. Nothing is lost and nothing throws, but the caller is now busy for a task\'s duration and cannot submit again until it finishes -- that back-pressure is the point, and it is why this policy is the natural fit for a queue fed by a single accept loop. The cost: the accept loop stalls, so the backlog moves out to the TCP layer and eventually to clients.',
+      verdict: 'throttles the caller ✓'
+    },
+    discard: {
+      note: 'The task is dropped with no exception and no log line. The pool keeps running smoothly on everything it accepted, which is fine for idempotent, loss-tolerant work (telemetry, cache warming) and dangerous for anything else -- the only symptom is work that never happened.',
+      verdict: 'drops the newest silently'
+    },
+    oldest: {
+      note: 'The task at the head of the queue -- the one that would run next -- is discarded to make room for the newest arrival. Work that was already accepted is thrown away in favour of work that just showed up, and with a priority queue this policy would evict the highest-priority element, which is one reason the two are a poor match.',
+      verdict: 'drops the oldest silently'
+    }
+  };
+
+  let mode = 'abort';
+  let submitted = 0;
+  let executed = 0;
+  let rejected = 0;      // explicit rejections (abort only)
+  let dropped = [];      // tasks silently lost
+  let throttled = 0;     // ticks the caller spent blocked instead of submitting
+  let running = [];      // [{id, remaining}]
+  let queue = [];        // ids
+  let callerJob = null;  // {id, remaining}
+  let finished = false;
+  let timer = null;
+
+  /* One submission attempt. Returns without incrementing when the caller is blocked. */
+  function trySubmit() {
+    if (submitted >= TOTAL) return;
+    const id = submitted + 1;
+
+    if (running.length < POOL) { submitted += 1; running.push({ id: id, remaining: TICKS }); return; }
+    if (queue.length < QUEUE_CAP) { submitted += 1; queue.push(id); return; }
+
+    if (mode === 'abort') { submitted += 1; rejected += 1; return; }
+    if (mode === 'caller') {
+      if (callerJob) { throttled += 1; return; }   /* caller is mid-task: it cannot even submit */
+      submitted += 1;
+      callerJob = { id: id, remaining: TICKS };
+      return;
+    }
+    if (mode === 'discard') { submitted += 1; dropped.push(id); return; }
+
+    /* discard-oldest: evict the head of the queue, then enqueue the newcomer */
+    submitted += 1;
+    dropped.push(queue.shift());
+    queue.push(id);
+  }
+
+  /* One tick of service across every thread in the system. */
+  function advance() {
+    running.forEach(function (job) { job.remaining -= 1; });
+    const done = running.filter(function (job) { return job.remaining <= 0; });
+    executed += done.length;
+    running = running.filter(function (job) { return job.remaining > 0; });
+
+    if (callerJob) {
+      callerJob.remaining -= 1;
+      if (callerJob.remaining <= 0) { executed += 1; callerJob = null; }
+    }
+
+    while (running.length < POOL && queue.length > 0) {
+      running.push({ id: queue.shift(), remaining: TICKS });
+    }
+  }
+
+  function slot(text, cls) {
+    const d = document.createElement('div');
+    d.className = 'op' + (cls ? ' ' + cls : '');
+    d.textContent = text;
+    return d;
+  }
+
+  function paint() {
+    lanePool.innerHTML = '';
+    for (let i = 0; i < POOL; i++) {
+      const job = running[i];
+      lanePool.appendChild(slot(job ? 'T' + job.id : 'idle', job ? 'active' : ''));
+    }
+
+    laneQueue.innerHTML = '';
+    for (let i = 0; i < QUEUE_CAP; i++) {
+      const id = queue[i];
+      laneQueue.appendChild(slot(id ? 'T' + id : '·', id ? 'done' : ''));
+    }
+
+    laneCaller.innerHTML = '';
+    laneCaller.appendChild(callerJob ? slot('T' + callerJob.id, 'active') : slot('idle', ''));
+
+    stSub.textContent = finished ? submitted + ' / ' + TOTAL : submitted + ' / ' + TOTAL;
+    stDone.textContent = finished ? executed + ' of ' + TOTAL : String(executed);
+    stDone.className = finished ? (executed === TOTAL ? 'good' : 'bad') : '';
+    stRej.textContent = String(rejected);
+    stRej.className = rejected > 0 ? 'bad' : '';
+    stCaller.textContent = callerJob ? 'yes' : 'no';
+    stCaller.className = callerJob ? 'bad' : '';
+
+    if (finished) {
+      if (mode === 'caller') {
+        stVerdict.textContent = executed === TOTAL ? MODES[mode].verdict : MODES[mode].verdict;
+        stVerdict.className = 'good';
+      } else {
+        stVerdict.textContent = MODES[mode].verdict + (dropped.length ? ' (' + dropped.length + ' lost)' : '') + ' ✗';
+        stVerdict.className = 'bad';
+      }
+    } else {
+      stVerdict.textContent = 'idle';
+      stVerdict.className = '';
+    }
+  }
+
+  function step() {
+    /* a burst arrives, then a tick of time passes */
+    for (let i = 0; i < BURST; i++) trySubmit();
+    advance();
+    const drained = running.length === 0 && queue.length === 0 && callerJob === null;
+    if (submitted >= TOTAL && drained) {
+      finished = true;
+      stop();
+      btnStep.disabled = true;
+      btnPlay.disabled = true;
+    }
+    paint();
+    if (finished) {
+      let extra = '';
+      if (dropped.length) extra = ' Tasks lost: ' + dropped.map(function (i) { return 'T' + i; }).join(', ') + '.';
+      if (mode === 'caller' && throttled) extra += ' The caller stalled on ' + throttled + ' ticks while it ran pool work.';
+      simMsg.textContent = MODES[mode].note + extra;
+      return false;
+    }
+    return true;
+  }
+
+  function play() {
+    if (timer) return;
+    btnPlay.textContent = 'Pause';
+    timer = setInterval(function () {
+      if (!step()) { timer = null; btnPlay.textContent = 'Play'; }
+    }, 480);
+  }
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    btnPlay.textContent = 'Play';
+  }
+
+  function reset(newMode) {
+    stop();
+    if (newMode) mode = newMode;
+    submitted = 0;
+    executed = 0;
+    rejected = 0;
+    dropped = [];
+    throttled = 0;
+    running = [];
+    queue = [];
+    callerJob = null;
+    finished = false;
+    btnStep.disabled = false;
+    btnPlay.disabled = false;
+    btnPlay.textContent = 'Play';
+    modeAbort.classList.toggle('on', mode === 'abort');
+    modeCaller.classList.toggle('on', mode === 'caller');
+    modeDiscard.classList.toggle('on', mode === 'discard');
+    modeOldest.classList.toggle('on', mode === 'oldest');
+    paint();
+    const hints = {
+      abort: 'Two threads, three queue slots, two arrivals per tick — once they fill, execute() throws.',
+      caller: 'Once the pool and queue are full, each arrival runs in the caller thread — and the caller stops submitting until it is done.',
+      discard: 'Once the pool and queue are full, each arrival is dropped without a word.',
+      oldest: 'Once the pool and queue are full, each arrival evicts the task at the head of the queue.'
+    };
+    simMsg.textContent = hints[mode];
+  }
+
+  btnStep.addEventListener('click', function () { step(); });
+  btnPlay.addEventListener('click', function () {
+    if (timer) { stop(); return; }
+    if (finished) reset();
+    play();
+  });
+  btnReset.addEventListener('click', function () { reset(); });
+  modeAbort.addEventListener('click', function () { reset('abort'); });
+  modeCaller.addEventListener('click', function () { reset('caller'); });
+  modeDiscard.addEventListener('click', function () { reset('discard'); });
+  modeOldest.addEventListener('click', function () { reset('oldest'); });
+
+  reset('abort');
+}
+
+/* ------------------------------------------------------------------ *
  * Boot
  * ------------------------------------------------------------------ */
 document.addEventListener('DOMContentLoaded', function () {
@@ -9965,6 +11305,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initChapter5Sim();
   initChapter6Sim();
   initChapter7Sim();
+  initChapter8Sim();
 
   /* nav dropdowns */
   const btns = document.querySelectorAll('.navbtn');
