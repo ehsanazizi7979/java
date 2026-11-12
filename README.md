@@ -12,7 +12,8 @@ Everything lives in one page: **[`index.html`](index.html)**.
 | --- | --- | --- |
 | 1 — Introduction | `#ch1` | pp. 1–9: history of concurrency, benefits of threads, safety/liveness/performance hazards, threads are everywhere |
 | 2 — Thread Safety | `#ch2` | pp. 11–22: state, correctness, atomicity, race conditions, compound actions, intrinsic locks, reentrancy, guarding state, liveness vs. performance |
-| 3 — Sharing Objects | `#ch3` | pp. 23–35: visibility, reordering, stale data, `volatile`, publication & escape, safe construction, thread confinement, immutability, safe publication |
+| 3 — Sharing Objects | `#ch3` | pp. 23–36: visibility, reordering, stale data, `volatile`, publication & escape, safe construction, thread confinement, immutability, safe publication, sharing policies |
+| 4 — Composing Objects | `#ch4` | pp. 37–50: designing thread-safe classes, state/invariants/synchronization policy, instance confinement, the Java monitor pattern, delegation, publishing state, client-side locking vs. composition, documenting policies |
 
 ## Notes on the chapter files
 
@@ -22,13 +23,14 @@ Everything lives in one page: **[`index.html`](index.html)**.
 * **Original figures.** `Figure 1.1` (p. 5), `Figure 2.1` (p. 21) and `Figure 3.1` (p. 25) are cropped from the
   book PDF in this repository and stored, unmodified apart from cropping, in [`assets/`](assets); the HTML embeds
   their base64 forms.
-* **Code listings.** All twenty-five book listings (1.1–1.2, 2.1–2.8, 3.1–3.15) are reproduced verbatim; additional listings
+* **Code listings.** All forty-one book listings (1.1–1.2, 2.1–2.8, 3.1–3.15, 4.1–4.16) are reproduced verbatim; additional listings
   are the same ideas written out as runnable fragments. A dependency-free Java highlighter styles them and
   every block has a copy button.
 * **Interactive simulators.** Chapter 1: step through the Figure 1.1 interleaving, then re-run it with
   `synchronized`. Chapter 2: step through the two-`AtomicReference` cache breaking its invariant, then watch
   a single lock keep the pair consistent. Chapter 3: replay `NoVisibility` three ways — unsynchronized,
-  reordered, and `volatile` — to see the reader print nothing, `0`, and `42`.
+  reordered, and `volatile` — to see the reader print nothing, `0`, and `42`. Chapter 4 has no simulator: its
+  material is design decisions, illustrated with diagrams instead (e.g. the `NumberRange` race).
 
 ## Viewing
 

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Java Concurrency in Practice — study notes (Chapters 1–3)</title>
-<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapter 1 (Introduction), Chapter 2 (Thread Safety) and Chapter 3 (Sharing Objects), with the book's figures, all code listings and interactive simulators.">
+<title>Java Concurrency in Practice — study notes (Chapters 1–4)</title>
+<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–4: Introduction, Thread Safety, Sharing Objects and Composing Objects, with the book's figures, all code listings and interactive simulators.">
 <style>
   :root{
     --bg:#0d1117;
@@ -221,7 +221,7 @@
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
   /* ---------- cover chapter cards ---------- */
-  .chapter-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px;max-width:820px}
+  .chapter-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:22px;max-width:1000px}
   .chapter-card{
     display:block;padding:14px 16px;border-radius:12px;border:1px solid var(--line);
     background:linear-gradient(180deg,var(--panel),var(--bg-soft));transition:.18s;text-decoration:none
@@ -313,12 +313,29 @@
           <a href="#ch3-confinement">3.3 Thread Confinement</a>
           <a href="#ch3-immutability">3.4 Immutability</a>
           <a href="#ch3-safe-publication">3.5 Safe Publication</a>
+          <a href="#ch3-policies">3.5.6 Sharing objects safely</a>
           <div class="grp">Extras</div>
           <a href="#ch3-figure">Figure 3.1</a>
           <a href="#ch3-listings">All code listings</a>
           <a href="#ch3-sim">Simulator: what the reader sees</a>
           <a href="#ch3-terms">Glossary</a>
           <a href="#ch3-cheatsheet">Cheat sheet</a>
+        </div>
+      </div>
+      <div class="navmenu">
+        <button class="navbtn" aria-expanded="false" data-menu="menu-ch4">Chapter 4 · Composing Objects ▾</button>
+        <div class="menu" id="menu-ch4">
+          <div class="grp">Sections</div>
+          <a href="#ch4-tldr">TL;DR</a>
+          <a href="#ch4-design">4.1 Designing a Thread-safe Class</a>
+          <a href="#ch4-confinement">4.2 Instance Confinement</a>
+          <a href="#ch4-delegation">4.3 Delegating Thread Safety</a>
+          <a href="#ch4-adding">4.4 Adding Functionality</a>
+          <a href="#ch4-documenting">4.5 Documenting Policies</a>
+          <div class="grp">Extras</div>
+          <a href="#ch4-listings">Annotated patterns</a>
+          <a href="#ch4-terms">Glossary</a>
+          <a href="#ch4-cheatsheet">Cheat sheet</a>
         </div>
       </div>
       <a href="#top">↑ Top</a>
@@ -330,7 +347,7 @@
 <div class="hero">
     <div class="hero-grid">
     <div>
-    <span class="kicker">Study notes · Chapters 1–2</span>
+    <span class="kicker">Study notes · Part I — Fundamentals</span>
     <h1>Java Concurrency<br><span>in Practice</span></h1>
     <p class="sub">
       Visual summaries of the book: the argument for threads, the hazards they introduce, and the
@@ -351,11 +368,16 @@
       <a class="chapter-card" href="#ch3">
         <span class="cc-num">Chapter 3</span>
         <span class="cc-title">Sharing Objects</span>
-        <span class="cc-meta">pp. 23–35 · visibility, escape, confinement, immutability, publication</span>
+        <span class="cc-meta">pp. 23–36 · visibility, escape, confinement, immutability, publication</span>
+      </a>
+      <a class="chapter-card" href="#ch4">
+        <span class="cc-num">Chapter 4</span>
+        <span class="cc-title">Composing Objects</span>
+        <span class="cc-meta">pp. 37–50 · class design, instance confinement, delegation, composition, documentation</span>
       </a>
     </div>
     <div class="meta">
-      <span class="pill">📚 <b>3</b> chapters · <b>25</b> book listings + extras</span>
+      <span class="pill">📚 <b>4</b> chapters · <b>41</b> book listings + extras</span>
       <span class="pill">🖼️ Figures 1.1, 2.1 &amp; 3.1 embedded</span>
       <span class="pill">▶️ <b>3</b> interactive simulators</span>
       <span class="pill">🔌 Fully self-contained</span>
@@ -2250,7 +2272,7 @@ class LastResultCache {
       can be seen half-built.
     </p>
     <div class="meta">
-      <span class="pill">📖 <b>pp. 23–35</b></span>
+      <span class="pill">📖 <b>pp. 23–36</b></span>
       <span class="pill">🧩 <b>5</b> sections · <b>15</b> listings · <b>1</b> figure</span>
       <span class="pill">⏱️ ~16 min read</span>
       <span class="pill">🏷️ Part I — Fundamentals</span>
@@ -3075,6 +3097,28 @@ public void initialize() {
       </svg>
       <figcaption>The publication ladder: each step up removes a way to be wrong — and a synchronisation cost.</figcaption>
     </figure>
+
+    <h3 id="ch3-policies"><span class="num">3.5.6</span>Sharing objects safely</h3>
+    <p>
+      Whenever you acquire a reference to an object you should know what you are allowed to do with it: must you hold
+      a lock? May you modify it, or only read? Many concurrency errors come from failing to understand these
+      <em>rules of engagement</em>. When you publish an object, <strong>document how it may be accessed</strong>.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Policy</th><th>What it means</th><th>What you must do</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Thread-confined</strong></td><td>Owned exclusively by one thread; the owner may modify it.</td><td>Never publish it; keep it off other threads.</td></tr>
+          <tr><td><strong>Shared read-only</strong></td><td>Immutable or effectively immutable; may be read concurrently.</td><td>No synchronization needed — but nobody may modify it.</td></tr>
+          <tr><td><strong>Shared thread-safe</strong></td><td>Synchronizes internally; free access through its public interface.</td><td>No further synchronization by clients.</td></tr>
+          <tr><td><strong>Guarded</strong></td><td>Accessible only while a specific lock is held.</td><td>Acquire that lock for every access — including reads.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      These four policies are the vocabulary Chapter 4 builds on: every design decision there is about choosing one
+      of them per object and documenting it.
+    </p>
   </section>
 
   <!-- ================= code ================= -->
@@ -3349,13 +3393,1015 @@ try {
       <li><code>Date</code> being mutable was probably a mistake in the class library design.</li>
     </ol>
     <p style="margin-top:14px">
-      Summary of <em>Java Concurrency in Practice</em>, Chapter 3 (Sharing Objects), pp. 23–35.
+      Summary of <em>Java Concurrency in Practice</em>, Chapter 3 (Sharing Objects), pp. 23–36.
       Figure 3.1 is reproduced from the book for study purposes; all code listings are the book's, with annotations added.
     </p>
   </div>
 
+
+  <!-- ============================================================ -->
+  <!-- ======================= CHAPTER 4 ========================== -->
+  <!-- ============================================================ -->
+  <div class="page-hero chapter-start" id="ch4">
+    <span class="kicker">Java Concurrency in Practice · Chapter 4</span>
+    <h1>Chapter 4 — <span>Composing Objects</span></h1>
+    <p class="sub">
+      Chapters 2 and 3 gave us the primitives. This chapter is about not having to re-derive them for every memory
+      access: how to <strong>design a thread-safe class</strong>, keep non-thread-safe parts <strong>confined</strong>,
+      decide when to <strong>delegate</strong> thread safety to components, add operations without breaking a class,
+      and — the most underused tool of all — <strong>document the policy</strong>.
+    </p>
+    <div class="meta">
+      <span class="pill">📖 <b>pp. 37–50</b></span>
+      <span class="pill">🧩 <b>5</b> sections · <b>16</b> listings · <b>no figures</b></span>
+      <span class="pill">⏱️ ~18 min read</span>
+      <span class="pill">🏷️ Part I — Fundamentals</span>
+    </div>
+  </div>
+
+  <!-- ================= TL;DR ================= -->
+  <section id="ch4-tldr">
+    <h2>Chapter in one paragraph</h2>
+    <div class="card tldr">
+      <h4>TL;DR — the six things worth remembering</h4>
+      <ol>
+        <li><strong>Design has three steps:</strong> identify the variables that form the state, identify the invariants that constrain them, and establish (and document) a policy for concurrent access.</li>
+        <li><strong>Invariants dictate atomicity and encapsulation.</strong> If some states are invalid, the fields must be private; if some transitions are invalid, the operation must be atomic; if an invariant spans several fields, one lock must cover all of them.</li>
+        <li><strong>Confinement + locking makes unsafe parts safe.</strong> A private <code>HashSet</code> guarded by every method of its owner is thread-safe — and the Java monitor pattern is just this idea taken to its conclusion.</li>
+        <li><strong>Delegation works only for independent state.</strong> <code>ConcurrentHashMap</code>, two <code>CopyOnWriteArrayList</code>s for mouse and key listeners — fine. Two <code>AtomicInteger</code>s for a range with <code>lower &lt;= upper</code> — broken.</li>
+        <li><strong>Never publish state that participates in invariants.</strong> Counter's <code>value</code> must stay private; a temperature reading or a listener list may be published.</li>
+        <li><strong>To add an atomic operation, prefer composition.</strong> Adding to the class &gt; extending it &gt; client-side locking &gt;&gt; a helper class that locks the wrong thing.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= 4.1 ================= -->
+  <section id="ch4-design">
+    <h2><span class="num">4.1</span>Designing a Thread-safe Class</h2>
+    <p class="lede">Encapsulation is what makes thread safety analysable: a class that hides its state can be verified
+    without reading the whole program.</p>
+    <p>
+      You <em>can</em> write a thread-safe program with all its state in <code>public static</code> fields, but
+      verifying it — or keeping it safe as you modify it — is far harder. The design process has three elements:
+    </p>
+    <div class="grid">
+      <div class="tile"><div class="ico">1️⃣</div><h5>Identify the state</h5>
+        <p>Start with the fields. If they are all primitives, they <em>are</em> the state — the state of a
+        <code>Point</code> is its <code>(x, y)</code> tuple. With references, the state reaches into the referenced
+        objects: a <code>LinkedList</code>'s state includes every link node.</p></div>
+      <div class="tile"><div class="ico">2️⃣</div><h5>Identify the invariants</h5>
+        <p>Which states are valid? Which state transitions are legal? An invariant that spans fields creates an
+        atomicity requirement; an invalid state that clients could create creates an encapsulation requirement.</p></div>
+      <div class="tile"><div class="ico">3️⃣</div><h5>Establish the policy</h5>
+        <p>The <strong>synchronization policy</strong> says what combination of immutability, confinement and locking
+        keeps the invariants — and which variables are guarded by which locks. Write it down.</p></div>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">THREAD-SAFE</span>
+        <span class="name">Listing 4.1 · Simple thread-safe Counter using the Java monitor pattern</span>
+        <button class="copy" data-copy="ch4-l41">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l41">@ThreadSafe
+public final class Counter {
+    @GuardedBy("this")  private long value = 0;
+
+    public synchronized  long getValue() {
+        return value;
+    }
+    public synchronized  long increment() {
+        if (value == Long.MAX_VALUE)
+            throw new IllegalStateException("counter overflow");
+        return ++value;
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">4.1.1</span>Gathering synchronization requirements</h3>
+    <p>
+      Objects and variables have a <strong>state space</strong> — the range of states they can take on — and the
+      smaller it is, the easier the class is to reason about. That is one more argument for <code>final</code> fields
+      wherever practical (in the extreme, an immutable object has a single state).
+    </p>
+    <p>
+      <code>Counter.value</code> is a <code>long</code>, so its raw state space runs from <code>Long.MIN_VALUE</code>
+      to <code>Long.MAX_VALUE</code>; <code>Counter</code> narrows that: negatives are not allowed, and if the current
+      state is 17 the only valid next state is 18. <strong>When the next state is derived from the current state, the
+      operation is necessarily a compound action.</strong> Not everything works that way — setting the current
+      temperature does not depend on its previous value.
+    </p>
+    <div class="callout">
+      <span class="mark">🔗</span>
+      <p><strong>Multivariable invariants create atomicity requirements.</strong> If <code>lower &lt;= upper</code>
+      must always hold, you cannot update one, release the lock, reacquire it and update the other — you would leave
+      the object invalid in between. The lock guarding them must be held for the whole operation.</p>
+    </div>
+
+    <h3><span class="num">4.1.2</span>State-dependent operations</h3>
+    <p>
+      Some methods have <strong>state-based preconditions</strong> — you cannot take an item from an empty queue.
+      Such operations are <strong>state-dependent</strong>. Single-threaded, a failed precondition means failure; in a
+      concurrent program another thread may make the precondition true shortly, so you can <em>wait</em> for it.
+    </p>
+    <p>
+      <code>wait</code>/<code>notify</code> are bound tightly to intrinsic locking and are easy to get wrong; it is
+      usually better to use existing library classes (<code>BlockingQueue</code>, <code>Semaphore</code> — Chapter 5)
+      than to build the mechanism yourself (Chapter 14).
+    </p>
+
+    <h3><span class="num">4.1.3</span>State ownership</h3>
+    <p>
+      An object's state is a <em>subset</em> of the fields reachable from it: only the data it <strong>owns</strong>.
+      Ownership is not in the language — it is a design decision. When you allocate and populate a
+      <code>HashMap</code>, the logical state includes the <code>Map.Entry</code> objects and other internals, because
+      the map owns them.
+    </p>
+    <p>
+      Garbage collection makes it cheap to skip this thinking (in C++ you must decide whether you are transferring,
+      loaning or sharing ownership). Ownership and encapsulation usually go together — the owner gets to choose the
+      locking protocol. But <strong>once you publish a reference to a mutable object you no longer have exclusive
+      control</strong>; at best you have shared ownership. A class generally does not own the objects handed to its
+      methods or constructors, unless ownership is explicitly transferred (as the synchronized collection wrappers do).
+    </p>
+    <p>
+      Collections show <strong>split ownership</strong>: the collection owns its infrastructure, the client owns the
+      objects stored in it. <code>ServletContext</code> is the canonical example — the container must make the
+      context itself thread-safe, but the attributes you put in it are yours, and must be thread-safe, effectively
+      immutable, or explicitly guarded.
+    </p>
+  </section>
+
+  <!-- ================= 4.2 ================= -->
+  <section id="ch4-confinement">
+    <h2><span class="num">4.2</span>Instance Confinement</h2>
+    <p class="lede">If an object is not thread-safe, you can still use it safely: confine it to one thread, or guard
+    every access with a lock.</p>
+    <p>
+      Encapsulation promotes <strong>instance confinement</strong>: when an object is wrapped inside another, every
+      code path that can reach it is known, so the class can be analysed without reading the whole program. Confined
+      objects must not escape their intended scope — a class instance, a lexical scope, or a thread. Objects don't
+      escape on their own; a developer publishes them.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">THREAD-SAFE</span>
+        <span class="name">Listing 4.2 · Using confinement to ensure thread safety</span>
+        <button class="copy" data-copy="ch4-l42">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l42">@ThreadSafe
+public class PersonSet {
+    @GuardedBy("this")
+    private final Set&lt;Person&gt; mySet = new HashSet&lt;Person&gt;();
+
+    public synchronized void addPerson(Person p) {
+        mySet.add(p);
+    }
+
+    public synchronized boolean containsPerson(Person p) {
+        return mySet.contains(p);
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      <code>HashSet</code> is not thread-safe, but <code>mySet</code> is private and never escapes, so it is confined
+      to the <code>PersonSet</code>; the only paths that touch it are synchronized. Result: thread-safe, with no
+      assumptions about <code>Person</code>. (If <code>Person</code> is mutable, callers still need to synchronize
+      when using a <code>Person</code> they retrieved — ideally by making <code>Person</code> thread-safe.)
+    </p>
+    <p>
+      Instance confinement is one of the easiest routes to thread safety, and it leaves the locking strategy open:
+      <code>PersonSet</code> happens to use its intrinsic lock, but any consistently used lock would do, and different
+      state variables can even be guarded by different locks. The synchronized collection wrappers are the same trick
+      — each method is a synchronized forwarder, safe <em>provided the wrapper holds the only reference</em> to the
+      underlying collection. Escape still breaks it, including escape via iterators or inner-class instances.
+    </p>
+
+    <h3><span class="num">4.2.1</span>The Java monitor pattern</h3>
+    <p>
+      Following instance confinement to its logical conclusion gives the <strong>Java monitor pattern</strong>: an
+      object encapsulates all its mutable state and guards it with its own intrinsic lock. <code>Counter</code>
+      (Listing 4.1) is the canonical example; <code>Vector</code> and <code>Hashtable</code> use it too. Its main
+      advantage is simplicity; when you need finer-grained locking for scalability, Chapter 11 is the reference.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PRIVATE LOCK</span>
+        <span class="name">Listing 4.3 · Guarding state with a private lock</span>
+        <button class="copy" data-copy="ch4-l43">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l43">public class PrivateLock {
+    private final Object myLock = new Object();
+    @GuardedBy("myLock") Widget widget;
+
+    void someMethod() {
+        synchronized(myLock) {
+            // Access or modify the state of widget
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      A private lock object is often better than the intrinsic lock: because client code cannot acquire it, clients
+      cannot <em>participate</em> in your synchronization policy — correctly or otherwise. A publicly accessible lock
+      lets them in, and a client that acquires it improperly can cause liveness problems; verifying correct use then
+      requires examining the whole program instead of one class.
+    </p>
+
+    <h3><span class="num">4.2.2</span>Example: tracking fleet vehicles</h3>
+    <p>
+      A vehicle tracker — identifiers, <code>(x, y)</code> locations — is a realistic shared data model: a view thread
+      renders it while updater threads push GPS positions into it. Built with the monitor pattern, using the
+      non-thread-safe <code>MutablePoint</code> internally, and copying everything on the way in and out:
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">MONITOR PATTERN</span>
+        <span class="name">Listing 4.4 · Monitor-based vehicle tracker</span>
+        <button class="copy" data-copy="ch4-l44">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l44">@ThreadSafe
+public class MonitorVehicleTracker {
+    @GuardedBy("this")
+    private final Map&lt;String, MutablePoint&gt; locations;
+
+    public MonitorVehicleTracker(
+            Map&lt;String, MutablePoint&gt; locations) {
+        this.locations = deepCopy(locations);
+    }
+
+    public synchronized Map&lt;String, MutablePoint&gt; getLocations() {
+        return deepCopy(locations);
+    }
+
+    public synchronized  MutablePoint getLocation(String id) {
+        MutablePoint loc = locations.get(id);
+        return loc == null ? null : new MutablePoint(loc);
+    }
+
+    public synchronized  void setLocation(String id, int x, int y) {
+        MutablePoint loc = locations.get(id);
+        if (loc == null)
+            throw new IllegalArgumentException("No such ID: " + id);
+        loc.x = x;
+        loc.y = y;
+    }
+
+    private static Map&lt;String, MutablePoint&gt; deepCopy(
+            Map&lt;String, MutablePoint&gt; m) {
+        Map&lt;String, MutablePoint&gt; result =
+                new HashMap&lt;String, MutablePoint&gt;();
+        for (String id : m.keySet())
+            result.put(id, new MutablePoint(m.get(id)));
+        return Collections.unmodifiableMap(result);
+    }
+}</code></pre>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">NOT THREAD-SAFE</span>
+        <span class="name">Listing 4.5 · MutablePoint — safe only because it never escapes</span>
+        <button class="copy" data-copy="ch4-l45">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l45">@NotThreadSafe
+public class MutablePoint {
+    public int x, y;
+
+    public MutablePoint() { x = 0; y = 0; }
+    public MutablePoint(MutablePoint p) {
+        this.x = p.x;
+        this.y = p.y;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      The tracker is thread-safe even though <code>MutablePoint</code> is not: neither the map nor the points in it are
+      ever published — every return value is a copy. Note that <code>deepCopy</code> cannot just wrap the map in
+      <code>unmodifiableMap</code> (that protects the collection, not the mutable objects inside), and a copy
+      constructor on the map would only copy references. Copying costs something, and it also means callers get a
+      <strong>snapshot</strong> that does not change underneath them — a benefit or a drawback depending on the
+      requirements.
+    </p>
+  </section>
+
+  <!-- ================= 4.3 ================= -->
+  <section id="ch4-delegation">
+    <h2><span class="num">4.3</span>Delegating Thread Safety</h2>
+    <p class="lede">If the components are already thread-safe, do you need to add anything? <em>It depends</em> — on
+    whether the class imposes invariants of its own.</p>
+    <p>
+      <code>CountingFactorizer</code> (Chapter 2) added an <code>AtomicLong</code> to a stateless class and stayed
+      thread-safe: its state <em>is</em> the state of a thread-safe object, and it adds no validity constraints. It
+      <strong>delegates</strong> its thread-safety responsibilities. (Note the non-final caveat: if
+      <code>count</code> could be reassigned, the reference itself would need to be safely published — one more reason
+      to make fields final.)
+    </p>
+
+    <h3><span class="num">4.3.1</span>Example: vehicle tracker using delegation</h3>
+    <p>
+      Return to the tracker, but store locations in a <code>ConcurrentHashMap</code> of <em>immutable</em>
+      <code>Point</code>s. Immutable values can be shared freely, so nothing needs copying.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">IMMUTABLE</span>
+        <span class="name">Listing 4.6 · Immutable Point class</span>
+        <button class="copy" data-copy="ch4-l46">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l46">@Immutable
+public class Point {
+    public final int x, y;
+
+    public Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+}</code></pre>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">DELEGATION</span>
+        <span class="name">Listing 4.7 · Delegating thread safety to a ConcurrentHashMap</span>
+        <button class="copy" data-copy="ch4-l47">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l47">@ThreadSafe
+public class DelegatingVehicleTracker {
+    private final ConcurrentMap&lt;String, Point&gt; locations;
+    private final Map&lt;String, Point&gt; unmodifiableMap;
+
+    public DelegatingVehicleTracker(Map&lt;String, Point&gt; points) {
+        locations = new ConcurrentHashMap&lt;String, Point&gt;(points);
+        unmodifiableMap = Collections.unmodifiableMap(locations);
+    }
+
+    public Map&lt;String, Point&gt; getLocations() {
+        return unmodifiableMap;
+    }
+
+    public Point getLocation(String id) {
+        return locations.get(id);
+    }
+
+    public void setLocation(String id, int x, int y) {
+        if (locations.replace(id, new Point(x, y)) == null)
+            throw new IllegalArgumentException(
+                "invalid vehicle name: " + id);
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      No explicit synchronization anywhere: all state access is managed by <code>ConcurrentHashMap</code>, and every
+      key and value is immutable. The behavioural difference from the monitor version is real — this returns an
+      unmodifiable but <strong>"live" view</strong>, so a thread that fetched the map sees later location changes; the
+      monitor version returned a frozen snapshot. Neither is wrong; they answer different requirements.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">SNAPSHOT</span>
+        <span class="name">Listing 4.8 · Returning a static copy instead of a live view</span>
+        <button class="copy" data-copy="ch4-l48">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l48">public Map&lt;String, Point&gt; getLocations() {
+    return Collections.unmodifiableMap(
+            new HashMap&lt;String, Point&gt;(locations));
+}</code></pre>
+    </div>
+
+    <h3><span class="num">4.3.2</span>Independent state variables</h3>
+    <p>
+      Delegation also works with <em>several</em> thread-safe state variables — as long as they are
+      <strong>independent</strong>, i.e. the class imposes no invariant relating them.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">DELEGATION</span>
+        <span class="name">Listing 4.9 · Delegating to multiple independent state variables</span>
+        <button class="copy" data-copy="ch4-l49">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l49">public class VisualComponent {
+    private final List&lt;KeyListener&gt; keyListeners
+        = new CopyOnWriteArrayList&lt;KeyListener&gt;();
+    private final List&lt;MouseListener&gt; mouseListeners
+        = new CopyOnWriteArrayList&lt;MouseListener&gt;();
+
+    public void addKeyListener(KeyListener listener) {
+        keyListeners.add(listener);
+    }
+
+    public void addMouseListener(MouseListener listener) {
+        mouseListeners.add(listener);
+    }
+
+    public void removeKeyListener(KeyListener listener) {
+        keyListeners.remove(listener);
+    }
+
+    public void removeMouseListener(MouseListener listener) {
+        mouseListeners.remove(listener);
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      There is no relationship between the mouse listeners and the key listeners, so the class can hand its
+      thread-safety obligations to two thread-safe lists. <code>CopyOnWriteArrayList</code> is particularly suited to
+      listener lists (Section 5.2.3).
+    </p>
+
+    <h3><span class="num">4.3.3</span>When delegation fails</h3>
+    <p>
+      Most composites are not that simple: their state variables are related by invariants.
+      <code>NumberRange</code> keeps two <code>AtomicInteger</code>s and the invariant <code>lower &lt;= upper</code>.
+      Both setters are check-then-act sequences without sufficient locking.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">DON'T DO THIS</span>
+        <span class="name">Listing 4.10 · NumberRange — thread-safe parts, unsafe whole</span>
+        <button class="copy" data-copy="ch4-l410">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l410">public class NumberRange {
+    // INVARIANT: lower &lt;= upper
+    private final AtomicInteger lower = new AtomicInteger(0);
+    private final AtomicInteger upper = new AtomicInteger(0);
+
+    public void setLower(int i) {
+        // Warning -- unsafe check-then-act
+        if (i &gt; upper.get())
+            throw new IllegalArgumentException(
+                    "can't set lower to " + i + " > upper");
+        lower.set(i);
+    }
+
+    public void setUpper(int i) {
+        // Warning -- unsafe check-then-act
+        if (i &lt; lower.get())
+            throw new IllegalArgumentException(
+                    "can't set upper to " + i + " < lower");
+        upper.set(i);
+    }
+
+    public boolean isInRange(int i) {
+        return (i &gt;= lower.get() &amp;&amp; i &lt;= upper.get());
+    }
+}</code></pre>
+    </div>
+
+    <figure class="dark">
+      <svg viewBox="0 0 760 215" role="img" aria-label="Timeline: range is 0 to 10; thread A checks setLower(5) while thread B checks setUpper(4); both checks pass and the range ends up 5 to 4, which is invalid">
+        <defs>
+          <marker id="ch4-rangeArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="#f85149"/>
+          </marker>
+        </defs>
+        <text x="40" y="22" fill="#6d7d8f" font-size="10" font-family="ui-monospace,monospace">start: lower = 0, upper = 10  (valid)</text>
+
+        <!-- lane A -->
+        <text x="44" y="66" fill="#9aa8b7" font-size="12" font-family="ui-monospace,monospace" text-anchor="end">A</text>
+        <rect x="60" y="46" width="200" height="36" rx="8" fill="#1b2531" stroke="#3b4b5c"/>
+        <text x="160" y="69" fill="#cbd6e2" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">setLower(5): 5 &gt; upper(10)? no</text>
+        <rect x="272" y="46" width="130" height="36" rx="8" fill="rgba(248,81,73,.1)" stroke="#f85149"/>
+        <text x="337" y="69" fill="#ffb3ae" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">lower.set(5)</text>
+        <line x1="262" y1="64" x2="270" y2="64" stroke="#f85149" stroke-width="1.4" marker-end="url(#ch4-rangeArrow)"/>
+
+        <!-- lane B -->
+        <text x="44" y="136" fill="#9aa8b7" font-size="12" font-family="ui-monospace,monospace" text-anchor="end">B</text>
+        <rect x="120" y="116" width="200" height="36" rx="8" fill="#1b2531" stroke="#3b4b5c"/>
+        <text x="220" y="139" fill="#cbd6e2" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">setUpper(4): 4 &lt; lower(0)? no</text>
+        <rect x="332" y="116" width="130" height="36" rx="8" fill="rgba(248,81,73,.1)" stroke="#f85149"/>
+        <text x="397" y="139" fill="#ffb3ae" font-size="11" font-family="ui-monospace,monospace" text-anchor="middle">upper.set(4)</text>
+        <line x1="322" y1="134" x2="330" y2="134" stroke="#f85149" stroke-width="1.4" marker-end="url(#ch4-rangeArrow)"/>
+
+        <!-- result -->
+        <rect x="500" y="72" width="230" height="60" rx="10" fill="#0f1721" stroke="#f85149"/>
+        <text x="615" y="96" fill="#ffb3ae" font-size="12" font-family="ui-monospace,monospace" text-anchor="middle">range = (5, 4)</text>
+        <text x="615" y="116" fill="#ff9a94" font-size="10" text-anchor="middle">invalid — invariant violated</text>
+
+        <text x="60" y="188" fill="#8c9bac" font-size="10.5" font-family="ui-monospace,monospace">Both checks saw the <tspan fill="#ffd9ac">old</tspan> value of the other field, so neither exception was thrown.</text>
+        <text x="60" y="204" fill="#8c9bac" font-size="10.5" font-family="ui-monospace,monospace">Each AtomicInteger is thread-safe; the pair is not.</text>
+      </svg>
+      <figcaption>The classic delegation failure: check-then-act on two independent atomic fields.</figcaption>
+    </figure>
+
+    <p>
+      This is the same rule as for <code>volatile</code> (Section 3.1.4): a variable may be <code>volatile</code> only
+      if it participates in no invariant with other state. <code>NumberRange</code> needs a common lock over both
+      fields, and must not publish them.
+    </p>
+    <div class="callout warn">
+      <span class="mark">✅</span>
+      <p><strong>Delegation is safe when</strong> the class is composed of multiple <em>independent</em> thread-safe
+      state variables <strong>and</strong> has no operations with invalid state transitions. If it has compound
+      actions, it must provide its own locking — unless the whole compound action can itself be delegated to a
+      thread-safe component.</p>
+    </div>
+
+    <h3><span class="num">4.3.4</span>Publishing underlying state variables</h3>
+    <p>
+      When may you publish delegated state? Again: it depends on the invariants. <code>Counter.value</code> is
+      constrained to positive values and to <code>n → n+1</code> transitions, so making it public would let clients
+      break the class. A current-temperature field or a "last user to log on" ID has no such constraints, so
+      publishing it would not break thread safety — though it still constrains future evolution and subclassing.
+    </p>
+    <div class="callout">
+      <span class="mark">🔓</span>
+      <p><strong>A state variable may be safely published if</strong> it is thread-safe, participates in no invariant
+      constraining its value, and has no prohibited state transitions. That is why
+      <code>VisualComponent</code>'s listener lists could be made public.</p>
+    </div>
+
+    <h3><span class="num">4.3.5</span>Example: a vehicle tracker that publishes its state</h3>
+    <p>
+      Third variant: publish the map's contents, but make the points <em>mutable and thread-safe</em> — for which we
+      need a getter that returns both coordinates <strong>at once</strong>.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">THREAD-SAFE</span>
+        <span class="name">Listing 4.11 · SafePoint — an atomic (x, y) snapshot</span>
+        <button class="copy" data-copy="ch4-l411">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l411">@ThreadSafe
+public class SafePoint {
+    @GuardedBy("this") private int x, y;
+
+    private SafePoint(int[] a) { this(a[0], a[1]); }
+
+    public SafePoint(SafePoint p) { this(p.get()); }
+
+    public SafePoint(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public synchronized int[] get() {
+        return new int[] { x, y };
+    }
+
+    public synchronized void set(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      If <code>get</code> were split into <code>getX()</code> and <code>getY()</code>, the coordinates could change in
+      between and a caller would see a location the vehicle never occupied. The private array constructor exists to
+      dodge the race in <code>this(p.x, p.y)</code> — the <em>private constructor capture</em> idiom.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">PUBLISHES SAFELY</span>
+        <span class="name">Listing 4.12 · Vehicle tracker that safely publishes underlying state</span>
+        <button class="copy" data-copy="ch4-l412">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l412">@ThreadSafe
+public class PublishingVehicleTracker {
+    private final Map&lt;String, SafePoint&gt; locations;
+    private final Map&lt;String, SafePoint&gt; unmodifiableMap;
+
+    public PublishingVehicleTracker(
+                            Map&lt;String, SafePoint&gt; locations) {
+        this.locations
+            = new ConcurrentHashMap&lt;String, SafePoint&gt;(locations);
+        this.unmodifiableMap
+            = Collections.unmodifiableMap(this.locations);
+    }
+
+    public Map&lt;String, SafePoint&gt; getLocations() {
+        return unmodifiableMap;
+    }
+
+    public SafePoint getLocation(String id) {
+        return locations.get(id);
+    }
+
+    public void setLocation(String id, int x, int y) {
+        if (!locations.containsKey(id))
+            throw new IllegalArgumentException(
+                "invalid vehicle name: " + id);
+        locations.get(id).set(x, y);
+      }
+}</code></pre>
+    </div>
+
+    <p>
+      Callers cannot add or remove vehicles, but they <em>can</em> move them by mutating the <code>SafePoint</code>s
+      they hold. This is thread-safe precisely because the tracker imposes no constraint on the set of valid
+      locations. If it needed to veto a move or react to one, this approach would be wrong.
+    </p>
+  </section>
+
+  <!-- ================= 4.4 ================= -->
+  <section id="ch4-adding">
+    <h2><span class="num">4.4</span>Adding Functionality to Existing Thread-safe Classes</h2>
+    <p class="lede">"I need a thread-safe <code>List</code> with an atomic put-if-absent." Four ways to get it — three
+    of them safe, ranked by fragility.</p>
+    <p>
+      Reuse beats reinvention, but often the best available class supports <em>almost</em> everything you need. So you
+      must add an operation without undermining thread safety. Put-if-absent is check-then-act, and thread safety
+      silently adds the requirement that it be <strong>atomic</strong>: adding X twice must leave one copy.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Approach</th><th>Works when…</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Modify the original class</strong></td><td>You own the source and understand its policy</td><td>Safest; policy stays in one file</td></tr>
+          <tr><td><strong>Extend the class</strong> (4.13)</td><td>The class was designed for extension and exposes its lock</td><td>Policy now split across files; silently breaks if the base changes lock</td></tr>
+          <tr><td><strong>Client-side locking</strong> (4.15)</td><td>You know which lock the object uses (wrappers document it)</td><td>More fragile: locking code for C lives in unrelated classes</td></tr>
+          <tr><td><strong>Composition</strong> (4.16)</td><td>Always</td><td>A little extra locking; by far the least fragile</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">EXTENSION</span>
+        <span class="name">Listing 4.13 · Extending Vector to add put-if-absent</span>
+        <button class="copy" data-copy="ch4-l413">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l413">@ThreadSafe
+public class BetterVector&lt;E&gt; extends Vector&lt;E&gt; {
+    public synchronized boolean putIfAbsent(E x) {
+        boolean absent = !contains(x);
+        if (absent)
+            add(x);
+        return absent;
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">4.4.1</span>Client-side locking</h3>
+    <p>
+      For <code>Collections.synchronizedList(new ArrayList&lt;E&gt;())</code> neither modification nor extension is
+      available: the client doesn't even know the class of the returned object. A helper class looks like the answer —
+      and is a classic trap.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">DON'T DO THIS</span>
+        <span class="name">Listing 4.14 · Non-thread-safe attempt at put-if-absent</span>
+        <button class="copy" data-copy="ch4-l414">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l414">@NotThreadSafe
+public class ListHelper&lt;E&gt; {
+    public List&lt;E&gt; list =
+        Collections.synchronizedList(new ArrayList&lt;E&gt;());
+    ...
+    public synchronized boolean putIfAbsent(E x) {
+        boolean absent = !list.contains(x);
+        if (absent)
+            list.add(x);
+        return absent;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      <code>putIfAbsent</code> is synchronized — on the <strong>wrong lock</strong>. The list guards its state with
+      its own lock, not the <code>ListHelper</code>'s, so the method is not atomic with respect to other list
+      operations. It provides only the illusion of synchronization.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">CLIENT-SIDE LOCKING</span>
+        <span class="name">Listing 4.15 · Put-if-absent with client-side locking</span>
+        <button class="copy" data-copy="ch4-l415">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l415">@ThreadSafe
+public class ListHelper&lt;E&gt; {
+    public List&lt;E&gt; list =
+        Collections.synchronizedList(new ArrayList&lt;E&gt;());
+    ...
+    public boolean putIfAbsent(E x) {
+        synchronized (list)  {
+            boolean absent = !list.contains(x);
+            if (absent)
+                list.add(x);
+            return absent;
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      <strong>Client-side locking</strong> means guarding client code with the lock that the object itself uses —
+      which requires knowing that lock. <code>Vector</code> and the synchronized wrappers document (obliquely) that
+      they use the wrapper's intrinsic lock, which makes this work. But it couples unrelated classes to an
+      implementation detail: extension violates encapsulation of implementation, client-side locking violates
+      encapsulation of the synchronization policy.
+    </p>
+
+    <h3><span class="num">4.4.2</span>Composition</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">COMPOSITION</span>
+        <span class="name">Listing 4.16 · Put-if-absent using composition</span>
+        <button class="copy" data-copy="ch4-l416">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-l416">@ThreadSafe
+public class ImprovedList&lt;T&gt; implements List&lt;T&gt; {
+    private final List&lt;T&gt; list;
+
+    public ImprovedList(List&lt;T&gt; list) { this.list = list; }
+
+    public synchronized boolean putIfAbsent(T x) {
+        boolean contains = list.contains(x);
+        if (contains)
+            list.add(x);
+        return !contains;
+    }
+
+    public synchronized void clear() { list.clear(); }
+    // ... similarly delegate other List methods
+}</code></pre>
+    </div>
+
+    <p>
+      <code>ImprovedList</code> adds a layer of locking with its own intrinsic lock and does not care whether the
+      underlying list is thread-safe — it provides consistent locking of its own, using the Java monitor pattern to
+      encapsulate an existing <code>List</code>. That is guaranteed to be thread-safe <em>so long as it holds the only
+      outstanding reference</em> to the underlying list. The extra synchronization is cheap because it is guaranteed
+      uncontended (Chapter 11), and far less fragile than mimicking someone else's locking strategy.
+    </p>
+  </section>
+
+  <!-- ================= 4.5 ================= -->
+  <section id="ch4-documenting">
+    <h2><span class="num">4.5</span>Documenting Synchronization Policies</h2>
+    <p class="lede">"Document a class's thread safety guarantees for its clients; document its synchronization policy
+    for its maintainers."</p>
+    <p>
+      Documentation is the most powerful — and most underutilised — tool for managing thread safety. Users read it to
+      find out whether a class is safe to share; maintainers read it to understand the strategy so they don't silently
+      break it. Every use of <code>synchronized</code>, <code>volatile</code> or a thread-safe class reflects a
+      synchronization policy; that policy is a design decision, and the best time to write it down is now, while you
+      still remember it.
+    </p>
+    <div class="grid">
+      <div class="tile"><div class="ico">👥</div><h5>For clients</h5>
+        <p>Is the class thread-safe? Does it make callbacks with a lock held? Do specific locks affect its behaviour?
+        If you don't support client-side locking, say so.</p></div>
+      <div class="tile"><div class="ico">🔧</div><h5>For maintainers</h5>
+        <p>Which variables are guarded by which locks — <code>@GuardedBy</code> does the trick. Which are volatile,
+        immutable or confined? Which operations must be atomic?</p></div>
+      <div class="tile"><div class="ico">🚩</div><h5>Worst case</h5>
+        <p>Don't force clients to guess. Bad assumptions ("it's probably thread-safe", "I'll just grab its lock") give
+        you either silent corruption or only the illusion of safety.</p></div>
+    </div>
+    <p>
+      The state of the art is not encouraging: most classes give no clue either way, and specifications such as
+      servlets and JDBC badly under-document their thread-safety promises.
+      <code>SimpleDateFormat</code> — not thread-safe — said nothing about it until JDK 1.4, and plenty of programs
+      share one instance under load.
+    </p>
+
+    <h3><span class="num">4.5.1</span>Interpreting vague documentation</h3>
+    <p>
+      When the specification is silent, you have to guess — and one good technique is to read it from the point of
+      view of the <em>implementer</em>. The container creates multiple threads and calls servlets from them, so it must
+      expect concurrent access to <code>HttpSession</code> and <code>ServletContext</code>; a single-threaded context
+      in which they were useful is unimaginable. If client-side locking were required, on which lock? The spec doesn't
+      say — which is absurd — and its own examples use no client-side synchronization. Conclusion: assume they are
+      thread-safe.
+    </p>
+    <p>
+      The same reasoning applies to <code>DataSource</code>: it represents a pool of connections and would make no sense
+      single-threaded, so assume <code>getConnection</code> needs no extra locking. But that reasoning
+      <strong>does not extend</strong> to the <code>Connection</code> objects it hands out: they are not meant to be
+      shared until returned to the pool, so an activity spanning several threads must guard the connection itself
+      (in practice most confine it to one thread).
+    </p>
+    <p>
+      The flip side is ownership: objects you store in <code>ServletContext</code> or <code>HttpSession</code> belong
+      to your application, not the container, and the spec offers no mechanism for coordinating access to attributes.
+      Make them thread-safe or effectively immutable — especially in <code>HttpSession</code>, where the container may
+      serialize them for replication or passivation and cannot possibly know your locking protocol.
+    </p>
+  </section>
+
+  <!-- ================= code ================= -->
+  <section id="ch4-listings">
+    <h2><span class="num">§</span>All Chapter 4 code, annotated</h2>
+    <p class="lede">The sixteen listings are embedded in the sections above. Here are the two patterns the chapter is
+    really teaching, written out as you would use them.</p>
+
+    <h3><span class="num">1</span>The three design decisions, side by side</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">Monitor vs. delegation vs. confinement — same problem, three answers</span>
+        <button class="copy" data-copy="ch4-c1">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-c1">// ------------------------------------------------------------------
+// (a) MONITOR: encapsulate everything, guard with one lock, copy out.
+//     Components may be non-thread-safe. Simple, coarse, snapshot views.
+// ------------------------------------------------------------------
+@ThreadSafe
+public class MonitorTracker {
+    @GuardedBy("this") private final Map&lt;String, MutablePoint&gt; locations;
+
+    public MonitorTracker(Map&lt;String, MutablePoint&gt; init) {
+        this.locations = deepCopy(init);
+    }
+    public synchronized Map&lt;String, MutablePoint&gt; getLocations() {
+        return deepCopy(locations);            // callers get a frozen copy
+    }
+    public synchronized void setLocation(String id, int x, int y) {
+        MutablePoint p = locations.get(id);
+        if (p == null) throw new IllegalArgumentException("No such ID: " + id);
+        p.x = x; p.y = y;                      // safe: p never escapes
+    }
+    private static Map&lt;String, MutablePoint&gt; deepCopy(
+            Map&lt;String, MutablePoint&gt; m) {
+        Map&lt;String, MutablePoint&gt; out = new HashMap&lt;String, MutablePoint&gt;();
+        for (String id : m.keySet()) out.put(id, new MutablePoint(m.get(id)));
+        return Collections.unmodifiableMap(out);
+    }
+}
+
+// ------------------------------------------------------------------
+// (b) DELEGATION: no locks of our own; immutable values in a
+//     ConcurrentHashMap. Live (unmodifiable) views.
+// ------------------------------------------------------------------
+@ThreadSafe
+public class DelegatingTracker {
+    private final ConcurrentMap&lt;String, Point&gt; locations;
+    private final Map&lt;String, Point&gt; live;
+
+    public DelegatingTracker(Map&lt;String, Point&gt; init) {
+        locations = new ConcurrentHashMap&lt;String, Point&gt;(init);
+        live = Collections.unmodifiableMap(locations);
+    }
+    public Map&lt;String, Point&gt; getLocations() { return live; }
+    public Point getLocation(String id)       { return locations.get(id); }
+    public void setLocation(String id, int x, int y) {
+        if (locations.replace(id, new Point(x, y)) == null)
+            throw new IllegalArgumentException("invalid vehicle name: " + id);
+    }
+}
+
+// ------------------------------------------------------------------
+// (c) CONFINEMENT: a non-thread-safe component owned by methods that
+//     never let it escape, with an explicit private lock.
+// ------------------------------------------------------------------
+@ThreadSafe
+public class ConfinedBuilder {
+    private final Object lock = new Object();
+    @GuardedBy("lock") private final StringBuilder scratch = new StringBuilder();
+
+    public String render(Request r) {
+        synchronized (lock) {                  // private lock: clients can't join
+            scratch.setLength(0);
+            r.appendTo(scratch);
+            return scratch.toString();         // only a String escapes
+        }
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">2</span>Documenting a synchronization policy</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">DOCUMENTED</span>
+        <span class="name">What a real policy comment looks like</span>
+        <button class="copy" data-copy="ch4-c2">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch4-c2">/**
+ * Thread safety: this class is thread-safe.
+ *
+ * Synchronization policy (for maintainers):
+ *   - {@code locations} is guarded by {@code lock} (a private lock, so
+ *     clients cannot participate in or disturb the policy).
+ *   - {@code Point} values are immutable and may be shared freely.
+ *   - {@code snapshot} is volatile; it is published whole (immutable
+ *     holder) and never mutated after publication.
+ *   - No method invokes a callback or an alien method while holding
+ *     {@code lock}.
+ *   - Client-side locking is NOT supported; clients needing compound
+ *     operations should use the provided methods, which are atomic.
+ */
+@ThreadSafe
+public class DocumentedTracker {
+    private final Object lock = new Object();
+    @GuardedBy("lock") private final Map&lt;String, Point&gt; locations =
+            new HashMap&lt;String, Point&gt;();
+    private volatile Map&lt;String, Point&gt; snapshot =
+            Collections.emptyMap();
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ================= glossary ================= -->
+  <section id="ch4-terms">
+    <h2><span class="num">§</span>Vocabulary introduced in Chapter 4</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Term</th><th>Meaning as used here</th><th>Where it goes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Synchronization policy</strong></td><td>How an object coordinates access to its state: which combination of immutability, confinement and locking, and which lock guards which variable.</td><td>Ch. 4.1, 4.5</td></tr>
+          <tr><td><strong>State space</strong></td><td>The range of states an object or variable may take on; smaller is easier to reason about.</td><td>Ch. 4.1.1</td></tr>
+          <tr><td><strong>Post-condition</strong></td><td>A constraint on the state transition an operation performs; invalid transitions require atomicity.</td><td>Ch. 4.1.1</td></tr>
+          <tr><td><strong>State-dependent operation</strong></td><td>An operation with a state-based precondition (cannot take from an empty queue).</td><td>Ch. 4.1.2</td></tr>
+          <tr><td><strong>Ownership</strong></td><td>A design concept: the owner of a state variable decides its locking protocol. Not expressed in the language.</td><td>Ch. 4.1.3</td></tr>
+          <tr><td><strong>Split ownership</strong></td><td>A collection owns its infrastructure, the client owns the stored objects (<code>ServletContext</code> attributes).</td><td>Ch. 4.1.3</td></tr>
+          <tr><td><strong>Instance confinement</strong></td><td>Encapsulating a (possibly unsafe) object inside another so all access paths are known and lockable.</td><td>Ch. 4.2</td></tr>
+          <tr><td><strong>Java monitor pattern</strong></td><td>Encapsulate all mutable state and guard it with the object's own intrinsic lock.</td><td>Ch. 4.2.1</td></tr>
+          <tr><td><strong>Private lock object</strong></td><td>A dedicated lock field, so clients cannot join the synchronization policy.</td><td>Ch. 4.2.1</td></tr>
+          <tr><td><strong>Delegation</strong></td><td>Relying on the thread safety of components — legal only when they are independent and there are no compound actions.</td><td>Ch. 4.3</td></tr>
+          <tr><td><strong>Independent state variables</strong></td><td>State variables with no invariants relating them; can each be delegated.</td><td>Ch. 4.3.2</td></tr>
+          <tr><td><strong>Client-side locking</strong></td><td>Guarding client code with the lock the object uses for its own state.</td><td>Ch. 4.4.1</td></tr>
+          <tr><td><strong>Composition</strong></td><td>Wrapping an existing object and layering your own consistent locking — the least fragile extension technique.</td><td>Ch. 4.4.2</td></tr>
+          <tr><td><strong>Private constructor capture</strong></td><td>Idiom in <code>SafePoint</code> that avoids a race when a copy constructor needs a helper value.</td><td>Ch. 4.3.5</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= cheat sheet ================= -->
+  <section id="ch4-cheatsheet">
+    <h2><span class="num">✓</span>Cheat sheet &amp; self-check</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Your class looks like…</th><th>Do this</th><th>Listing</th></tr></thead>
+        <tbody>
+          <tr><td>All thread-safe components, no invariants between them</td><td>Delegate — add nothing</td><td>4.7, 4.9</td></tr>
+          <tr><td>Thread-safe components with an invariant across them</td><td>One common lock; don't publish the fields</td><td>4.10, 4.11</td></tr>
+          <tr><td>Contains a non-thread-safe component</td><td>Confine it, guard every path</td><td>4.2, 4.4</td></tr>
+          <tr><td>Needs an atomic op the library lacks</td><td>Compose; client-side locking only as a last resort</td><td>4.15, 4.16</td></tr>
+          <tr><td>Must expose state to clients</td><td>Only if it is thread-safe, invariant-free, transition-free</td><td>4.3.4</td></tr>
+          <tr><td>Publishing anything</td><td>Document the policy — clients and maintainers</td><td>4.5</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">✅</div><h5>Do</h5>
+        <p>Write the state/invariants/policy triad down before coding. Prefer private locks. Copy mutable data in and
+        out. Choose composition over extension. Say explicitly whether client-side locking is supported.</p></div>
+      <div class="tile"><div class="ico">🚫</div><h5>Avoid</h5>
+        <p>Assuming a composite of thread-safe parts is thread-safe. <code>synchronized</code> on the wrong object.
+        Publishing a field that participates in an invariant. Returning live internal collections when a snapshot was
+        promised.</p></div>
+      <div class="tile"><div class="ico">🧠</div><h5>The one habit</h5>
+        <p>For every class ask: <em>what is my state, what must always be true of it, and what is the one place that
+        guarantees it?</em> If you can answer in a comment, maintainers can too.</p></div>
+    </div>
+
+    <div class="card">
+      <h4>Five questions the chapter leaves you with</h4>
+      <ol>
+        <li>Which fields actually belong to this object's state, and which belong to objects it merely references?</li>
+        <li>Which invariant spans more than one field — and is one lock held across every operation that touches it?</li>
+        <li>Is every non-thread-safe component confined, and can any reference to it escape?</li>
+        <li>Am I delegating to components that are genuinely independent, with no compound actions left over?</li>
+        <li>If a client wanted a new atomic operation, does my documentation tell them which lock to use?</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= chapter 4 footnotes ================= -->
+  <div class="footnotes">
+    <h4 style="margin:0 0 10px;font-size:.8rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)">Notes carried over from the chapter</h4>
+    <ol>
+      <li>The <code>HttpSession</code> object may have stricter requirements than <code>ServletContext</code>: because the container may access objects in the session so they can be serialized for replication or passivation, they must be thread-safe — the container accesses them as well as the application.</li>
+      <li>The Java monitor pattern is inspired by Hoare's work on monitors (1974), though there are significant differences; the bytecode instructions for entering/leaving a synchronized block are called <code>monitorenter</code>/<code>monitorexit</code>, and intrinsic locks are also called monitor locks.</li>
+      <li><code>deepCopy</code> cannot just wrap the map with <code>unmodifiableMap</code>: that protects only the collection from modification, not the mutable objects stored in it. For the same reason, populating the map via a copy constructor would copy only references to the points.</li>
+      <li>Because <code>deepCopy</code> is called from a synchronized method, the tracker's lock is held for the whole copy — which can degrade UI responsiveness when many vehicles are tracked.</li>
+      <li>If <code>count</code> in <code>CountingFactorizer</code> were not final, its thread-safety analysis would be more complicated: you would have to ensure the reference update were visible and race-free. Another good reason to use final fields where practical.</li>
+      <li>The private constructor in <code>SafePoint</code> avoids the race that <code>this(p.x, p.y)</code> would create — an example of the private constructor capture idiom (Bloch and Gafter, 2005).</li>
+      <li>The extra layer of locking in <code>ImprovedList</code> is cheap because synchronization on the underlying list is guaranteed to be uncontended and therefore fast (Chapter 11).</li>
+      <li>If you have never wondered whether a class's Javadoc implied thread safety, the authors admire your optimism.</li>
+      <li>It is particularly frustrating that the thread-safety omissions in the servlet and JDBC specifications persist through multiple major revisions.</li>
+    </ol>
+    <p style="margin-top:14px">
+      Summary of <em>Java Concurrency in Practice</em>, Chapter 4 (Composing Objects), pp. 37–50.
+      All code listings are the book's, with annotations added; diagrams are drawn for these notes.
+    </p>
+  </div>
+
 <footer>
-  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–3 ·
+  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–4 ·
   self-contained HTML (no external requests)
 </footer>
 </main>
