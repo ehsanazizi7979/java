@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Java Concurrency in Practice — study notes (Chapters 1–13)</title>
-<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–13: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks, Task Execution, Cancellation and Shutdown, Applying Thread Pools, GUI Applications, Avoiding Liveness Hazards, Performance and Scalability, Testing Concurrent Programs, and Explicit Locks, with the book's figures, all code listings and interactive simulators.">
+<title>Java Concurrency in Practice — study notes (Chapters 1–14)</title>
+<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–13: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks, Task Execution, Cancellation and Shutdown, Applying Thread Pools, GUI Applications, Avoiding Liveness Hazards, Performance and Scalability, Testing Concurrent Programs, Explicit Locks, and Building Custom Synchronizers, with the book's figures, all code listings and interactive simulators.">
 <style>
   :root{
     --bg:#0d1117;
@@ -532,6 +532,26 @@
           <a href="#ch13-cheatsheet">Cheat sheet</a>
         </div>
       </div>
+      <div class="navmenu">
+        <button class="navbtn" aria-expanded="false" data-menu="menu-ch14">Chapter 14 · Building Custom Synchronizers ▾</button>
+        <div class="menu" id="menu-ch14">
+          <div class="grp">Sections</div>
+          <a href="#ch14-tldr">TL;DR</a>
+          <a href="#ch14-state">14.1 Managing State Dependence</a>
+          <a href="#ch14-condition-queues">14.2 Using Condition Queues</a>
+          <a href="#ch14-conditions">14.3 Explicit Condition Objects</a>
+          <a href="#ch14-anatomy">14.4 Anatomy of a Synchronizer</a>
+          <a href="#ch14-aqs">14.5 AbstractQueuedSynchronizer</a>
+          <a href="#ch14-jdk">14.6 AQS in java.util.concurrent</a>
+          <div class="grp">Figures</div>
+          <a href="#ch14-fig141">Figure 14.1</a>
+          <div class="grp">Extras</div>
+          <a href="#ch14-sim">Simulator: the toast bell</a>
+          <a href="#ch14-listings">Patterns</a>
+          <a href="#ch14-terms">Glossary</a>
+          <a href="#ch14-cheatsheet">Cheat sheet</a>
+        </div>
+      </div>
       <a href="#top">↑ Top</a>
     </nav>
   </div>
@@ -619,11 +639,16 @@
         <span class="cc-title">Explicit Locks</span>
         <span class="cc-meta">pp. 171–178 · ReentrantLock, tryLock, fairness, read–write locks</span>
       </a>
+      <a class="chapter-card" href="#ch14">
+        <span class="cc-num">Chapter 14</span>
+        <span class="cc-title">Building Custom Synchronizers</span>
+        <span class="cc-meta">pp. 179–194 · predicates, notifyAll, Conditions, AQS</span>
+      </a>
     </div>
     <div class="meta">
-      <span class="pill">📚 <b>13</b> chapters · <b>165</b> book listings + extras</span>
-      <span class="pill">🖼️ Figures 1.1–13.3 embedded</span>
-      <span class="pill">▶️ <b>12</b> interactive simulators</span>
+      <span class="pill">📚 <b>14</b> chapters · <b>181</b> book listings + extras</span>
+      <span class="pill">🖼️ Figures 1.1–14.1 embedded</span>
+      <span class="pill">▶️ <b>13</b> interactive simulators</span>
       <span class="pill">🔌 Fully self-contained</span>
     </div>
     </div>
@@ -15212,8 +15237,1525 @@ public boolean transfer(Account from, Account to, long amount,
     </p>
   </div>
 
+  <!-- ================= CHAPTER 14 ================= -->
+  <div class="page-hero chapter-start" id="ch14">
+    <span class="kicker">Java Concurrency in Practice · Chapter 14</span>
+    <h1>Chapter 14 — <span>Building Custom Synchronizers</span></h1>
+    <p class="sub">
+      A <strong>state-dependent</strong> class is one whose operations have state-based preconditions: you cannot take from
+      an empty queue, or read a result that is not finished. Sequentially, such a precondition that fails will never come
+      true — so fail fast. Concurrently, another thread can make it true, so the right answer is usually to <em>wait</em>.
+      This chapter is about the machinery behind that wait: condition predicates, condition queues, and the
+      <code>AbstractQueuedSynchronizer</code> that every blocking class in <code>java.util.concurrent</code> is built on.
+    </p>
+    <div class="meta">
+      <span class="pill">📖 <b>pp. 179–194</b></span>
+      <span class="pill">🧩 <b>6</b> sections · <b>16</b> listings · <b>1</b> figure</span>
+      <span class="pill">⏱️ ~30 min read</span>
+      <span class="pill">🏷️ Part IV — Advanced Topics</span>
+    </div>
+  </div>
+
+  <!-- ================= TL;DR ================= -->
+  <section id="ch14-tldr">
+    <h2>Chapter in one paragraph</h2>
+    <div class="card tldr">
+      <h4>TL;DR — the six things worth remembering</h4>
+      <ol>
+        <li><strong>Blocking beats failing, and beats polling.</strong> Throwing <code>BufferFullException</code> pushes
+        the state dependence onto every caller; sleeping and re-checking costs CPU or responsiveness. A condition queue
+        makes a thread sleep until <em>exactly</em> the interesting thing happens.</li>
+        <li><strong>Name the condition predicate.</strong> It is the precondition that makes the operation state-dependent
+        (<em>not-full</em>, <em>not-empty</em>, <em>opened-since-n</em>). It appears nowhere in the API, nothing enforces it,
+        and without it every wait is guesswork.</li>
+        <li><strong>Always <code>while</code>, never <code>if</code>.</strong> A wakeup does not mean your predicate is true:
+        the queue may be shared by several predicates, and <code>wait</code> may return spuriously. Test, wait, re-test.</li>
+        <li><strong>Missed signals are a liveness bug.</strong> Notification is not sticky. If a thread waits without first
+        testing the predicate, an event that already happened will never wake it — the toaster rang while you were out.</li>
+        <li><strong>Prefer <code>notifyAll</code>; use <code>notify</code> only under two conditions.</strong> Uniform
+        waiters <em>and</em> one-in, one-out. Most classes satisfy neither, and a single notification then hijacks a signal
+        meant for someone else.</li>
+        <li><strong>AQS is the one synchronizer underneath.</strong> One <code>int</code> of state, a FIFO queue, and
+        <code>tryAcquire</code>/<code>tryRelease</code>. Locks, semaphores, latches, barriers, futures and read–write locks
+        all delegate to it in about twenty lines each.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= 14.1 ================= -->
+  <section id="ch14-state">
+    <h2><span class="num">14.1</span>Managing State Dependence</h2>
+    <p class="lede">The easiest way to build a state-dependent class is to build on one that already exists. The rest of
+    this section is what it costs when you cannot.</p>
+
+    <p>
+      The class libraries include a number of state-dependent classes — <code>FutureTask</code>, <code>Semaphore</code>,
+      <code>BlockingQueue</code> — with operations having state-based preconditions. You cannot remove an item from an empty
+      queue or retrieve the result of an unfinished task: before those operations can proceed, you must wait until the
+      queue enters the "nonempty" state or the task enters the "completed" state.
+    </p>
+    <p>
+      In a single-threaded program, a failing precondition will never become true, so classes can simply fail. In a
+      concurrent program, state-based conditions change through the actions of other threads: a pool that was empty a few
+      instructions ago can become nonempty because another thread returned an element. State-dependent methods can
+      sometimes get away with failing, but there is often a better alternative — <strong>wait for the precondition to
+      become true</strong>. Operations that block until they can proceed are more convenient and less error-prone than those
+      that fail.
+    </p>
+    <p>
+      The structure of a blocking state-dependent action looks like this — and the locking pattern is unusual, because the
+      lock is released and reacquired <em>in the middle</em> of the operation. The state variables that make up the
+      precondition must be guarded by the object's lock so they can remain constant while it is tested; but if the
+      precondition does not hold, the lock must be released so another thread can change the state — otherwise the
+      precondition can never become true.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.1 · Structure of blocking state-dependent actions</span>
+        <button class="copy" data-copy="ch14-l141">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l141">void blockingAction() throws InterruptedException {
+    acquire lock on object state
+    while (precondition does not hold) {
+        release lock
+        wait until precondition might hold
+        optionally fail if interrupted or timeout expires
+        reacquire lock
+    }
+    perform action
+}</code></pre>
+    </div>
+
+    <p>
+      The running example is a bounded buffer, whose <code>put</code> and <code>take</code> each have a precondition. All
+      the implementations below extend <code>BaseBoundedBuffer</code>: a classic array-based circular buffer whose state
+      variables (<code>buf</code>, <code>head</code>, <code>tail</code>, <code>count</code>) are guarded by the buffer's
+      intrinsic lock. It provides <code>synchronized</code> <code>doPut</code> and <code>doTake</code> for subclasses, and
+      hides the underlying state from them.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.2 · Base class for bounded buffer implementations</span>
+        <button class="copy" data-copy="ch14-l142">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l142">@ThreadSafe
+public abstract class BaseBoundedBuffer&lt;V&gt; {
+    @GuardedBy("this") private final V[] buf;
+    @GuardedBy("this") private int tail;
+    @GuardedBy("this") private int head;
+    @GuardedBy("this") private int count;
+
+    protected BaseBoundedBuffer(int capacity) {
+        this.buf = (V[]) new Object[capacity];
+    }
+
+    protected synchronized final void doPut(V v) {
+        buf[tail] = v;
+        if (++tail == buf.length)
+            tail = 0;
+        ++count;
+    }
+
+    protected synchronized final V doTake() {
+        V v = buf[head];
+        buf[head] = null;
+        if (++head == buf.length)
+            head = 0;
+        --count;
+        return v;
+    }
+
+    public synchronized final boolean isFull() {
+        return count == buf.length;
+    }
+
+    public synchronized final boolean isEmpty() {
+        return count == 0;
+    }
+}</code></pre>
+    </div>
+
+    <!-- ---------- 14.1.1 ---------- -->
+    <h3><span class="num">14.1.1</span>Example: Propagating Precondition Failure to Callers</h3>
+    <p>
+      <code>GrumpyBoundedBuffer</code> is the crude first attempt. <code>put</code> and <code>take</code> are
+      <code>synchronized</code> to ensure exclusive access, since both employ check-then-act logic.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.3 · Bounded buffer that balks when preconditions are not met</span>
+        <button class="copy" data-copy="ch14-l143">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l143">@ThreadSafe
+public class GrumpyBoundedBuffer&lt;V&gt; extends BaseBoundedBuffer&lt;V&gt; {
+    public GrumpyBoundedBuffer(int size) { super(size); }
+
+    public synchronized void put(V v) throws BufferFullException {
+        if (isFull())
+            throw new BufferFullException();
+        doPut(v);
+    }
+
+    public synchronized V take() throws BufferEmptyException {
+        if (isEmpty())
+            throw new BufferEmptyException();
+        return doTake();
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Easy to implement, annoying to use. Exceptions are supposed to be for exceptional conditions; "buffer is full" is not
+      exceptional for a bounded buffer any more than "red" is exceptional for a traffic light. The simplification in
+      implementing the buffer is more than made up for by the complication in using it — every caller must be prepared to
+      catch and retry.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.4 · Client logic for calling GrumpyBoundedBuffer</span>
+        <button class="copy" data-copy="ch14-l144">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l144">while (true) {
+    try {
+        V item = buffer.take();
+        // use item
+        break;
+    } catch (BufferEmptyException e) {
+        Thread.sleep(SLEEP_GRANULARITY);
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Returning an error value instead of throwing is a minor improvement — it does not abuse the exception mechanism —
+      but it does not address the fundamental problem: callers still deal with precondition failures themselves.
+      (<code>Queue</code> offers both options — <code>poll</code> returns <code>null</code>, <code>remove</code> throws —
+      but <code>Queue</code> is not intended for producer–consumer designs; <code>BlockingQueue</code> is the better choice
+      when producers and consumers run concurrently.)
+    </p>
+    <p>
+      Nor is retrying with a sleep the only option. The caller could retry immediately — <strong>busy waiting</strong>, or
+      spin waiting — which can consume a lot of CPU if the state does not change for a while. Sleeping instead risks
+      "oversleeping" if the state changes shortly after the sleep begins. The caller is left choosing between the poor CPU
+      usage of spinning and the poor responsiveness of sleeping. (Somewhere between the two is
+      <code>Thread.yield</code>, a hint to the scheduler that now would be a reasonable time to let another thread run.)
+    </p>
+
+    <div class="callout warn">
+      <span class="mark">🚶</span>
+      <p>Pushing state dependence back to the caller also makes it nearly impossible to preserve FIFO ordering: by forcing
+      the caller to retry, you lose the information about who arrived first.</p>
+    </div>
+
+    <!-- ---------- 14.1.2 ---------- -->
+    <h3><span class="num">14.1.2</span>Example: Crude Blocking by Polling and Sleeping</h3>
+    <p>
+      <code>SleepyBoundedBuffer</code> spares callers the retry logic by encapsulating the same poll-and-sleep mechanism
+      inside <code>put</code> and <code>take</code> — definitely a step in the right direction.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.5 · Bounded buffer using crude blocking</span>
+        <button class="copy" data-copy="ch14-l145">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l145">@ThreadSafe
+public class SleepyBoundedBuffer&lt;V&gt; extends BaseBoundedBuffer&lt;V&gt; {
+    public SleepyBoundedBuffer(int size) { super(size); }
+
+    public void put(V v) throws InterruptedException {
+        while (true) {
+            synchronized (this) {
+                if (!isFull()) {
+                    doPut(v);
+                    return;
+                }
+            }
+            Thread.sleep(SLEEP_GRANULARITY);
+        }
+    }
+
+    public V take() throws InterruptedException {
+        while (true) {
+            synchronized (this) {
+                if (!isEmpty())
+                    return doTake();
+            }
+            Thread.sleep(SLEEP_GRANULARITY);
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      The buffer code must test the appropriate state condition with the buffer lock held, because the variables that
+      represent it are guarded by that lock. If the test fails, the thread sleeps — first releasing the lock so other
+      threads can access the buffer. On waking it reacquires the lock and tries again. Sleeping with the lock held would
+      be a bad idea anywhere; here it would be fatal, because the desired condition can <em>never</em> become true if the
+      lock is not released.
+    </p>
+    <p>
+      From the caller's perspective this works nicely: the operation proceeds if it can and blocks otherwise, and the
+      caller need not deal with failure and retry. Choosing the sleep granularity is a tradeoff between responsiveness and
+      CPU usage — the smaller the granularity, the more responsive and the more CPU consumed. Figure 14.1 shows the cost
+      of getting it wrong: a delay between the moment buffer space becomes available and the moment the thread wakes and
+      checks again.
+    </p>
+
+    <figure id="ch14-fig141">
+      <img src="data:image/png;base64,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"
+           alt="Figure 14.1 — Two timelines. Timeline A: thread A locks, finds the condition not true, unlocks, sleeps for a long interval, then locks again and finds the condition true. Timeline B: another thread locks, sets the condition and unlocks — after A has already gone to sleep, so A does not notice until its sleep ends.">
+      <figcaption><strong>Figure 14.1</strong> — Thread oversleeping because the condition became true just after it went
+        to sleep. The interesting state change (B) lands inside A's sleep window, so the work is already done before A
+        wakes to find out.</figcaption>
+    </figure>
+
+    <p>
+      <code>SleepyBoundedBuffer</code> also creates a new requirement for the caller — dealing with
+      <code>InterruptedException</code>. When a method blocks waiting for a condition, the polite thing to do is to provide
+      a cancellation mechanism, so like most well-behaved blocking library methods, this buffer supports cancellation
+      through interruption: return early, throw <code>InterruptedException</code>.
+    </p>
+
+    <!-- ---------- 14.1.3 ---------- -->
+    <h3><span class="num">14.1.3</span>Condition Queues to the Rescue</h3>
+    <p>
+      Synthesising a blocking operation from polling and sleeping was painful. What we want is a way of suspending a
+      thread that guarantees it is awakened promptly when a condition becomes true. That is exactly what a condition queue
+      does.
+    </p>
+
+    <div class="callout">
+      <span class="mark">🍞</span>
+      <p>A condition queue is the "toast is ready" bell on your toaster. If you are listening, you are notified promptly and
+      can drop what you are doing. If you are not listening — you went out for the newspaper — you may miss the
+      notification, but on returning to the kitchen you can <em>observe the state of the toaster</em> and either retrieve the
+      toast or start listening again. That observation is the condition predicate, and checking it before you wait is what
+      makes the mechanism work.</p>
+    </div>
+
+    <p>
+      A condition queue gives a group of threads — the <strong>wait set</strong> — a way to wait for a specific condition to
+      become true. Unlike a typical queue whose elements are data items, the elements of a condition queue are the waiting
+      threads.
+    </p>
+    <p>
+      Just as each object can act as a lock, each object can act as a condition queue, and <code>wait</code>,
+      <code>notify</code> and <code>notifyAll</code> in <code>Object</code> are its API. Intrinsic lock and intrinsic
+      condition queue are related: to call any of the condition queue methods on X you must hold the lock on X. This is
+      because the mechanism for waiting on state-based conditions is necessarily bound to the mechanism for preserving state
+      consistency — you cannot wait for a condition unless you can examine the state, and you cannot release another thread
+      from a wait unless you can modify the state.
+    </p>
+    <p>
+      <code>Object.wait</code> atomically releases the lock and suspends the current thread, allowing others to acquire the
+      lock and modify the state. Upon waking it reacquires the lock before returning. Intuitively, <code>wait</code> means
+      "I want to sleep, but wake me when something interesting happens", and notification means "something interesting
+      happened".
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.6 · Bounded buffer using condition queues</span>
+        <button class="copy" data-copy="ch14-l146">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l146">@ThreadSafe
+public class BoundedBuffer&lt;V&gt; extends BaseBoundedBuffer&lt;V&gt; {
+    // CONDITION PREDICATE: not-full (!isFull())
+    // CONDITION PREDICATE: not-empty (!isEmpty())
+
+    public BoundedBuffer(int size) { super(size); }
+
+    // BLOCKS-UNTIL: not-full
+    public synchronized void put(V v) throws InterruptedException {
+        while (isFull())
+            wait();
+        doPut(v);
+        notifyAll();
+    }
+
+    // BLOCKS-UNTIL: not-empty
+    public synchronized V take() throws InterruptedException {
+        while (isEmpty())
+            wait();
+        V v = doTake();
+        notifyAll();
+        return v;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Simpler than the sleeping version, and both more efficient (waking less often when the state does not change) and
+      more responsive (waking promptly when it does). Note what did <em>not</em> change: the semantics are identical to
+      <code>SleepyBoundedBuffer</code>. Condition queues do not let you do anything you cannot do with sleeping and polling;
+      they are an optimisation in three dimensions — CPU efficiency, context-switch overhead and responsiveness.
+    </p>
+    <p style="color:var(--muted);font-size:.92rem">
+      Almost true: a <em>fair</em> condition queue can guarantee the relative order in which threads are released from the
+      wait set. Intrinsic condition queues, like intrinsic locks, offer no fair queuing; explicit <code>Condition</code>s do.
+    </p>
+    <p>
+      A production version should also include timed versions of <code>put</code> and <code>take</code>, so blocking
+      operations can time out within a time budget — the timed overload of <code>Object.wait</code> makes that easy.
+    </p>
+  </section>
+  <!-- ================= 14.2 ================= -->
+  <section id="ch14-condition-queues">
+    <h2><span class="num">14.2</span>Using Condition Queues</h2>
+    <p class="lede">Condition queues make it easy to build efficient, responsive state-dependent classes — and they are
+    still easy to use incorrectly, because none of the rules are enforced by the compiler.</p>
+
+    <p>
+      There are a lot of rules regarding their proper use that are not enforced by the compiler or the platform. This is
+      one of the reasons to build on top of <code>LinkedBlockingQueue</code>, <code>CountDownLatch</code>,
+      <code>Semaphore</code> and <code>FutureTask</code> when you can: if you can get away with it, it is a lot easier.
+    </p>
+
+    <!-- ---------- 14.2.1 ---------- -->
+    <h3><span class="num">14.2.1</span>The Condition Predicate</h3>
+    <p>
+      The key to using condition queues correctly is identifying the <strong>condition predicates</strong> the object may
+      wait for. It is the condition predicate that causes much of the confusion surrounding wait and notify, because it has
+      no instantiation in the API and nothing in either the language specification or the JVM ensures its correct use. It
+      is not mentioned directly in the language spec or the Javadoc at all — but without it, condition waits do not work.
+    </p>
+    <p>
+      The condition predicate is the precondition that makes an operation state-dependent in the first place. In a bounded
+      buffer, <code>take</code> can proceed only if the buffer is not empty; for <code>take</code> the predicate is "the
+      buffer is not empty". For <code>put</code> it is "the buffer is not full". Condition predicates are expressions
+      built from the state variables of the class: <code>BaseBoundedBuffer</code> tests "not empty" by comparing
+      <code>count</code> to zero and "not full" by comparing it to the buffer size.
+    </p>
+
+    <div class="card">
+      <h4>Document the predicate</h4>
+      <p style="margin:0 0 10px">Document the condition predicate(s) associated with a condition queue and the operations
+      that wait on them. There is an important <strong>three-way relationship</strong> in a condition wait, involving
+      locking, the wait method, and a condition predicate:</p>
+      <ul style="margin:0 0 10px;padding-left:20px">
+        <li>the predicate involves state variables, and those state variables are <strong>guarded by a lock</strong> — so
+        before testing the predicate you must hold that lock;</li>
+        <li>the lock object and the condition queue object — the object on which <code>wait</code> and <code>notify</code>
+        are invoked — <strong>must be the same object</strong>;</li>
+        <li>every call to <code>wait</code> is implicitly associated with a specific predicate, and it must be made while
+        holding that lock.</li>
+      </ul>
+      <p style="margin:0">In <code>BoundedBuffer</code> the buffer state is guarded by the buffer lock and the buffer object
+      is the condition queue. That is why <code>take</code> can test the predicate and then call <code>wait</code> without
+      acquiring anything else — and why, if the predicate is true, it can modify the state in the same atomic operation.</p>
+    </div>
+
+    <p>
+      <code>wait</code> releases the lock, blocks the thread, and returns when the timeout expires, the thread is
+      interrupted, or the thread is awakened by a notification. After waking, <code>wait</code> reacquires the lock before
+      returning. A thread waking from <code>wait</code> gets no special priority in reacquiring it — it contends like any
+      other thread entering a <code>synchronized</code> block. That is one of the reasons the predicate may already be false
+      again by the time you look.
+    </p>
+
+    <!-- ---------- 14.2.2 ---------- -->
+    <h3><span class="num">14.2.2</span>Waking Up Too Soon</h3>
+    <p>
+      As if the three-way relationship were not complicated enough: the return of <code>wait</code> does not necessarily
+      mean the predicate you were waiting for has become true.
+    </p>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">🔔</div><h5>One queue, many predicates</h5>
+        <p>A single intrinsic condition queue may be used with more than one condition predicate. When you are awakened by
+        <code>notifyAll</code>, that does not mean <em>your</em> predicate is true. It is like having your toaster and coffee
+        maker share a bell: when it rings you still have to look at which device raised it.</p></div>
+      <div class="tile"><div class="ico">🎲</div><h5>Spurious wakeups</h5>
+        <p><code>wait</code> is allowed to return "spuriously", not in response to any thread calling
+        <code>notify</code> at all. A toaster with a loose connection: the bell goes off when the toast is ready, and
+        sometimes when it is not.</p></div>
+      <div class="tile"><div class="ico">⏱️</div><h5>Races after the wakeup</h5>
+        <p>The predicate might have been true when the notifier signalled, and false again by the time you reacquire the
+        lock. Other threads may have acquired the lock and changed the state in between. Or it may not have been true at
+        all since you called <code>wait</code>.</p></div>
+      <div class="tile"><div class="ico">👀</div><h5>You do not know why</h5>
+        <p>You do not know why another thread called <code>notify</code>; maybe it was because a <em>different</em> predicate
+        on the same queue became true. <code>BoundedBuffer</code> uses one queue for both "not full" and "not empty" — and
+        threads can be waiting for both at the same time, when producers and consumers outnumber the capacity.</p></div>
+    </div>
+
+    <p>
+      For all these reasons, when you wake from <code>wait</code> you must test the predicate again, and go back to waiting
+      (or fail) if it is not yet true. Since you can wake repeatedly without your predicate being true, you must always
+      call <code>wait</code> from within a loop.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.7 · Canonical form for state-dependent methods</span>
+        <button class="copy" data-copy="ch14-l147">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l147">void stateDependentMethod() throws InterruptedException {
+    // condition predicate must be guarded by lock
+    synchronized(lock) {
+        while (!conditionPredicate())
+            lock.wait();
+        // object is now in desired state
+    }
+}</code></pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="mark">📜</span>
+      <p><strong>The rules for condition waits</strong> (<code>Object.wait</code> or <code>Condition.await</code>): always
+      have a condition predicate; always test it before calling <code>wait</code> and again after returning from it; always
+      call <code>wait</code> in a loop; ensure the state variables making up the predicate are guarded by the lock
+      associated with the condition queue; hold that lock when calling <code>wait</code>, <code>notify</code> or
+      <code>notifyAll</code>; and do not release the lock after checking the predicate but before acting on it.</p>
+    </div>
+
+    <!-- ---------- 14.2.3 ---------- -->
+    <h3><span class="num">14.2.3</span>Missed Signals</h3>
+    <p>
+      Chapter 10 covered deadlock and livelock. Another form of liveness failure is a <strong>missed signal</strong>: a
+      thread must wait for a condition that is <em>already true</em>, but fails to check the predicate before waiting. Now it
+      is waiting to be notified of an event that has already happened.
+    </p>
+    <p>
+      It is like starting the toast, going out for the newspaper, having the bell go off while you are outside, and then
+      sitting down at the kitchen table waiting for the toast bell. You could wait a long time — potentially forever.
+      Unlike the marmalade for your toast, <strong>notification is not sticky</strong>: if thread A notifies on a condition
+      queue and thread B subsequently waits on it, B does not immediately wake up — another notification is required.
+    </p>
+    <p>
+      Missed signals are the result of coding errors like the ones the rule list warns against, chiefly failing to test the
+      predicate before calling <code>wait</code>. Structure your waits as in Listing 14.7 and you will not have problems
+      with them.
+    </p>
+
+    <!-- ---------- 14.2.4 ---------- -->
+    <h3><span class="num">14.2.4</span>Notification</h3>
+    <p>
+      So far we have described half of a condition wait: waiting. The other half is notification. In a bounded buffer,
+      <code>take</code> blocks if called when the buffer is empty; for it to unblock when the buffer becomes nonempty,
+      <em>every code path</em> that could make the buffer nonempty must perform a notification. In
+      <code>BoundedBuffer</code> there is exactly one such place — after a <code>put</code>. Symmetrically,
+      <code>take</code> notifies after removing an element, in case anyone is waiting on "not full".
+    </p>
+
+    <div class="callout">
+      <span class="mark">📌</span>
+      <p>Whenever you wait on a condition, make sure that someone will perform a notification whenever the condition
+      predicate becomes true. Finding "someone" is a review exercise: enumerate every method that mutates the state, and
+      check that each one notifies the right queue on the right exit path.</p>
+    </div>
+
+    <p>
+      There are two notification methods: <code>notify</code> and <code>notifyAll</code>. To call either you must hold the
+      lock associated with the condition queue. <code>notify</code> causes the JVM to select <em>one</em> waiting thread;
+      <code>notifyAll</code> wakes all of them. Because waiting threads cannot return from <code>wait</code> without
+      reacquiring the lock, the notifying thread should release the lock quickly so they are unblocked as soon as possible.
+    </p>
+    <p>
+      Because multiple threads could be waiting on the same condition queue for different predicates, using
+      <code>notify</code> instead of <code>notifyAll</code> can be dangerous. Suppose A waits for predicate P<sub>A</sub> and
+      B waits for P<sub>B</sub> on the same queue. P<sub>B</sub> becomes true and C performs a single <code>notify</code>:
+      the JVM wakes one thread of its own choosing. If A is chosen, it wakes, sees P<sub>A</sub> is still false, and goes
+      back to waiting — while B, which could now make progress, stays asleep. This is not exactly a missed signal; it is
+      more of a <strong>hijacked signal</strong>, but the problem is the same.
+    </p>
+
+    <div class="card">
+      <h4>When a single <code>notify</code> is safe</h4>
+      <p style="margin:0 0 8px">Single notification can be used instead of <code>notifyAll</code> only when <em>both</em>
+      of the following hold:</p>
+      <ul style="margin:0;padding-left:20px">
+        <li><strong>Uniform waiters.</strong> Only one condition predicate is associated with the condition queue, and each
+        thread executes the same logic upon returning from <code>wait</code>; and</li>
+        <li><strong>One-in, one-out.</strong> A notification on the condition variable enables at most one thread to
+        proceed.</li>
+      </ul>
+    </div>
+
+    <p>
+      <code>BoundedBuffer</code> meets one-in, one-out but not uniform waiters, because waiting threads may be waiting for
+      either "not full" or "not empty". A starting-gate latch — where a single event releases a <em>set</em> of threads —
+      meets uniform waiters but not one-in, one-out. Most classes meet neither, so the prevailing wisdom is to prefer
+      <code>notifyAll</code>: it may be inefficient, but it is much easier to be sure the class is correct.
+    </p>
+    <p>
+      That inefficiency is real, though. If ten threads are waiting and <code>notifyAll</code> is called, all ten wake and
+      contend for the lock, and then most or all go straight back to sleep: a lot of context switches and contended
+      acquisitions for each event that enables maybe one thread to proceed. In the worst case, <code>notifyAll</code>
+      results in O(n²) wakeups where n would suffice. This is another place where performance argues one way and safety the
+      other.
+    </p>
+
+    <h4 style="margin:26px 0 6px;font-size:.95rem;color:#f2f6fa">Conditional notification</h4>
+    <p>
+      The notification in <code>BoundedBuffer</code> is conservative: it happens on every put and every take. A thread can
+      be released from a wait only if the buffer goes from empty to not empty, or from full to not full — so you could
+      notify only when a put or take effected one of those transitions. That is <strong>conditional notification</strong>.
+      It can improve performance, but it is tricky to get right and complicates subclassing.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.8 · Using conditional notification in BoundedBuffer.put</span>
+        <button class="copy" data-copy="ch14-l148">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l148">public synchronized void put(V v) throws InterruptedException {
+    while (isFull())
+        wait();
+    boolean wasEmpty = isEmpty();
+    doPut(v);
+    if (wasEmpty)
+        notifyAll();
+}</code></pre>
+    </div>
+
+    <p>
+      Single notification and conditional notification are <em>optimisations</em>. Follow the principle "first make it
+      right, and then make it fast — if it is not already fast enough": it is easy to introduce strange liveness failures by
+      applying them incorrectly.
+    </p>
+
+    <!-- ---------- 14.2.5 ---------- -->
+    <h3><span class="num">14.2.5</span>Example: A Gate Class</h3>
+    <p>
+      The starting-gate latch in <code>TestHarness</code> was constructed with an initial count of one, making it a
+      <strong>binary latch</strong>: two states, initial and terminal. It prevents threads from passing until it is opened,
+      at which point all can pass. Sometimes the drawback is exactly that such a gate cannot be reclosed.
+    </p>
+    <p>
+      <code>ThreadGate</code> lets the gate be opened and closed, with an <code>await</code> method that blocks until the
+      gate is open. <code>open</code> uses <code>notifyAll</code> because the semantics fail the one-in, one-out test.
+    </p>
+    <p>
+      The predicate used by <code>await</code> is more complicated than <code>isOpen</code>. If N threads are waiting when
+      the gate opens, they should <em>all</em> be allowed through — but if the gate is opened and closed in rapid
+      succession, not all would be released if <code>await</code> examined only <code>isOpen</code>: by the time every
+      thread wakes, reacquires the lock and emerges from <code>wait</code>, the gate may have closed again. So every close
+      increments a <strong>generation</strong> counter, and a thread may pass if the gate is open now <em>or</em> if it has
+      opened since that thread arrived.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.9 · Recloseable gate using wait and notifyAll</span>
+        <button class="copy" data-copy="ch14-l149">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l149">@ThreadSafe
+public class ThreadGate {
+    // CONDITION-PREDICATE: opened-since(n) (isOpen || generation&gt;n)
+    @GuardedBy("this") private boolean isOpen;
+    @GuardedBy("this") private int generation;
+
+    public synchronized void close() {
+        isOpen = false;
+    }
+
+    public synchronized void open() {
+        ++generation;
+        isOpen = true;
+        notifyAll();
+    }
+
+    // BLOCKS-UNTIL: opened-since(generation on entry)
+    public synchronized void await() throws InterruptedException {
+        int arrivalGeneration = generation;
+        while (!isOpen &amp;&amp; arrivalGeneration == generation)
+            wait();
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Because <code>ThreadGate</code> supports only waiting for the gate to open, it notifies only in <code>open</code>. To
+      support both "wait for open" and "wait for close", it would have to notify in both. This illustrates why
+      state-dependent classes are fragile to maintain: adding a new state-dependent operation may require modifying many
+      code paths that change the object's state, so the appropriate notifications get performed.
+    </p>
+
+    <!-- ---------- 14.2.6 ---------- -->
+    <h3><span class="num">14.2.6</span>Subclass Safety Issues</h3>
+    <p>
+      Conditional or single notification introduces constraints that complicate subclassing. If you want to support
+      subclassing at all, you must structure the class so subclasses can add the appropriate notification on behalf of the
+      base class.
+    </p>
+    <p>
+      A state-dependent class should either fully expose and document its waiting and notification protocols to subclasses,
+      or prevent subclasses from participating in them at all — an extension of "design and document for inheritance, or
+      else prohibit it". At the very least this requires exposing the condition queues and locks and documenting the
+      predicates and synchronization policy; it may also require exposing the state variables. The worst thing a
+      state-dependent class can do is expose its state to subclasses but not document its waiting and notification
+      protocols — like exposing state variables but not documenting the invariants.
+    </p>
+    <p>
+      One option is to effectively prohibit subclassing, by making the class <code>final</code> or by hiding the condition
+      queues, locks and state variables. Otherwise, if a subclass undermines the way the base class uses
+      <code>notify</code>, it needs to be able to repair the damage. Consider an unbounded blocking stack: <code>pop</code>
+      blocks if empty, <code>push</code> always proceeds — meeting the requirements for single notification. If that class
+      uses single notification and a subclass adds a blocking "pop two consecutive elements" method, there are now two
+      classes of waiters. But if the base class exposes the condition queue and documents its protocols, the subclass can
+      override <code>push</code> to perform <code>notifyAll</code>, restoring safety.
+    </p>
+
+    <!-- ---------- 14.2.7 ---------- -->
+    <h3><span class="num">14.2.7</span>Encapsulating Condition Queues</h3>
+    <p>
+      It is generally best to encapsulate the condition queue so it is not accessible outside the class hierarchy that uses
+      it. Otherwise callers may think they understand your protocols and use them inconsistently. You cannot enforce the
+      uniform-waiters requirement for single notification unless the condition queue object is inaccessible to code you do
+      not control: if alien code mistakenly waits on your condition queue, it can subvert your notification protocol and
+      cause a hijacked signal.
+    </p>
+    <p>
+      Unfortunately this advice conflicts with the most common design pattern for thread-safe classes, in which an object's
+      intrinsic lock guards its state — as <code>BoundedBuffer</code> does, with the buffer object itself as lock and
+      condition queue. It could easily be restructured to use a private lock object and condition queue; the only
+      difference would be that it would no longer support any form of client-side locking.
+    </p>
+
+    <!-- ---------- 14.2.8 ---------- -->
+    <h3><span class="num">14.2.8</span>Entry and Exit Protocols</h3>
+    <p>
+      Wellings (2004) characterises the proper use of wait and notify in terms of entry and exit protocols. For each
+      state-dependent operation, and for each operation that modifies state on which another operation has a state
+      dependency, define and document an entry and exit protocol. The <strong>entry protocol</strong> is the operation's
+      condition predicate; the <strong>exit protocol</strong> is examining the state variables the operation changed to see
+      whether some other condition predicate may now be true, and if so notifying on the associated queue.
+    </p>
+
+    <div class="callout">
+      <span class="mark">⚙️</span>
+      <p><code>AbstractQueuedSynchronizer</code>, on which most of <code>java.util.concurrent</code> is built, exploits the
+      exit-protocol idea directly: rather than letting synchronizers perform their own notification, it requires
+      <code>tryRelease</code> to <em>return a value</em> indicating whether the action may have unblocked one or more
+      waiting threads. Making notification an explicit return value makes it much harder to "forget" to notify on some state
+      transition — the type system nags you about it.</p>
+    </div>
+  </section>
+  <!-- ================= 14.3 ================= -->
+  <section id="ch14-conditions">
+    <h2><span class="num">14.3</span>Explicit Condition Objects</h2>
+    <p class="lede">Intrinsic locks have exactly one condition queue. That single fact is what forces
+    <code>notifyAll</code> on <code>BoundedBuffer</code> — and <code>Condition</code> is the fix.</p>
+
+    <p>
+      Just as <code>Lock</code> generalises intrinsic locks, <code>Condition</code> generalises intrinsic condition queues.
+      Intrinsic condition queues have several drawbacks: each intrinsic lock can have only one associated condition queue,
+      so in classes like <code>BoundedBuffer</code> multiple threads wait on the same queue for different predicates; and
+      the most common locking pattern exposes the condition queue object. Both make it impossible to enforce the
+      uniform-waiters requirement.
+    </p>
+    <p>
+      A <code>Condition</code> is associated with a single <code>Lock</code>, just as a condition queue is associated with
+      a single intrinsic lock; create one with <code>Lock.newCondition</code>. It offers a richer feature set:
+      <strong>multiple wait sets per lock</strong>, interruptible and uninterruptible waits, deadline-based waiting, and a
+      choice of fair or non-fair queuing.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.10 · Condition interface</span>
+        <button class="copy" data-copy="ch14-l1410">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l1410">public interface Condition {
+    void await() throws InterruptedException;
+    boolean await(long time, TimeUnit unit)
+            throws InterruptedException;
+    long awaitNanos(long nanosTimeout) throws InterruptedException;
+    void awaitUninterruptibly();
+    boolean awaitUntil(Date deadline) throws InterruptedException;
+
+    void signal();
+    void signalAll();
+}</code></pre>
+    </div>
+
+    <p>
+      You can have as many <code>Condition</code> objects per <code>Lock</code> as you want. They inherit the fairness
+      setting of their lock: for fair locks, threads are released from <code>await</code> in FIFO order.
+    </p>
+
+    <div class="callout warn">
+      <span class="mark">⚠️</span>
+      <p><strong>Hazard warning.</strong> The equivalents of <code>wait</code>, <code>notify</code> and
+      <code>notifyAll</code> for <code>Condition</code> are <code>await</code>, <code>signal</code> and
+      <code>signalAll</code>. But <code>Condition</code> extends <code>Object</code>, so it also <em>has</em>
+      <code>wait</code> and <code>notify</code> methods. Use the right versions — <code>await</code> and
+      <code>signal</code> — or you will wait on the monitor of the <code>Condition</code> object itself, which nobody will
+      ever notify.</p>
+    </div>
+
+    <p>
+      <code>ConditionBoundedBuffer</code> uses two conditions, <code>notFull</code> and <code>notEmpty</code>, to represent
+      the two predicates explicitly. When <code>take</code> blocks because the buffer is empty it waits on
+      <code>notEmpty</code>; <code>put</code> unblocks it by signalling <code>notEmpty</code>.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.11 · Bounded buffer using explicit condition variables</span>
+        <button class="copy" data-copy="ch14-l1411">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l1411">@ThreadSafe
+public class ConditionBoundedBuffer&lt;T&gt; {
+    protected final Lock lock = new ReentrantLock();
+    // CONDITION PREDICATE: notFull (count &lt; items.length)
+    private final Condition notFull    = lock.newCondition();
+    // CONDITION PREDICATE: notEmpty (count &gt; 0)
+    private final Condition notEmpty  = lock.newCondition();
+    @GuardedBy("lock")
+    private final T[] items = (T[]) new Object[BUFFER_SIZE];
+    @GuardedBy("lock") private int tail, head, count;
+
+    // BLOCKS-UNTIL: notFull
+    public void put(T x) throws InterruptedException {
+        lock.lock();
+        try {
+            while (count == items.length)
+                notFull.await();
+            items[tail] = x;
+            if (++tail == items.length)
+                tail = 0;
+            ++count;
+            notEmpty.signal();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    // BLOCKS-UNTIL: notEmpty
+    public T take() throws InterruptedException {
+        lock.lock();
+        try {
+            while (count == 0)
+                notEmpty.await();
+            T x = items[head];
+            items[head] = null;
+            if (++head == items.length)
+                head = 0;
+            --count;
+            notFull.signal();
+            return x;
+        } finally {
+            lock.unlock();
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      The behaviour is the same as <code>BoundedBuffer</code>, but the use of condition queues is more readable: it is
+      easier to analyse a class that uses multiple <code>Condition</code>s than one that uses a single intrinsic queue with
+      multiple predicates. Separating the predicates into separate wait sets makes it easier to meet the requirements for
+      single notification, and using the more efficient <code>signal</code> instead of <code>signalAll</code> reduces the
+      number of context switches and lock acquisitions triggered by each operation.
+    </p>
+    <p>
+      The three-way relationship still holds: the variables involved in the predicate must be guarded by the lock, and the
+      lock must be held when testing the predicate and when calling <code>await</code> and <code>signal</code>.
+      (<code>ReentrantLock</code> requires the lock to be held when signalling, but <code>Lock</code> implementations are
+      permitted to construct <code>Condition</code>s that do not have that requirement.)
+    </p>
+    <p>
+      Choose between explicit <code>Condition</code>s and intrinsic condition queues the same way you choose between
+      <code>ReentrantLock</code> and <code>synchronized</code>: use <code>Condition</code> if you need fair queuing or
+      multiple wait sets per lock, otherwise prefer intrinsic queues. If you already use <code>ReentrantLock</code> for its
+      other features, the choice is already made.
+    </p>
+  </section>
+
+  <!-- ================= 14.4 ================= -->
+  <section id="ch14-anatomy">
+    <h2><span class="num">14.4</span>Anatomy of a Synchronizer</h2>
+    <p class="lede"><code>ReentrantLock</code> and <code>Semaphore</code> have suspiciously similar interfaces. Neither is
+    built on the other — they share a base class.</p>
+
+    <p>
+      Both act as a "gate" allowing only a limited number of threads through at a time: threads arrive and are allowed
+      through (<code>lock</code> or <code>acquire</code> returns), made to wait (it blocks), or turned away
+      (<code>tryLock</code> or <code>tryAcquire</code> returns <code>false</code>). Both allow interruptible,
+      uninterruptible and timed attempts, and both offer fair or non-fair queuing.
+    </p>
+    <p>
+      Given that commonality you might think one was built on the other — and it is a common exercise to prove a counting
+      semaphore can be implemented with a lock, and vice versa. That works, but it is not what the library does.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.12 · Counting semaphore implemented using Lock</span>
+        <button class="copy" data-copy="ch14-l1412">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l1412">// Not really how java.util.concurrent.Semaphore is implemented
+@ThreadSafe
+public class SemaphoreOnLock {
+    private final Lock lock = new ReentrantLock();
+    // CONDITION PREDICATE: permitsAvailable (permits &gt; 0)
+    private final Condition permitsAvailable = lock.newCondition();
+    @GuardedBy("lock") private int permits;
+
+    SemaphoreOnLock(int initialPermits) {
+        lock.lock();
+        try {
+            permits = initialPermits;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    // BLOCKS-UNTIL: permitsAvailable
+    public void acquire() throws InterruptedException {
+        lock.lock();
+        try {
+            while (permits &lt;= 0)
+                permitsAvailable.await();
+            --permits;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void release() {
+        lock.lock();
+        try {
+            ++permits;
+            permitsAvailable.signal();
+        } finally {
+            lock.unlock();
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      In actuality both are implemented on a common base class, <code>AbstractQueuedSynchronizer</code> (AQS) — as are
+      <code>CountDownLatch</code>, <code>ReentrantReadWriteLock</code>, <code>SynchronousQueue</code> and
+      <code>FutureTask</code>. AQS is a framework for building locks and synchronizers, and a surprisingly broad range of
+      them can be built easily and efficiently with it.
+    </p>
+    <p>
+      Building on AQS does not just reduce implementation effort; it also avoids paying for <strong>multiple points of
+      contention</strong>, as you do when you construct one synchronizer on top of another. In <code>SemaphoreOnLock</code>,
+      acquiring a permit has two places it might block: at the lock guarding the semaphore state, and again if no permit is
+      available. AQS-built synchronizers have only one point at which they might block, reducing context-switch overhead and
+      improving throughput.
+    </p>
+  </section>
+
+  <!-- ================= 14.5 ================= -->
+  <section id="ch14-aqs">
+    <h2><span class="num">14.5</span>AbstractQueuedSynchronizer</h2>
+    <p class="lede">One <code>int</code> of state, one FIFO queue of waiters, and two methods to override. Everything else is
+    bookkeeping.</p>
+
+    <p>
+      Most developers will never use AQS directly; the standard synchronizers cover a fairly wide range of situations. But
+      seeing how they work clarifies a lot about blocking in Java.
+    </p>
+    <p>
+      The basic operations are variants of <strong>acquire</strong> and <strong>release</strong>. Acquisition is the
+      state-dependent operation and can always block. With a lock or semaphore it means "acquire the lock or a permit";
+      with <code>CountDownLatch</code> it means "wait until the latch has reached its terminal state"; with
+      <code>FutureTask</code>, "wait until the task has completed". Release is not blocking — it may <em>allow</em> blocked
+      threads to proceed.
+    </p>
+    <p>
+      AQS manages a single integer of state, manipulated through the protected <code>getState</code>, <code>setState</code>
+      and <code>compareAndSetState</code> methods. That integer can represent anything: <code>ReentrantLock</code> uses it
+      as the hold count, <code>Semaphore</code> as the permits remaining, <code>FutureTask</code> as the task status.
+      Synchronizers may keep additional state themselves — <code>ReentrantLock</code> tracks the owning thread so it can
+      distinguish reentrant from contended acquisition.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.13 · Canonical forms for acquisition and release in AQS</span>
+        <button class="copy" data-copy="ch14-l1413">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l1413">boolean acquire() throws InterruptedException {
+    while (state does not permit acquire) {
+        if (blocking acquisition requested) {
+            enqueue current thread if not already queued
+            block current thread
+        }
+        else
+            return failure
+    }
+    possibly update synchronization state
+    dequeue thread if it was queued
+    return success
+}
+
+void release() {
+    update synchronization state
+    if (new state may permit a blocked thread to acquire)
+        unblock one or more queued threads
+}</code></pre>
+    </div>
+
+    <p>
+      Acquisition has two parts. First the synchronizer decides whether the current state permits acquisition — that
+      decision is the synchronizer's semantics: acquiring a lock succeeds if it is unheld, acquiring a latch succeeds if the
+      latch is terminal. Second, acquisition may update the state: a lock goes from unheld to held, a semaphore's permit
+      count drops. Acquiring a latch, notably, does <em>not</em> change its state, since one thread acquiring it does not
+      affect whether others can.
+    </p>
+    <p>
+      A synchronizer supporting exclusive acquisition implements <code>tryAcquire</code>, <code>tryRelease</code> and
+      <code>isHeldExclusively</code>; one supporting shared acquisition implements <code>tryAcquireShared</code> and
+      <code>tryReleaseShared</code>. AQS's <code>acquire</code>, <code>acquireShared</code>, <code>release</code> and
+      <code>releaseShared</code> call those <code>try</code> forms to decide whether the operation can proceed. For
+      <code>tryAcquireShared</code>, a negative return means failure, zero means exclusive acquisition and a positive value
+      means non-exclusive acquisition. <code>tryRelease</code> and <code>tryReleaseShared</code> should return
+      <code>true</code> if the release may have unblocked a waiting thread — the exit protocol, expressed as a return value.
+    </p>
+
+    <!-- ---------- 14.5.1 ---------- -->
+    <h3><span class="num">14.5.1</span>A Simple Latch</h3>
+    <p>
+      <code>OneShotLatch</code> is a binary latch implemented with AQS: two public methods, <code>await</code> and
+      <code>signal</code>, corresponding to acquire and release. Initially closed; any thread calling <code>await</code>
+      blocks until the latch opens. Once opened, waiting threads are released and subsequent arrivals pass straight
+      through.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.14 · Binary latch using AbstractQueuedSynchronizer</span>
+        <button class="copy" data-copy="ch14-l1414">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l1414">@ThreadSafe
+public class OneShotLatch {
+    private final Sync sync = new Sync();
+
+    public void signal() { sync.releaseShared(0); }
+
+    public void await() throws InterruptedException {
+        sync.acquireSharedInterruptibly(0);
+    }
+
+    private class Sync extends AbstractQueuedSynchronizer {
+        protected int tryAcquireShared(int ignored) {
+            // Succeed if latch is open (state == 1), else fail
+            return (getState() == 1) ? 1 : -1;
+        }
+
+        protected boolean tryReleaseShared(int ignored) {
+            setState(1);  // Latch is now open
+            return true;  // Other threads may now be able to acquire
+
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      The AQS state holds the latch state: closed (zero) or open (one). <code>await</code> calls
+      <code>acquireSharedInterruptibly</code>, which consults <code>tryAcquireShared</code>. If the latch was already open
+      it returns success and the thread passes; otherwise it returns failure, and <code>acquireSharedInterruptibly</code>
+      interprets that as "enqueue this thread". <code>signal</code> calls <code>releaseShared</code>, which consults
+      <code>tryReleaseShared</code> — that sets the state to open and returns <code>true</code>, telling AQS the
+      synchronizer is fully released, so every waiting thread re-attempts acquisition and now succeeds.
+    </p>
+
+    <div class="callout">
+      <span class="mark">🪄</span>
+      <p><code>OneShotLatch</code> is a fully functional, usable, performant synchronizer in about twenty lines of code. It
+      lacks extras — timed acquisition, state inspection — but AQS provides timed acquisition variants and inspection
+      utilities for free. Note the <em>delegation</em>: <code>OneShotLatch</code> could have extended AQS, but that would
+      expose a large public API and undermine its two-method interface. No synchronizer in
+      <code>java.util.concurrent</code> extends AQS directly; they all delegate to private inner subclasses.</p>
+    </div>
+  </section>
+
+  <!-- ================= 14.6 ================= -->
+  <section id="ch14-jdk">
+    <h2><span class="num">14.6</span>AQS in java.util.concurrent</h2>
+    <p class="lede">Five synchronizers, one base class, five different meanings for the same integer.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Class</th><th>What the AQS state means</th><th>Which <code>try</code> methods</th></tr></thead>
+        <tbody>
+          <tr><td><strong>ReentrantLock</strong></td><td>The lock hold count; a separate <code>owner</code> field identifies the owning thread</td><td><code>tryAcquire</code>, <code>tryRelease</code>, <code>isHeldExclusively</code></td></tr>
+          <tr><td><strong>Semaphore</strong></td><td>Permits currently available</td><td><code>tryAcquireShared</code>, <code>tryReleaseShared</code></td></tr>
+          <tr><td><strong>CountDownLatch</strong></td><td>The current count; reaching zero is the terminal state</td><td><code>tryAcquireShared</code>, <code>tryReleaseShared</code></td></tr>
+          <tr><td><strong>FutureTask</strong></td><td>Task status — running, completed or cancelled — plus result/exception fields</td><td><code>tryAcquireShared</code>, <code>tryReleaseShared</code></td></tr>
+          <tr><td><strong>ReentrantReadWriteLock</strong></td><td>16 bits of write-lock count plus 16 bits of read-lock count</td><td>exclusive for writes, shared for reads</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ---------- 14.6.1 ---------- -->
+    <h3><span class="num">14.6.1</span>ReentrantLock</h3>
+    <p>
+      <code>ReentrantLock</code> supports only exclusive acquisition, so it implements <code>tryAcquire</code>,
+      <code>tryRelease</code> and <code>isHeldExclusively</code>. It uses the state as the hold count and maintains an
+      <code>owner</code> variable holding the owning thread's identity, modified only when the current thread has just
+      acquired the lock or is just about to release it. <code>tryRelease</code> checks <code>owner</code> before allowing an
+      unlock; <code>tryAcquire</code> uses it to tell a reentrant acquisition from a contended one.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.15 · tryAcquire implementation from non-fair ReentrantLock</span>
+        <button class="copy" data-copy="ch14-l1415">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l1415">protected boolean tryAcquire(int ignored) {
+    final Thread current = Thread.currentThread();
+    int c = getState();
+    if (c == 0) {
+        if (compareAndSetState(0, 1)) {
+            owner = current;
+            return true;
+        }
+    } else if (current == owner) {
+        setState(c+1);
+        return true;
+    }
+    return false;
+}</code></pre>
+    </div>
+
+    <p>
+      If the lock is unheld, attempt to update the state atomically with <code>compareAndSetState</code> — the state may
+      have changed since it was read a few instructions ago, so the CAS both sets it and confirms it has not moved. If the
+      lock is already held, either increment the count (reentrant) or fail (contended).
+    </p>
+    <p style="color:var(--muted);font-size:.92rem">
+      Because the protected state-manipulation methods have the memory semantics of a volatile read or write, and
+      <code>ReentrantLock</code> is careful to read <code>owner</code> only <em>after</em> calling <code>getState</code> and
+      to write it only <em>before</em> calling <code>setState</code>, it can piggyback on the memory semantics of the
+      synchronization state and avoid further synchronization (see §16.1.4).
+    </p>
+
+    <!-- ---------- 14.6.2 ---------- -->
+    <h3><span class="num">14.6.2</span>Semaphore and CountDownLatch</h3>
+    <p>
+      <code>Semaphore</code> uses the state as the count of available permits. <code>tryAcquireShared</code> computes the
+      number remaining and fails if there are not enough; otherwise it tries to reduce the count atomically, and if that
+      succeeds the acquire succeeded. The return value also encodes whether other shared acquisitions might now succeed — in
+      which case other waiting threads are unblocked too.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 14.16 · tryAcquireShared and tryReleaseShared from Semaphore</span>
+        <button class="copy" data-copy="ch14-l1416">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-l1416">protected int tryAcquireShared(int acquires) {
+    while (true) {
+        int available = getState();
+        int remaining = available - acquires;
+        if (remaining &lt; 0
+                || compareAndSetState(available, remaining))
+            return remaining;
+    }
+}
+
+protected boolean tryReleaseShared(int releases) {
+    while (true) {
+        int p = getState();
+        if (compareAndSetState(p, p + releases))
+            return true;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      The loop terminates on one of two things: not enough permits, or a successful CAS. Any individual CAS may fail due to
+      contention with another thread, causing a retry, but one of those two termination criteria becomes true within a
+      reasonable number of retries. <code>tryReleaseShared</code> increments the count and retries until the update succeeds,
+      returning whether other threads might have been unblocked.
+    </p>
+    <p>
+      <code>CountDownLatch</code> works the same way, with the state as the current count: <code>countDown</code> calls
+      <code>release</code>, decrementing and unblocking waiters when the count reaches zero; <code>await</code> calls
+      <code>acquire</code>, returning immediately at zero and blocking otherwise.
+    </p>
+
+    <!-- ---------- 14.6.3 ---------- -->
+    <h3><span class="num">14.6.3</span>FutureTask</h3>
+    <p>
+      At first glance <code>FutureTask</code> does not even look like a synchronizer. But <code>Future.get</code> has
+      semantics very close to a latch: if some event (completion or cancellation of the task) has occurred, threads can
+      proceed; otherwise they are queued until it does.
+    </p>
+    <p>
+      <code>FutureTask</code> uses the AQS state for task status — running, completed or cancelled — and keeps additional
+      fields for the result of the computation or the exception it threw, plus a reference to the thread running it (while
+      running), so a cancelled task can be interrupted.
+    </p>
+
+    <!-- ---------- 14.6.4 ---------- -->
+    <h3><span class="num">14.6.4</span>ReentrantReadWriteLock</h3>
+    <p>
+      The <code>ReadWriteLock</code> interface suggests two locks, but in the AQS-based implementation a <em>single</em>
+      subclass manages both: 16 bits of the state for the write-lock count, the other 16 for the read-lock count. Read
+      operations use shared acquire and release; write operations use exclusive acquire and release.
+    </p>
+    <p>
+      AQS maintains a queue of waiting threads, tracking whether each requested exclusive or shared access. In
+      <code>ReentrantReadWriteLock</code>, when the lock becomes available: if the thread at the head of the queue wanted
+      write access it gets it; if the head wanted read access, all queued threads up to the first writer get it.
+    </p>
+    <p style="color:var(--muted);font-size:.92rem">
+      That mechanism does not permit a reader-preference or writer-preference policy. For that, the AQS wait queue would
+      have to be something other than FIFO, or two queues would be needed. Such strict ordering is rarely needed in
+      practice: if the non-fair version does not offer acceptable liveness, the fair version usually provides satisfactory
+      ordering and guarantees non-starvation of readers and writers.
+    </p>
+
+    <div class="card">
+      <h4>Summary of the chapter</h4>
+      <p style="margin:0">If you need to implement a state-dependent class — one whose methods must block if a state-based
+      precondition does not hold — the best strategy is usually to build on an existing library class such as
+      <code>Semaphore</code>, <code>BlockingQueue</code> or <code>CountDownLatch</code>. Sometimes the library does not
+      provide a sufficient foundation; in those cases you can build your own synchronizers using intrinsic condition
+      queues, explicit <code>Condition</code> objects, or <code>AbstractQueuedSynchronizer</code>. Intrinsic condition
+      queues are tightly bound to intrinsic locking, since the mechanism for managing state dependence is necessarily tied
+      to the mechanism for ensuring state consistency. Similarly, explicit <code>Condition</code>s are tightly bound to
+      explicit <code>Lock</code>s, and offer an extended feature set: multiple wait sets per lock, interruptible or
+      uninterruptible waits, fair or non-fair queuing, and deadline-based waiting.</p>
+    </div>
+  </section>
+
+  <!-- ================= simulator ================= -->
+  <section id="ch14-sim">
+    <h2><span class="num">▶</span>Interactive: the toast bell, four protocols</h2>
+    <p class="lede">A consumer wants to take from an empty buffer. A producer will put an item at tick 4. Run the same
+    scenario under four protocols and watch when the consumer gets its item — and how much CPU it burns getting there.</p>
+
+    <div class="sim">
+      <div class="sim-controls">
+        <button class="btn primary" id="ch14-simStep">Next tick ▸</button>
+        <button class="btn" id="ch14-simPlay">Play</button>
+        <button class="btn" id="ch14-simReset">Reset</button>
+        <div class="sim-toggle">
+          <button id="ch14-modeGrumpy" class="on">exception + retry</button>
+          <button id="ch14-modeSleepy">poll + sleep</button>
+          <button id="ch14-modeWait">wait / notifyAll</button>
+          <button id="ch14-modeMissed">wait, no predicate</button>
+        </div>
+      </div>
+
+      <div class="lane-label" style="text-align:left;padding:0 0 8px">tick →</div>
+      <div class="tl">
+        <div class="tl-row">
+          <span class="tl-lbl">P</span>
+          <div class="tl-cells" id="ch14-laneProd"></div>
+        </div>
+        <div class="tl-row">
+          <span class="tl-lbl">C</span>
+          <div class="tl-cells" id="ch14-laneCons"></div>
+        </div>
+      </div>
+
+      <div class="sim-readout">
+        <div class="stat"><span>protocol</span><b id="ch14-stMode">exception + retry</b></div>
+        <div class="stat"><span>tick</span><b id="ch14-stTick">0 / 12</b></div>
+        <div class="stat"><span>item taken</span><b id="ch14-stGot">—</b></div>
+        <div class="stat"><span>wasted ticks</span><b id="ch14-stWaste">0</b></div>
+        <div class="stat"><span>verdict</span><b id="ch14-stVerdict">—</b></div>
+      </div>
+      <div class="sim-msg" id="ch14-simMsg">Step through: the consumer retries by throwing and catching until the producer puts an item.</div>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Protocol</th><th>Waits by</th><th>Wakes when</th><th>Wasted work before the item arrives</th></tr></thead>
+        <tbody>
+          <tr><td>Exception + retry</td><td>re-throwing <code>BufferEmptyException</code> each call</td><td>the caller happens to retry after the put</td><td>3 throws, 3 catches, 3 call frames</td></tr>
+          <tr><td>Poll + sleep</td><td>sleeping a fixed granularity</td><td>the next wakeup after the put</td><td>2 wakeups, and up to a full granularity of latency</td></tr>
+          <tr><td>wait / notifyAll</td><td>the condition queue, lock released</td><td>immediately — the notifier wakes it</td><td>none: one wakeup, at the right moment</td></tr>
+          <tr><td>wait without a predicate</td><td>the condition queue</td><td>only a <em>future</em> notification</td><td>never returns — the signal already happened</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="mark">🕳️</span>
+      <p>The fourth protocol is the chapter's central bug in miniature. The producer's <code>notifyAll</code> at tick 4
+      happens <em>before</em> the consumer calls <code>wait</code> — or the consumer checks nothing and simply waits after
+      the state has already changed. Notification is not sticky, so the consumer sleeps forever. No exception, no
+      timeout, no log line: just a thread that never comes back. This is why "test the predicate before you wait" is rule
+      one, and why the entry protocol has to be documented.</p>
+    </div>
+  </section>
+
+  <!-- ================= patterns ================= -->
+  <section id="ch14-listings">
+    <h2><span class="num">§</span>Patterns worth stealing</h2>
+    <p class="lede">The sixteen listings above are the book's. These two are the shapes worth keeping: a state-dependent
+    base class that makes the predicate and the notification impossible to forget, and a hand-rolled synchronizer with
+    timed acquisition.</p>
+
+    <h3><span class="num">1</span>Make the predicate part of the class</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">A guarded state machine where wait and notify come in pairs</span>
+        <button class="copy" data-copy="ch14-c1">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-c1">/**
+ * Every blocking method names its predicate in a method, and every mutator
+ * ends in exactly one call to a single exit-protocol helper.
+ */
+public final class BoundedQueue&lt;T&gt; {
+    private final Object[] items;
+    private final Lock lock = new ReentrantLock();
+    private final Condition notEmpty = lock.newCondition();
+    private final Condition notFull  = lock.newCondition();
+    private int head, tail, count;
+
+    public BoundedQueue(int capacity) { items = new Object[capacity]; }
+
+    /* the exit protocol: whoever changed the state says so, once */
+    private void changed() {
+        notEmpty.signal();   // someone may now be able to take
+        notFull.signal();    // someone may now be able to put
+    }
+
+    public T take(long timeout, TimeUnit unit) throws InterruptedException {
+        long nanos = unit.toNanos(timeout);
+        lock.lock();
+        try {
+            while (count == 0)                       // predicate, in a loop
+                if (nanos &lt;= 0)
+                    return null;                     // timed out, not deadlocked
+                else
+                    nanos = notEmpty.awaitNanos(nanos);
+            @SuppressWarnings("unchecked") T x = (T) items[head];
+            items[head] = null;                      // do not retain
+            if (++head == items.length) head = 0;
+            --count;
+            changed();
+            return x;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public boolean put(T x, long timeout, TimeUnit unit) throws InterruptedException {
+        long nanos = unit.toNanos(timeout);
+        lock.lock();
+        try {
+            while (count == items.length)
+                if (nanos &lt;= 0)
+                    return false;
+                else
+                    nanos = notFull.awaitNanos(nanos);
+            items[tail] = x;
+            if (++tail == items.length) tail = 0;
+            ++count;
+            changed();
+            return true;
+        } finally {
+            lock.unlock();
+        }
+    }
+}</code></pre>
+    </div>
+    <p>
+      Three habits make this maintainable. The predicates are two one-line expressions that read like the documentation.
+      The notification lives in one method, so a new mutator cannot forget it — and because the two <code>Condition</code>s
+      are separate, <code>signal</code> is safe here in a way it would not be with a single intrinsic queue. And
+      <code>awaitNanos</code> returns the <em>remaining</em> time, so the deadline survives spurious wakeups and multiple
+      loop iterations.
+    </p>
+
+    <h3><span class="num">2</span>A synchronizer you can time out</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">Counting semaphore on AQS: state, tryAcquireShared, tryReleaseShared</span>
+        <button class="copy" data-copy="ch14-c2">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch14-c2">/**
+ * The whole of a counting semaphore, AQS-style: one int of state, two
+ * try methods, and the base class does the queueing, parking and timing.
+ */
+public final class CountingSemaphore {
+    private final Sync sync;
+
+    public CountingSemaphore(int permits) {
+        if (permits &lt; 0) throw new IllegalArgumentException("negative permits");
+        sync = new Sync(permits);
+    }
+
+    public void acquire() throws InterruptedException { sync.acquireSharedInterruptibly(1); }
+    public boolean tryAcquire(long t, TimeUnit u) throws InterruptedException {
+        return sync.tryAcquireSharedNanos(1, u.toNanos(t));
+    }
+    public void release() { sync.releaseShared(1); }
+    public int availablePermits() { return sync.getPermits(); }
+
+    private static final class Sync extends AbstractQueuedSynchronizer {
+        Sync(int permits) { setState(permits); }
+        int getPermits() { return getState(); }
+
+        /* negative = failed; zero = acquired, do not propagate;
+           positive = acquired and others may proceed too */
+        @Override protected int tryAcquireShared(int acquires) {
+            for (;;) {
+                int available = getState();
+                int remaining = available - acquires;
+                if (remaining &lt; 0 || compareAndSetState(available, remaining))
+                    return remaining;
+            }
+        }
+
+        @Override protected boolean tryReleaseShared(int releases) {
+            for (;;) {
+                int current = getState();
+                int next = current + releases;
+                if (next &lt; current) throw new IllegalStateException("overflow");
+                if (compareAndSetState(current, next))
+                    return true;          // may have unblocked a waiter
+            }
+        }
+    }
+}</code></pre>
+    </div>
+    <p>
+      Note what is <em>absent</em>: no queue, no park/unpark, no interrupt handling, no timeout arithmetic. AQS gives all
+      of that because the subclass only has to answer "does this state permit acquisition, and what is the new state?" —
+      which is exactly the entry/exit protocol of §14.2.8 turned into two methods with meaningful return values.
+    </p>
+  </section>
+
+  <!-- ================= vocabulary ================= -->
+  <section id="ch14-terms">
+    <h2><span class="num">§</span>Vocabulary introduced in Chapter 14</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Term</th><th>Meaning as used here</th><th>Where it goes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>State-dependent class</strong></td><td>One whose operations have state-based preconditions that another thread can satisfy.</td><td>Ch. 14 intro</td></tr>
+          <tr><td><strong>Condition predicate</strong></td><td>The precondition expressed over state variables: not-full, not-empty, opened-since-n.</td><td>Ch. 14.2.1</td></tr>
+          <tr><td><strong>Condition queue / wait set</strong></td><td>The set of threads waiting for a predicate — a queue whose elements are threads.</td><td>Ch. 14.1.3</td></tr>
+          <tr><td><strong>Blocking state-dependent action</strong></td><td>Acquire, test, release-and-wait, reacquire, repeat, then act.</td><td>Ch. 14.1</td></tr>
+          <tr><td><strong>Balks</strong></td><td>Refuses the operation when the precondition fails, leaving the caller to retry.</td><td>Ch. 14.1.1</td></tr>
+          <tr><td><strong>Busy waiting / spin waiting</strong></td><td>Retrying immediately: low latency, high CPU.</td><td>Ch. 14.1.1</td></tr>
+          <tr><td><strong>Sleep granularity</strong></td><td>The poll interval; trades responsiveness against CPU usage.</td><td>Ch. 14.1.2</td></tr>
+          <tr><td><strong>Oversleeping</strong></td><td>Waking long after the condition became true, because you slept past the transition.</td><td>Ch. 14.1.2</td></tr>
+          <tr><td><strong>Three-way relationship</strong></td><td>Lock, condition predicate, condition queue: the predicate's state is guarded by the lock you must hold on the queue object.</td><td>Ch. 14.2.1</td></tr>
+          <tr><td><strong>Spurious wakeup</strong></td><td>A <code>wait</code> returning without any notification.</td><td>Ch. 14.2.2</td></tr>
+          <tr><td><strong>Missed signal</strong></td><td>Waiting for a condition that was already true; notification is not sticky, so it never arrives.</td><td>Ch. 14.2.3</td></tr>
+          <tr><td><strong>Hijacked signal</strong></td><td>A single <code>notify</code> waking a waiter whose predicate is still false, while the eligible waiter sleeps on.</td><td>Ch. 14.2.4</td></tr>
+          <tr><td><strong>Uniform waiters</strong></td><td>One predicate per queue and identical post-wait logic — one of two conditions for safe single notification.</td><td>Ch. 14.2.4</td></tr>
+          <tr><td><strong>One-in, one-out</strong></td><td>A notification enables at most one thread to proceed.</td><td>Ch. 14.2.4</td></tr>
+          <tr><td><strong>Conditional notification</strong></td><td>Notifying only when the state actually crossed the interesting boundary.</td><td>Ch. 14.2.4</td></tr>
+          <tr><td><strong>Binary latch</strong></td><td>A gate with two states; <code>OneShotLatch</code> is one, <code>ThreadGate</code> is a recloseable one.</td><td>Ch. 14.2.5</td></tr>
+          <tr><td><strong>Generation counter</strong></td><td>Counts opens so that a thread can pass if the gate opened <em>after</em> it arrived, even if it has since closed.</td><td>Ch. 14.2.5</td></tr>
+          <tr><td><strong>Entry protocol</strong></td><td>The condition predicate an operation must satisfy before proceeding.</td><td>Ch. 14.2.8</td></tr>
+          <tr><td><strong>Exit protocol</strong></td><td>After changing state, deciding what notifications that change enables.</td><td>Ch. 14.2.8</td></tr>
+          <tr><td><strong>AbstractQueuedSynchronizer</strong></td><td>One <code>int</code> of state plus a FIFO waiter queue; the base of every blocking class in <code>java.util.concurrent</code>.</td><td>Ch. 14.5</td></tr>
+          <tr><td><strong>Exclusive vs shared acquisition</strong></td><td>One holder at a time (locks) versus many (latches, semaphores) — different <code>try</code> method sets.</td><td>Ch. 14.5</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= cheat sheet ================= -->
+  <section id="ch14-cheatsheet">
+    <h2><span class="num">✓</span>Cheat sheet &amp; self-check</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>A thread waits forever though the condition is true</td><td>Missed signal: no predicate test before <code>wait</code>, and the notification already happened</td><td>Test the predicate first, always inside a <code>while</code></td></tr>
+          <tr><td>One waiter wakes, the eligible one does not</td><td><code>notify</code> on a queue serving two predicates — a hijacked signal</td><td>Use <code>notifyAll</code>, or split into two <code>Condition</code>s</td></tr>
+          <tr><td>Waiter wakes for no reason</td><td>Spurious wakeup, or the state changed again before it reacquired the lock</td><td>The loop is not optional — re-test after every return from <code>wait</code></td></tr>
+          <tr><td>Everything blocks, nothing progresses</td><td>Waiting with the lock held, so the state can never change</td><td>Release before sleeping; that is precisely what <code>wait</code>/<code>await</code> do atomically</td></tr>
+          <tr><td><code>IllegalMonitorStateException</code></td><td>Calling <code>wait</code>/<code>notify</code> without holding the lock, or <code>Condition.wait</code> by mistake</td><td>Hold the lock; and use <code>await</code>/<code>signal</code>, never <code>wait</code>/<code>notify</code>, on a <code>Condition</code></td></tr>
+          <tr><td>Throughput collapses with many waiters</td><td><code>notifyAll</code> waking everyone for one slot</td><td>Separate wait sets via <code>Condition</code>, then <code>signal</code></td></tr>
+          <tr><td>Latency spikes of exactly the poll interval</td><td>Sleep-based polling granularity</td><td>Real notification, or a much smaller granularity with a CPU budget</td></tr>
+          <tr><td>Subclass breaks the notifications</td><td>New state-dependent method, base class used single notification</td><td>Expose and document the protocol, or make the class <code>final</code></td></tr>
+          <tr><td>Callers wrap everything in try/catch and retry</td><td>Precondition failure propagated instead of blocking</td><td>Encapsulate the wait; use <code>BlockingQueue</code> when you can</td></tr>
+          <tr><td>A timed wait returns immediately every time</td><td><code>await(nanos)</code> called in a loop with the original timeout, not the remaining one</td><td>Use the value returned by <code>awaitNanos</code> as the new budget</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">✅</div><h5>Do</h5>
+        <p>Write the predicate down and name it in a comment. Wait in a <code>while</code>. Notify after every state change
+        that could unblock anyone. Prefer library synchronizers; when you must roll your own, prefer a private lock and
+        private condition queues.</p></div>
+      <div class="tile"><div class="ico">🚫</div><h5>Avoid</h5>
+        <p><code>if</code> around a <code>wait</code>. Notification inside a block that changes nothing.
+        <code>notify</code> without checking uniform waiters and one-in, one-out. Exposing your condition queue to
+        subclasses without documenting the protocol. Sleeping while holding a lock.</p></div>
+      <div class="tile"><div class="ico">🧠</div><h5>The one habit</h5>
+        <p>For every <code>wait</code>, find the code that will notify it, and prove that code runs <em>after</em> the state
+        changed. For every <code>notify</code>, name the predicate it satisfies. If either answer needs a paragraph instead
+        of a sentence, use a library class.</p></div>
+    </div>
+
+    <div class="card">
+      <h4>Five questions the chapter leaves you with</h4>
+      <ol>
+        <li>What is the condition predicate for each of my blocking methods — and could a reviewer read it from the code?</li>
+        <li>Which of my condition queues serve more than one predicate, and am I calling <code>notifyAll</code> there?</li>
+        <li>Does every state-changing path reach a notification, including the exception paths?</li>
+        <li>Could I have built this on <code>Semaphore</code>, <code>BlockingQueue</code> or <code>CountDownLatch</code> instead?</li>
+        <li>If I published my condition queue, what would a subclass have to do to break my protocol?</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= chapter 14 footnotes ================= -->
+  <div class="footnotes">
+    <h4 style="margin:0 0 10px;font-size:.8rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)">Notes carried over from the chapter</h4>
+    <ol>
+      <li>Pushing the state dependence back to the caller also makes it nearly impossible to preserve FIFO ordering; by forcing the caller to retry, you lose the information about who arrived first.</li>
+      <li><code>Queue</code> offers both options — <code>poll</code> returns <code>null</code> if empty, <code>remove</code> throws — but <code>Queue</code> is not intended for producer–consumer designs. <code>BlockingQueue</code> is the better choice.</li>
+      <li>We will spare you the details of Snow White's other five bounded buffer implementations, especially <code>SneezyBoundedBuffer</code>.</li>
+      <li>It is usually a bad idea for a thread to sleep or otherwise block with a lock held, but here it is even worse: the desired condition can never become true if the lock is not released.</li>
+      <li>Not quite true: a fair condition queue can guarantee the relative order in which threads are released from the wait set. Intrinsic condition queues offer no fair queuing; explicit <code>Condition</code>s do.</li>
+      <li><code>ConditionBoundedBuffer</code> in §14.3 is even better: it is more efficient because it can use single notification instead of <code>notifyAll</code>.</li>
+      <li>The shared-bell situation describes Tim's kitchen pretty well: so many devices beep that when you hear one you have to inspect the toaster, the microwave, the coffee maker and several others to determine the cause.</li>
+      <li>To push the breakfast analogy way too far, a spurious wakeup is a toaster with a loose connection that rings when the toast is ready and also sometimes when it is not.</li>
+      <li>It is actually possible for threads to be waiting for both "not full" and "not empty" at the same time — this happens when the number of producers/consumers exceeds the buffer capacity.</li>
+      <li>In order to emerge from this wait, someone else would have to make toast, but that will only make matters worse: when the bell rings, you will then have a disagreement about toast ownership.</li>
+      <li>Java 6 replaces the AQS-based <code>SynchronousQueue</code> with a (more scalable) non-blocking version.</li>
+      <li><code>ReentrantLock</code> requires that the lock be held when calling <code>signal</code> or <code>signalAll</code>, but <code>Lock</code> implementations are permitted to construct <code>Condition</code>s that do not have this requirement.</li>
+      <li>Because the protected state-manipulation methods have the memory semantics of a volatile read or write, and <code>ReentrantLock</code> is careful about ordering those accesses around the <code>owner</code> field, it can piggyback on the memory semantics of the synchronization state and avoid further synchronization — see §16.1.4.</li>
+      <li>The JDK source is the best reference; it is also available with fewer licensing restrictions from the concurrency-interest pages at <code>gee.cs.oswego.edu</code>.</li>
+      <li>This mechanism does not permit a reader-preference or writer-preference policy, as some read–write lock implementations do. For that, the AQS wait queue would need to be something other than FIFO, or two queues would be needed.</li>
+    </ol>
+    <p style="margin-top:14px">
+      Summary of <em>Java Concurrency in Practice</em>, Chapter 14 (Building Custom Synchronizers), pp. 179–194.
+      All code listings are the book's, with annotations added; Figure 14.1 is reproduced from the book PDF for study
+      purposes.
+    </p>
+  </div>
+
 <footer>
-  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–13 ·
+  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–14 ·
   self-contained HTML (no external requests)
 </footer>
 </main>
@@ -17811,6 +19353,205 @@ function initChapter13Sim() {
   reset('block');
 }
 
+/* ---- Chapter 14: the toast bell, four protocols ---- */
+function initChapter14Sim() {
+  const laneP = document.getElementById('ch14-laneProd');
+  const laneC = document.getElementById('ch14-laneCons');
+  const btnStep = document.getElementById('ch14-simStep');
+  const btnPlay = document.getElementById('ch14-simPlay');
+  const btnReset = document.getElementById('ch14-simReset');
+  const modes = {
+    grumpy: document.getElementById('ch14-modeGrumpy'),
+    sleepy: document.getElementById('ch14-modeSleepy'),
+    wait: document.getElementById('ch14-modeWait'),
+    missed: document.getElementById('ch14-modeMissed')
+  };
+  const stMode = document.getElementById('ch14-stMode');
+  const stTick = document.getElementById('ch14-stTick');
+  const stGot = document.getElementById('ch14-stGot');
+  const stWaste = document.getElementById('ch14-stWaste');
+  const stVerdict = document.getElementById('ch14-stVerdict');
+  const simMsg = document.getElementById('ch14-simMsg');
+
+  const TICKS = 12;
+  const PUT_AT = 4;   /* the producer adds an item at tick 4 */
+
+  var MODES = {
+    grumpy: {
+      label: 'exception + retry',
+      got: 5,
+      waste: 4,
+      wasteLabel: '4 exceptions',
+      verdict: 'works, painfully',
+      cls: '',
+      note: 'GrumpyBoundedBuffer throws BufferEmptyException on every failed take, and the caller catches, sleeps and retries: four throw/catch cycles and four stack frames to deliver one item. It works \u2014 and "buffer is empty" was never an exceptional condition.'
+    },
+    sleepy: {
+      label: 'poll + sleep',
+      got: 5,
+      waste: 2,
+      wasteLabel: '2 wakeups',
+      verdict: 'correct, but late',
+      cls: '',
+      note: 'SleepyBoundedBuffer checks, sleeps a fixed granularity, and checks again. The item arrived at tick 4 and was collected at tick 5: one whole granularity of latency, plus two wakeups that discovered nothing. Shrink the granularity and you buy responsiveness with CPU.'
+    },
+    wait: {
+      label: 'wait / notifyAll',
+      got: 4,
+      waste: 0,
+      wasteLabel: 'none',
+      verdict: 'prompt \u2713',
+      cls: 'good',
+      note: 'The consumer tests the predicate, finds it false, and waits \u2014 atomically releasing the lock. The producer puts at tick 4 and notifies in the same critical section, so the consumer wakes immediately and takes the item. No polling, no latency, no wasted wakeups.'
+    },
+    missed: {
+      label: 'wait, no predicate',
+      got: 0,
+      waste: 0,
+      wasteLabel: 'n/a',
+      verdict: 'lost signal \u2717',
+      cls: 'bad',
+      note: 'The consumer skips the predicate test and calls wait after the producer has already notified. Notification is not sticky, so the producer\u2019s signal is gone and nothing will ever wake this thread: no exception, no timeout, no log line. This is a missed signal, and it is a liveness failure, not a correctness one.'
+    }
+  };
+
+  let mode = 'grumpy';
+  let tick = 0;
+  let finished = false;
+  let timer = null;
+  let cellsP = [];
+  let cellsC = [];
+
+  function buildLanes() {
+    laneP.innerHTML = '';
+    laneC.innerHTML = '';
+    laneP.style.gridTemplateColumns = 'repeat(' + TICKS + ',1fr)';
+    laneC.style.gridTemplateColumns = 'repeat(' + TICKS + ',1fr)';
+    cellsP = [];
+    cellsC = [];
+    for (let i = 0; i < TICKS; i++) {
+      const a = document.createElement('div');
+      a.className = 'tl-cell future';
+      a.textContent = '\u00b7';
+      laneP.appendChild(a);
+      cellsP.push(a);
+
+      const b = document.createElement('div');
+      b.className = 'tl-cell future';
+      b.textContent = '\u00b7';
+      laneC.appendChild(b);
+      cellsC.push(b);
+    }
+  }
+
+  /* consumer's activity at tick t (1-based) */
+  function consState(t) {
+    const m = MODES[mode];
+    if (m.got && t === m.got) return { cls: 'done', ch: '\u2713' };
+    if (m.got && t > m.got) return { cls: 'future', ch: '\u00b7' };
+    if (mode === 'grumpy') return { cls: '', ch: '\u2717' };
+    if (mode === 'sleepy') return { cls: (t % 2 === 1) ? 'wait' : 'run', ch: (t % 2 === 1) ? 'w' : 'z' };
+    if (mode === 'wait') return { cls: 'wait', ch: 'w' };
+    /* missed: idle until tick 5, then waits forever */
+    if (t < 5) return { cls: 'future', ch: '\u00b7' };
+    return { cls: 'wait', ch: 'w' };
+  }
+
+  function paint() {
+    for (let i = 0; i < TICKS; i++) {
+      const t = i + 1;
+      const a = cellsP[i];
+      if (t === PUT_AT) {
+        a.className = 'tl-cell run' + (t === tick ? ' now' : '');
+        a.textContent = 'P';
+      } else if (t < PUT_AT) {
+        a.className = 'tl-cell future';
+        a.textContent = '\u00b7';
+      } else {
+        a.className = 'tl-cell future';
+        a.textContent = '\u00b7';
+      }
+      const c = consState(t);
+      const b = cellsC[i];
+      b.className = 'tl-cell' + (c.cls ? ' ' + c.cls : '') + (t === tick ? ' now' : '');
+      b.textContent = c.ch;
+    }
+
+    const m = MODES[mode];
+    stMode.textContent = m.label;
+    stTick.textContent = tick + ' / ' + TICKS;
+    stGot.textContent = m.got ? ('tick ' + m.got) : 'never';
+    stGot.className = m.got ? 'good' : 'bad';
+    stWaste.textContent = m.wasteLabel;
+    stVerdict.textContent = m.verdict;
+    stVerdict.className = m.cls;
+  }
+
+  function step() {
+    if (finished) return false;
+    tick += 1;
+    if (tick >= TICKS) {
+      finished = true;
+      stop();
+      btnStep.disabled = true;
+      btnPlay.disabled = true;
+      paint();
+      simMsg.textContent = MODES[mode].note;
+      return false;
+    }
+    paint();
+    return true;
+  }
+
+  function play() {
+    if (timer) return;
+    btnPlay.textContent = 'Pause';
+    timer = setInterval(function () {
+      if (!step()) { timer = null; btnPlay.textContent = 'Play'; }
+    }, 320);
+  }
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    btnPlay.textContent = 'Play';
+  }
+
+  function reset(newMode) {
+    stop();
+    if (newMode) mode = newMode;
+    tick = 0;
+    finished = false;
+    btnStep.disabled = false;
+    btnPlay.disabled = false;
+    btnPlay.textContent = 'Play';
+    Object.keys(modes).forEach(function (k) {
+      modes[k].classList.toggle('on', k === mode);
+    });
+    paint();
+    const hints = {
+      grumpy: 'Step through: the consumer retries by throwing and catching until the producer puts an item.',
+      sleepy: 'The consumer checks, sleeps two ticks, checks again — and notices the item late.',
+      wait: 'The consumer waits on the condition queue; the producer\u2019s notify wakes it in the same tick as the put.',
+      missed: 'The consumer calls wait without testing the predicate, after the notification has already been sent.'
+    };
+    simMsg.textContent = hints[mode];
+  }
+
+  btnStep.addEventListener('click', function () { step(); });
+  btnPlay.addEventListener('click', function () {
+    if (timer) { stop(); return; }
+    if (finished) reset();
+    play();
+  });
+  btnReset.addEventListener('click', function () { reset(); });
+  Object.keys(modes).forEach(function (k) {
+    modes[k].addEventListener('click', function () { reset(k); });
+  });
+
+  buildLanes();
+  reset('grumpy');
+}
+
 /* ------------------------------------------------------------------ *
  * Boot
  * ------------------------------------------------------------------ */
@@ -17827,6 +19568,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initChapter11Sim();
   initChapter12Sim();
   initChapter13Sim();
+  initChapter14Sim();
 
   /* nav dropdowns */
   const btns = document.querySelectorAll('.navbtn');
