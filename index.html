@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Java Concurrency in Practice — study notes (Chapters 1–16)</title>
+<title>Java Concurrency in Practice — study notes (Chapters 1–16 + Appendix A)</title>
 <meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–13: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks, Task Execution, Cancellation and Shutdown, Applying Thread Pools, GUI Applications, Avoiding Liveness Hazards, Performance and Scalability, Testing Concurrent Programs, Explicit Locks, and Building Custom Synchronizers, with the book's figures, all code listings and interactive simulators.">
 <style>
   :root{
@@ -592,6 +592,20 @@
           <a href="#ch16-cheatsheet">Cheat sheet</a>
         </div>
       </div>
+      <div class="navmenu">
+        <button class="navbtn" aria-expanded="false" data-menu="menu-ch17">Appendix A · Annotations for Concurrency ▾</button>
+        <div class="menu" id="menu-ch17">
+          <div class="grp">Sections</div>
+          <a href="#ch17-tldr">TL;DR</a>
+          <a href="#ch17-class">A.1 Class annotations</a>
+          <a href="#ch17-guardedby">A.2 Field &amp; method annotations</a>
+          <div class="grp">Extras</div>
+          <a href="#ch17-sim">Simulator: label the field</a>
+          <a href="#ch17-listings">Patterns</a>
+          <a href="#ch17-terms">Glossary</a>
+          <a href="#ch17-cheatsheet">Cheat sheet</a>
+        </div>
+      </div>
       <a href="#top">↑ Top</a>
     </nav>
   </div>
@@ -694,11 +708,16 @@
         <span class="cc-title">The Java Memory Model</span>
         <span class="cc-meta">pp. 207–215 · reordering, happens-before, publication, initialization safety</span>
       </a>
+      <a class="chapter-card" href="#ch17">
+        <span class="cc-num">Appendix A</span>
+        <span class="cc-title">Annotations for Concurrency</span>
+        <span class="cc-meta">p. 216 · @ThreadSafe, @Immutable, @NotThreadSafe, @GuardedBy</span>
+      </a>
     </div>
     <div class="meta">
-      <span class="pill">📚 <b>16</b> chapters · <b>197</b> book listings + extras</span>
+      <span class="pill">📚 <b>16</b> chapters + Appendix A · <b>197</b> book listings + extras</span>
       <span class="pill">🖼️ Figures 1.1–16.2 embedded</span>
-      <span class="pill">▶️ <b>15</b> interactive simulators</span>
+      <span class="pill">▶️ <b>16</b> interactive simulators</span>
       <span class="pill">🔌 Fully self-contained</span>
     </div>
     </div>
@@ -18911,8 +18930,541 @@ public class ReorderingDemo {
     </p>
   </div>
 
+  <!-- ================= APPENDIX A ================= -->
+  <div class="page-hero chapter-start" id="ch17">
+    <span class="kicker">Java Concurrency in Practice · Appendix A</span>
+    <h1>Appendix A — <span>Annotations for Concurrency</span></h1>
+    <p class="sub">
+      Every class in this book has carried a promise in its annotation header — <code>@ThreadSafe</code>,
+      <code>@Immutable</code>, <code>@GuardedBy("lock")</code>. This appendix is the contract behind those three words:
+      what each annotation asserts, who it is for, how to write a lock expression that a reviewer can check, and how a
+      static analysis tool can turn the whole thing into a build failure. It is three pages, and it is the part of the
+      book most likely to outlive the book.
+    </p>
+    <div class="meta">
+      <span class="pill">📖 <b>p. 216</b></span>
+      <span class="pill">🧩 <b>2</b> sections · <b>3</b> listings</span>
+      <span class="pill">⏱️ ~14 min read</span>
+      <span class="pill">🏷️ Part IV — Appendix A</span>
+    </div>
+  </div>
+
+  <!-- ================= TL;DR ================= -->
+  <section id="ch17-tldr">
+    <h2>Appendix in one paragraph</h2>
+    <div class="card tldr">
+      <h4>TL;DR — the five things worth remembering</h4>
+      <ol>
+        <li><strong>Three class-level annotations carry the public promise:</strong> <code>@Immutable</code> (which implies
+        <code>@ThreadSafe</code>), <code>@ThreadSafe</code>, and <code>@NotThreadSafe</code>. The default, unannotated
+        case is <em>"presume not thread-safe"</em>.</li>
+        <li><strong>They serve three audiences, not one.</strong> Users learn whether they need a lock; maintainers learn
+        whether the guarantee must be preserved; and static analysis tools can check that an
+        <code>@Immutable</code> class actually is immutable.</li>
+        <li><strong><code>@GuardedBy(lock)</code> documents the synchronization policy</strong> — which state variable is
+        protected by which lock. It is the one annotation that pays for itself in code review.</li>
+        <li><strong>The lock argument has exactly five legal shapes:</strong> <code>"this"</code>,
+        <code>"fieldName"</code>, <code>"ClassName.fieldName"</code>, <code>"methodName()"</code>,
+        <code>"ClassName.class"</code>.</li>
+        <li><strong>The bug it prevents is specific:</strong> a class that guards its state correctly today, then gains a
+        field nobody guards, or a method that forgets to take the lock. Documenting the mapping is what makes those
+        omissions visible.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= A.1 ================= -->
+  <section id="ch17-class">
+    <h2><span class="num">A.1</span>Class Annotations</h2>
+    <p class="lede">Three annotations, one question: does this class need a lock before I use it?</p>
+
+    <p>
+      This book has used annotations such as <code>@GuardedBy</code> and <code>@ThreadSafe</code> to show how
+      thread-safety promises and synchronization policies can be documented. This appendix documents those annotations;
+      their source code can be downloaded from the book's website. (There are, of course, additional thread-safety
+      promises and implementation details that should be documented but that are not captured by this minimal set.)
+    </p>
+    <p>
+      Three class-level annotations describe a class's intended thread-safety promises: <code>@Immutable</code>,
+      <code>@ThreadSafe</code> and <code>@NotThreadSafe</code>. <code>@Immutable</code> means, of course, that the class
+      is immutable — and <strong>implies <code>@ThreadSafe</code></strong>. <code>@NotThreadSafe</code> is optional: if a
+      class is not annotated as thread-safe it should be <em>presumed</em> not to be thread-safe, but if you want to make
+      that extra clear, use <code>@NotThreadSafe</code>.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Annotation</th><th>Asserts</th><th>Implies</th><th>When to use it</th></tr></thead>
+        <tbody>
+          <tr><td><code>@Immutable</code></td><td>The state cannot change after construction; it is safe to share without synchronization and to publish however you like.</td><td><code>@ThreadSafe</code> — immutability is the strongest form of thread safety.</td><td>Final fields throughout, <code>this</code> never escapes construction, no mutators, and any reachable mutable object is neither mutated nor exposed.</td></tr>
+          <tr><td><code>@ThreadSafe</code></td><td>The class is safe for concurrent use — it has a synchronization policy and it can be relied on.</td><td>Nothing.</td><td>Any class whose contract is a thread-safety guarantee, whether it achieves that with locks, atomics or confinement.</td></tr>
+          <tr><td><code>@NotThreadSafe</code></td><td>No such guarantee exists; callers must confine or externalize the locking.</td><td>Nothing.</td><td>Optional — but useful when the absence of an annotation might be read as an oversight rather than a decision.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🧾</span>
+      <p>The important asymmetry is in the default: <strong>a class with no annotation should be presumed not
+      thread-safe.</strong> That is a deliberately pessimistic default, and it is the right one — it means the absence of
+      a promise is never read as a promise, and it makes every <code>@ThreadSafe</code> in a codebase a real claim rather
+      than decoration.</p>
+    </div>
+
+    <p>
+      These annotations are relatively unintrusive and are beneficial to <em>both</em> users and maintainers. Users can
+      see immediately whether a class is thread-safe; maintainers can see immediately whether the thread-safety
+      guarantees must be preserved. Annotations are also useful to a third constituency: <strong>tools</strong>. Static
+      code analysis tools may be able to verify that the code complies with the contract the annotation indicates — such
+      as verifying that a class annotated <code>@Immutable</code> actually is immutable.
+    </p>
+
+    <div class="card">
+      <h4>Why a tool can check this at all</h4>
+      <p style="margin:0">Each annotation is a claim narrow enough to be decidable. "Every field is <code>final</code>"
+      is a checkable property; "this class is thread-safe" is not — which is exactly why the book states the strategy
+      explicitly, field by field, in the second annotation rather than expecting a tool to infer it. The class-level
+      annotations are documentation with a machine-readable edge; <code>@GuardedBy</code> is the part that makes the claim
+      specific enough to verify.</p>
+    </div>
+  </section>
+
+  <!-- ================= A.2 ================= -->
+  <section id="ch17-guardedby">
+    <h2><span class="num">A.2</span>Field and Method Annotations</h2>
+    <p class="lede">The class annotations are public documentation. Everything else is for maintainers — and this is the
+    part they actually need.</p>
+
+    <p>
+      The class-level annotations above are part of the public documentation for the class. Other aspects of a class's
+      thread-safety strategy are entirely for maintainers and are not part of its public documentation.
+    </p>
+    <p>
+      Classes that use locking should document which state variables are guarded with which locks, and which locks are
+      used to guard those variables. A common source of inadvertent non-thread-safety is when a thread-safe class
+      consistently uses locking to guard its state, but is later modified to add either new state variables that are not
+      adequately guarded by locking, or new methods that do not use locking properly to guard the existing state
+      variables. <strong>Documenting which variables are guarded by which locks can help prevent both types of
+      omissions.</strong>
+    </p>
+
+    <p>
+      <code>@GuardedBy(lock)</code> documents that a field or method should be accessed only with a specific lock held.
+      The lock argument identifies the lock that should be held when accessing the annotated field or method. There are
+      exactly five possible shapes for that argument:
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Form</th><th>Means</th><th>Typical use</th></tr></thead>
+        <tbody>
+          <tr><td><code>@GuardedBy("this")</code></td><td>The intrinsic lock of the containing object — the object of which the method or field is a member.</td><td>The ordinary <code>synchronized</code> instance method or <code>synchronized (this)</code> block.</td></tr>
+          <tr><td><code>@GuardedBy("fieldName")</code></td><td>The lock associated with the object referenced by the named field — an intrinsic lock for fields that do not refer to a <code>Lock</code>, or an explicit <code>Lock</code> for fields that do.</td><td>Private lock objects: <code>private final Object lock = new Object();</code> or <code>private final Lock lock = new ReentrantLock();</code>.</td></tr>
+          <tr><td><code>@GuardedBy("ClassName.fieldName")</code></td><td>Like the previous form, but the lock object lives in a static field of another class.</td><td>A shared, well-known lock — for example a lock in a registry or a class-level monitor.</td></tr>
+          <tr><td><code>@GuardedBy("methodName()")</code></td><td>The lock object returned by calling the named method.</td><td>Classes that expose their lock via an accessor, so the exact object is available to callers and tools.</td></tr>
+          <tr><td><code>@GuardedBy("ClassName.class")</code></td><td>The class literal object for the named class.</td><td>Static state guarded by the class-level monitor: <code>synchronized (Foo.class)</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Using <code>@GuardedBy</code> to identify each state variable that needs locking, and which lock guards it, can
+      assist in maintenance and code reviews, and can help automated analysis tools spot potential thread-safety errors.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing A.1 · The three class-level annotations in context</span>
+        <button class="copy" data-copy="ch17-la1">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch17-la1">/*
+ * The class-level annotation is the PUBLIC promise. Note the default:
+ * an unannotated class should be presumed NOT thread-safe, so every
+ * @ThreadSafe in a codebase is a claim someone had to make on purpose.
+ */
+
+@Immutable
+public final class Point {
+    private final int x;
+    private final int y;
+
+    public Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public int getX() { return x; }
+    public int getY() { return y; }
+    // @Immutable implies @ThreadSafe: no lock needed to share a Point.
+}
+
+@ThreadSafe
+public class Counter {
+    @GuardedBy("this") private long value;      // the strategy, stated
+
+    public synchronized long get() { return value; }
+    public synchronized long increment() { return ++value; }
+}
+
+@NotThreadSafe
+public class StringList {                        // optional, but explicit
+    private final List&lt;String&gt; items = new ArrayList&lt;String&gt;();
+    public void add(String s) { items.add(s); }  // caller must lock
+    public int size() { return items.size(); }
+}</code></pre>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing A.2 · All five @GuardedBy lock expressions</span>
+        <button class="copy" data-copy="ch17-la2">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch17-la2">public class GuardedByForms {
+
+    /* (1) "this" -- the intrinsic lock of the containing object */
+    @GuardedBy("this") private int instanceState;
+
+    public synchronized void bump() { instanceState++; }
+
+
+    /* (2) "fieldName" -- a private lock object, either kind */
+    private final Object intrinsicLock = new Object();
+    @GuardedBy("intrinsicLock") private int guardedByObject;
+
+    private final Lock explicitLock = new ReentrantLock();
+    @GuardedBy("explicitLock") private int guardedByLock;
+
+    public void setGuardedByObject(int v) {
+        synchronized (intrinsicLock) { guardedByObject = v; }
+    }
+
+    public void setGuardedByLock(int v) {
+        explicitLock.lock();                    // same semantics as intrinsic
+        try { guardedByLock = v; } finally { explicitLock.unlock(); }
+    }
+
+
+    /* (3) "ClassName.fieldName" -- a lock held in another class's
+       static field, e.g. a shared registry lock */
+    @GuardedBy("Registry.LOCK") private int guardedElsewhere;
+
+    public void setGuardedElsewhere(int v) {
+        synchronized (Registry.LOCK) { guardedElsewhere = v; }
+    }
+
+
+    /* (4) "methodName()" -- the lock is returned by an accessor, so
+       callers and tools can name the exact object */
+    private final Object myLock = new Object();
+    Object lock() { return myLock; }
+
+    @GuardedBy("lock()") private int guardedByAccessor;
+
+    public void setGuardedByAccessor(int v) {
+        synchronized (lock()) { guardedByAccessor = v; }
+    }
+
+
+    /* (5) "ClassName.class" -- the class literal, for static state */
+    @GuardedBy("GuardedByForms.class") private static int staticState;
+
+    public static void bumpStatic() {
+        synchronized (GuardedByForms.class) { staticState++; }
+    }
+}</code></pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="mark">🧨</span>
+      <p>An annotation is not enforcement. <code>@GuardedBy</code> documents a rule the compiler will not check; a
+      caller that ignores it compiled fine. What it buys you is that the omission is now <em>visible</em> — to a
+      reviewer, to a maintainer adding a sixth field, and to a tool that knows the convention. Every unguarded field in a
+      class that uses <code>@GuardedBy</code> elsewhere is a question someone will ask.</p>
+    </div>
+  </section>
+
+  <!-- ================= simulator ================= -->
+  <section id="ch17-sim">
+    <h2><span class="num">▶</span>Interactive: label the field, find the omission</h2>
+    <p class="lede">A class starts with a stated synchronization policy. Choose how each field is documented and watch
+    which of them an automated <code>@GuardedBy</code> checker can actually prove — and where a thread-safety hole opens
+    up.</p>
+
+    <div class="sim">
+      <div class="sim-controls">
+        <button class="btn primary" id="ch17-simStep">Audit next field ▸</button>
+        <button class="btn" id="ch17-simPlay">Play</button>
+        <button class="btn" id="ch17-simReset">Reset</button>
+        <div class="sim-toggle">
+          <button id="ch17-modeNone" class="on">no annotations</button>
+          <button id="ch17-modeGuarded">@GuardedBy only</button>
+          <button id="ch17-modeClass">+ class annotation</button>
+          <button id="ch17-modeWrong">wrong lock named</button>
+        </div>
+      </div>
+
+      <div class="lane-label" style="text-align:left;padding:0 0 8px">field →</div>
+      <div class="tl">
+        <div class="tl-row">
+          <span class="tl-lbl">state</span>
+          <div class="tl-cells" id="ch17-laneFields"></div>
+        </div>
+        <div class="tl-row">
+          <span class="tl-lbl">audit</span>
+          <div class="tl-cells" id="ch17-laneAudit"></div>
+        </div>
+      </div>
+
+      <div class="sim-readout">
+        <div class="stat"><span>policy</span><b id="ch17-stMode">no annotations</b></div>
+        <div class="stat"><span>fields audited</span><b id="ch17-stCount">0 / 4</b></div>
+        <div class="stat"><span>provable</span><b id="ch17-stOk">0</b></div>
+        <div class="stat"><span>holes</span><b id="ch17-stHoles">0</b></div>
+        <div class="stat"><span>verdict</span><b id="ch17-stVerdict">—</b></div>
+      </div>
+      <div class="sim-msg" id="ch17-simMsg">Step through the four fields: <code>value</code>, <code>cache</code>, <code>owner</code> and <code>staticCount</code> — each needs a stated lock before anyone can check it.</div>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Policy</th><th>What the annotations say</th><th>Fields provable</th><th>Holes found</th></tr></thead>
+        <tbody>
+          <tr><td>no annotations</td><td>nothing at all — presume not thread-safe</td><td>0 of 4</td><td>4, none of them visible in review</td></tr>
+          <tr><td><code>@GuardedBy</code> only</td><td>each field names its lock, but the class makes no promise</td><td>4 of 4</td><td>1 — the field with no annotation is now conspicuous</td></tr>
+          <tr><td><code>@GuardedBy</code> + <code>@ThreadSafe</code></td><td>the promise and the strategy agree</td><td>4 of 4</td><td>0 — and the tool can fail the build on the next omission</td></tr>
+          <tr><td>wrong lock named</td><td><code>@GuardedBy("this")</code> on a field actually guarded by <code>lock</code></td><td>2 of 4</td><td>2 — the annotation is worse than none: it documents a false rule</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🎯</span>
+      <p>The fourth row is the one to remember. A wrong <code>@GuardedBy</code> is not a harmless typo — it tells the
+      next maintainer, and the next analysis run, that a field is protected by a lock that does not protect it. The
+      annotation has to be checked as carefully as the code it describes, which is precisely what the third row makes
+      possible: once the policy exists, <em>not</em> matching it becomes a detectable error.</p>
+    </div>
+  </section>
+
+  <!-- ================= patterns ================= -->
+  <section id="ch17-listings">
+    <h2><span class="num">§</span>Patterns worth stealing</h2>
+    <p class="lede">Two listings: the annotation set as declarations you can drop into a package, and a class whose
+    policy survives the change that usually breaks one.</p>
+
+    <h3><span class="num">1</span>The annotations themselves</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">The five declarations, with retention and target</span>
+        <button class="copy" data-copy="ch17-c1">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch17-c1">package net.jcip.annotations;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/*
+ * These are the declarations behind the annotations used throughout the
+ * book (the source is downloadable from the book's site). Two details
+ * matter in practice: RUNTIME retention, so analysis tools and reflection
+ * can see them at all, and TYPE-only targeting for the class-level three,
+ * so a @ThreadSafe on a method is a compile error rather than a silent
+ * misunderstanding.
+ */
+
+/** The class is immutable and therefore thread-safe. Implies @ThreadSafe. */
+@Documented
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Immutable { }
+
+/** The class can be used safely from multiple threads. */
+@Documented
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface ThreadSafe { }
+
+/** The class is not safe for concurrent use; callers must lock or confine. */
+@Documented
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface NotThreadSafe { }
+
+/**
+ * The field or method must be accessed only while holding `value`.
+ * Legal forms: "this", "fieldName", "ClassName.fieldName",
+ * "methodName()", "ClassName.class".
+ */
+@Documented
+@Target({ ElementType.FIELD, ElementType.METHOD })
+@Retention(RetentionPolicy.RUNTIME)
+public @interface GuardedBy {
+    String value();
+}</code></pre>
+    </div>
+    <p>
+      Retention is the detail that decides whether any of this is checkable. <code>SOURCE</code> retention would make
+      these pure comments; <code>RUNTIME</code> makes them visible to an analysis tool or a test that reflects over the
+      class, which is what turns a documented policy into a gate.
+    </p>
+
+    <h3><span class="num">2</span>A policy that survives the next commit</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">DocumentedPolicy: every field accounted for, including the new one</span>
+        <button class="copy" data-copy="ch17-c2">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch17-c2">/**
+ * The synchronization policy, stated once:
+ *   - all mutable instance state is guarded by `lock`
+ *   - `staticCount` is guarded by the class literal
+ *   - `owner` is final and immutable, so it needs no lock at all
+ * A field added later that is neither final nor annotated is the bug this
+ * class is shaped to make obvious.
+ */
+@ThreadSafe
+public class DocumentedPolicy {
+    private final Object lock = new Object();
+
+    @GuardedBy("lock") private int value;
+    @GuardedBy("lock") private int cache;
+    @GuardedBy("DocumentedPolicy.class") private static int staticCount;
+
+    private final String owner;          // final + immutable: no lock required
+
+    public DocumentedPolicy(String owner) { this.owner = owner; }
+
+    public int get() {
+        synchronized (lock) { return value; }
+    }
+
+    public void set(int v) {
+        synchronized (lock) {
+            value = v;
+            cache = v * 2;               // both fields, one lock, one critical section
+        }
+    }
+
+    public String owner() { return owner; }   // safe: immutable state only
+
+    public static void bump() {
+        synchronized (DocumentedPolicy.class) { staticCount++; }
+    }
+
+    /* The maintainer's checklist for this class:
+     *   1. new mutable field?  -> add @GuardedBy, and use that lock
+     *   2. new method touching `value` or `cache`?  -> take `lock`
+     *   3. tempted to lock `this`?  -> do not; callers hold that monitor
+     */
+}</code></pre>
+    </div>
+    <p>
+      This is the whole appendix in one class: a stated policy, one annotation per mutable field, a comment explaining
+      why the immutable field needs nothing, and a checklist for the change that usually breaks thread safety. Note the
+      deliberate use of a <em>private</em> lock rather than <code>@GuardedBy("this")</code> — exposing the monitor lets
+      clients hold it, which is exactly the escape route §4.2 warned about.
+    </p>
+  </section>
+
+  <!-- ================= vocabulary ================= -->
+  <section id="ch17-terms">
+    <h2><span class="num">§</span>Vocabulary introduced in Appendix A</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Term</th><th>Meaning as used here</th><th>Where it goes</th></tr></thead>
+        <tbody>
+          <tr><td><strong><code>@Immutable</code></strong></td><td>Class-level promise that the object's state cannot change after construction. Implies thread safety.</td><td>Ch. A.1</td></tr>
+          <tr><td><strong><code>@ThreadSafe</code></strong></td><td>Class-level promise that concurrent use is safe. The claim, not the technique.</td><td>Ch. A.1</td></tr>
+          <tr><td><strong><code>@NotThreadSafe</code></strong></td><td>Explicit statement that no guarantee exists. Optional, because unsafe is already the default.</td><td>Ch. A.1</td></tr>
+          <tr><td><strong><code>@GuardedBy</code></strong></td><td>Field- or method-level statement of which lock must be held when accessing it.</td><td>Ch. A.2</td></tr>
+          <tr><td><strong>Synchronization policy</strong></td><td>The mapping from state variables to the locks that guard them, plus the rules for using both.</td><td>Ch. A.2</td></tr>
+          <tr><td><strong>Lock expression</strong></td><td>The string argument to <code>@GuardedBy</code>; one of five documented shapes.</td><td>Ch. A.2</td></tr>
+          <tr><td><strong>Intrinsic lock ("this")</strong></td><td>The monitor of the containing object, named by <code>@GuardedBy("this")</code> and acquired by a <code>synchronized</code> instance method.</td><td>Ch. A.2</td></tr>
+          <tr><td><strong>Private lock object</strong></td><td>A lock held in a private field, named by <code>@GuardedBy("fieldName")</code>; preferred over <code>"this"</code> because clients cannot acquire it.</td><td>Ch. A.2</td></tr>
+          <tr><td><strong>Class literal lock</strong></td><td>The lock named by <code>@GuardedBy("ClassName.class")</code>, used for static state.</td><td>Ch. A.2</td></tr>
+          <tr><td><strong>Omission</strong></td><td>The failure mode annotations exist to prevent: a new field with no lock, or a new method that forgets one.</td><td>Ch. A.2</td></tr>
+          <tr><td><strong>Static analysis</strong></td><td>A tool that verifies code against the contract an annotation states — the third audience for these annotations.</td><td>Ch. A.1</td></tr>
+          <tr><td><strong>Retention (RUNTIME)</strong></td><td>Why the annotations survive into the class file: so tools and tests can read them.</td><td>Pattern 1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= cheat sheet ================= -->
+  <section id="ch17-cheatsheet">
+    <h2><span class="num">✓</span>Cheat sheet &amp; self-check</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>State I am documenting</th><th>Annotation</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>An immutable class</td><td><code>@Immutable</code></td><td>Final fields, no escape, no mutation — the strongest claim you can make</td></tr>
+          <tr><td>A thread-safe class with a lock</td><td><code>@ThreadSafe</code> + <code>@GuardedBy</code> per field</td><td>The class promise plus the per-field strategy</td></tr>
+          <tr><td>A class that needs external locking</td><td><code>@NotThreadSafe</code></td><td>Optional, but it stops "unannotated" from reading as "probably fine"</td></tr>
+          <tr><td>Instance state behind a private lock</td><td><code>@GuardedBy("lock")</code></td><td>Preferred to <code>"this"</code>; clients cannot hold your private lock</td></tr>
+          <tr><td>State behind an explicit <code>Lock</code></td><td><code>@GuardedBy("fieldName")</code></td><td>Same form whether the field is an object monitor or a <code>Lock</code></td></tr>
+          <tr><td>Static state</td><td><code>@GuardedBy("ClassName.class")</code></td><td>Pair it with <code>synchronized (ClassName.class)</code></td></tr>
+          <tr><td>A lock borrowed from another class</td><td><code>@GuardedBy("ClassName.fieldName")</code></td><td>Use only when the shared lock is genuinely part of the design</td></tr>
+          <tr><td>A lock exposed through an accessor</td><td><code>@GuardedBy("methodName()")</code></td><td>Lets callers and tools name the exact object</td></tr>
+          <tr><td>An immutable field inside a mutable class</td><td>nothing</td><td><code>final</code> plus immutability needs no lock — say so in a comment</td></tr>
+          <tr><td>A field you are not sure about</td><td>nothing — yet</td><td>An unguarded field is a question, not a decision; resolve it before merging</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">✅</div><h5>Do</h5>
+        <p>Annotate every class whose thread safety you have actually reasoned about. State the policy once in a class
+        comment, then <code>@GuardedBy</code> every mutable field. Use a private lock object. Prefer
+        <code>@Immutable</code> when you can earn it.</p></div>
+      <div class="tile"><div class="ico">🚫</div><h5>Avoid</h5>
+        <p><code>@ThreadSafe</code> copied onto a class nobody has verified. <code>@GuardedBy("this")</code> on state
+        that is also reachable through a client-held monitor. A named lock that does not match the code. Treating the
+        annotations as enforcement.</p></div>
+      <div class="tile"><div class="ico">🧠</div><h5>The one habit</h5>
+        <p>When you add a field, add its annotation in the same commit. The annotation is the only artifact that makes the
+        next omission somebody else's visible mistake instead of your invisible one.</p></div>
+    </div>
+
+    <div class="card">
+      <h4>Five questions the appendix leaves you with</h4>
+      <ol>
+        <li>Which of my classes have a thread-safety guarantee that is not written down anywhere?</li>
+        <li>For every mutable field, can I name the lock in one of the five legal forms?</li>
+        <li>Am I using <code>"this"</code> where a private lock object would be safer?</li>
+        <li>Would an analysis tool reading my annotations be checking real rules, or checking nothing?</li>
+        <li>If someone added a field tomorrow, what in this class would make them stop and think?</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= appendix footnotes ================= -->
+  <div class="footnotes">
+    <h4 style="margin:0 0 10px;font-size:.8rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)">Notes carried over from the appendix</h4>
+    <ol>
+      <li>These annotations were intended to be used in conjunction with a static analysis tool, or simply as a consistent documentation convention; the source code for them is available from the book's website.</li>
+      <li><code>@Immutable</code> implies <code>@ThreadSafe</code>: an immutable object needs no synchronization to be shared safely, which is why Chapter 3 treats immutability as the strongest form of thread safety.</li>
+      <li>An unannotated class should be presumed not to be thread-safe; <code>@NotThreadSafe</code> exists to make that explicit where the absence of an annotation might otherwise be read as an oversight.</li>
+      <li>The five legal forms of the <code>@GuardedBy</code> lock argument are <code>"this"</code>, <code>"fieldName"</code>, <code>"ClassName.fieldName"</code>, <code>"methodName()"</code> and <code>"ClassName.class"</code>.</li>
+      <li>For fields that do not refer to a <code>Lock</code>, the named lock is the intrinsic lock of the referenced object; for fields that refer to a <code>Lock</code>, it is that <code>Lock</code>.</li>
+      <li>The failure mode the appendix names: a thread-safe class that later gains state variables not adequately guarded, or methods that do not use locking properly to guard the existing state.</li>
+    </ol>
+    <p style="margin-top:14px">
+      Summary of <em>Java Concurrency in Practice</em>, Appendix A (Annotations for Concurrency), p. 216. The annotation
+      declarations in Pattern 1 follow the <code>net.jcip.annotations</code> package distributed with the book; the
+      example classes are the annotations applied as the appendix describes.
+    </p>
+  </div>
+
 <footer>
-  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–16 ·
+  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–16 &amp; Appendix A ·
   self-contained HTML (no external requests)
 </footer>
 </main>
@@ -21728,6 +22280,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initChapter14Sim();
   initChapter15Sim();
   initChapter16Sim();
+  initChapter17Sim();
 
 /* ---- Chapter 15: the CAS race and what the losers do ---- */
 function initChapter15Sim() {
@@ -22119,6 +22672,219 @@ function initChapter16Sim() {
     timer = setInterval(function () {
       if (!step()) { timer = null; btnPlay.textContent = 'Play'; }
     }, 500);
+  }
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    btnPlay.textContent = 'Play';
+  }
+
+  function reset(newMode) {
+    stop();
+    if (newMode) mode = newMode;
+    index = 0;
+    finished = false;
+    btnStep.disabled = false;
+    btnPlay.disabled = false;
+    btnPlay.textContent = 'Play';
+    Object.keys(modes).forEach(function (k) {
+      modes[k].classList.toggle('on', k === mode);
+    });
+    setup();
+    paint();
+    simMsg.textContent = MODES[mode].hint;
+  }
+
+  btnStep.addEventListener('click', function () { step(); });
+  btnPlay.addEventListener('click', function () {
+    if (timer) { stop(); return; }
+    if (finished) reset();
+    play();
+  });
+  btnReset.addEventListener('click', function () { reset(); });
+  Object.keys(modes).forEach(function (k) {
+    modes[k].addEventListener('click', function () { reset(k); });
+  });
+
+  setup();
+  reset('none');
+}
+
+/* ---- Appendix A: label the field, find the omission ---- */
+function initChapter17Sim() {
+  const laneFields = document.getElementById('ch17-laneFields');
+  const laneAudit = document.getElementById('ch17-laneAudit');
+  const btnStep = document.getElementById('ch17-simStep');
+  const btnPlay = document.getElementById('ch17-simPlay');
+  const btnReset = document.getElementById('ch17-simReset');
+  const modes = {
+    none: document.getElementById('ch17-modeNone'),
+    guarded: document.getElementById('ch17-modeGuarded'),
+    class: document.getElementById('ch17-modeClass'),
+    wrong: document.getElementById('ch17-modeWrong')
+  };
+  const stMode = document.getElementById('ch17-stMode');
+  const stCount = document.getElementById('ch17-stCount');
+  const stOk = document.getElementById('ch17-stOk');
+  const stHoles = document.getElementById('ch17-stHoles');
+  const stVerdict = document.getElementById('ch17-stVerdict');
+  const simMsg = document.getElementById('ch17-simMsg');
+
+  const FIELDS = ['value', 'cache', 'owner', 'staticCount'];
+
+  /*
+   * Per policy: what each field is annotated with, whether that claim is
+   * provable by a checker, and what the audit says about it.
+   *   ok    = documented and provable
+   *   hole  = no lock named, so nothing to check
+   *   wrong = annotated with a lock that does not actually guard it
+   *   free  = immutable, needs no lock at all
+   */
+  var MODES = {
+    none: {
+      label: 'no annotations',
+      hint: 'Step through the four fields: value, cache, owner and staticCount \u2014 each needs a stated lock before anyone can check it.',
+      verdict: 'unverifiable \u2014 presume not thread-safe',
+      cls: 'bad',
+      fields: [
+        { name: 'value', ann: '(none)', state: 'hole', note: 'A mutable int guarded by `lock` in the code, but nothing says so. A checker sees a field with no policy.' },
+        { name: 'cache', ann: '(none)', state: 'hole', note: 'Same problem, and worse: `cache` is changed in the same critical section as `value`, so the relationship between them is invisible too.' },
+        { name: 'owner', ann: '(none)', state: 'hole', note: 'Actually fine \u2014 `owner` is final and immutable \u2014 but a reader cannot tell that from the code without checking the type, and the tool cannot tell at all.' },
+        { name: 'staticCount', ann: '(none)', state: 'hole', note: 'Static state guarded by the class literal, undocumented. Four fields, zero checkable claims: the class is, by default, presumed not thread-safe.' }
+      ]
+    },
+    guarded: {
+      label: '@GuardedBy only',
+      hint: 'Now every mutable field names its lock. The checker can verify the guard usage \u2014 but the class still makes no promise about being thread-safe.',
+      verdict: 'strategy documented, promise missing',
+      cls: '',
+      fields: [
+        { name: 'value', ann: '@GuardedBy("lock")', state: 'ok', note: 'The checker can now look for `synchronized (lock)` around every access to `value` \u2014 and fail the build when one is missing.' },
+        { name: 'cache', ann: '@GuardedBy("lock")', state: 'ok', note: 'Same lock as `value`, which also documents the invariant: these two are always changed together, under one monitor.' },
+        { name: 'owner', ann: '(none \u2014 final)', state: 'free', note: 'Deliberately unannotated: a final reference to an immutable String needs no lock. The comment on the field is what makes that a decision rather than an omission.' },
+        { name: 'staticCount', ann: '@GuardedBy("DocumentedPolicy.class")', state: 'ok', note: 'The class-literal form, matching `synchronized (DocumentedPolicy.class)` in bump(). Static state now has a checkable guard too.' }
+      ]
+    },
+    class: {
+      label: '+ class annotation',
+      hint: 'The class-level @ThreadSafe states the promise and @GuardedBy states how it is kept. This is the combination a static analysis tool can enforce in CI.',
+      verdict: 'enforceable \u2713',
+      cls: 'good',
+      fields: [
+        { name: 'value', ann: '@GuardedBy("lock")', state: 'ok', note: 'Field-level rule, verifiable by a tool, plus a class-level claim that the rule is sufficient for thread safety.' },
+        { name: 'cache', ann: '@GuardedBy("lock")', state: 'ok', note: 'Both fields of the invariant point at the same lock, so a future edit that splits them across two locks is visible in the diff.' },
+        { name: 'owner', ann: '(none \u2014 final)', state: 'free', note: 'Needs nothing: final, immutable, published through the constructor. Chapter 16\u2019s freeze is the reason this field is safe to expose.' },
+        { name: 'staticCount', ann: '@GuardedBy("DocumentedPolicy.class")', state: 'ok', note: 'And the class annotation tells the next maintainer that all of this is a guarantee to be preserved, not a style choice.' }
+      ]
+    },
+    wrong: {
+      label: 'wrong lock named',
+      hint: 'The annotations disagree with the code: @GuardedBy("this") on state that is really guarded by `lock`. A checker now verifies the wrong invariant.',
+      verdict: 'false rule documented \u2014 worse than none',
+      cls: 'bad',
+      fields: [
+        { name: 'value', ann: '@GuardedBy("this")', state: 'wrong', note: 'The field is mutated under `synchronized (lock)`, so a `synchronized (this)` block satisfies the annotation while corrupting the state. The documentation is actively misleading.' },
+        { name: 'cache', ann: '@GuardedBy("this")', state: 'wrong', note: 'Same false rule, and it also exposes the monitor to clients: any caller holding `this` now looks compliant.' },
+        { name: 'owner', ann: '(none \u2014 final)', state: 'free', note: 'Still fine \u2014 the one field whose documentation is both accurate and unnecessary.' },
+        { name: 'staticCount', ann: '@GuardedBy("DocumentedPolicy.class")', state: 'ok', note: 'Correct as written, which is what makes the other two dangerous: the file looks consistent at a glance.' }
+      ]
+    }
+  };
+
+  let mode = 'none';
+  let index = 0;
+  let finished = false;
+  let timer = null;
+  let fieldCells = [], auditCells = [];
+
+  function build(el) {
+    el.innerHTML = '';
+    el.style.gridTemplateColumns = 'repeat(' + FIELDS.length + ',1fr)';
+    const out = [];
+    for (let i = 0; i < FIELDS.length; i++) {
+      const c = document.createElement('div');
+      c.className = 'tl-cell future';
+      c.textContent = '\u00b7';
+      el.appendChild(c);
+      out.push(c);
+    }
+    return out;
+  }
+
+  function setup() {
+    fieldCells = build(laneFields);
+    auditCells = build(laneAudit);
+  }
+
+  function paint() {
+    const M = MODES[mode];
+    for (let i = 0; i < FIELDS.length; i++) {
+      const f = M.fields[i];
+      const revealed = i < index;
+      if (revealed) {
+        fieldCells[i].className = 'tl-cell' + (i + 1 === index ? ' now' : '');
+        fieldCells[i].textContent = f.name;
+        if (f.state === 'ok') {
+          auditCells[i].className = 'tl-cell done' + (i + 1 === index ? ' now' : '');
+          auditCells[i].textContent = 'ok';
+        } else if (f.state === 'free') {
+          auditCells[i].className = 'tl-cell wait' + (i + 1 === index ? ' now' : '');
+          auditCells[i].textContent = 'n/a';
+        } else if (f.state === 'wrong') {
+          auditCells[i].className = 'tl-cell wait' + (i + 1 === index ? ' now' : '');
+          auditCells[i].textContent = 'false';
+        } else {
+          auditCells[i].className = 'tl-cell run' + (i + 1 === index ? ' now' : '');
+          auditCells[i].textContent = '??';
+        }
+      } else {
+        fieldCells[i].className = 'tl-cell future';
+        fieldCells[i].textContent = '\u00b7';
+        auditCells[i].className = 'tl-cell future';
+        auditCells[i].textContent = '\u00b7';
+      }
+    }
+    let ok = 0, holes = 0, free = 0;
+    for (let i = 0; i < index; i++) {
+      const s = M.fields[i].state;
+      if (s === 'ok') ok += 1;
+      else if (s === 'free') free += 1;
+      else holes += 1;
+    }
+    stMode.textContent = M.label;
+    stCount.textContent = index + ' / ' + FIELDS.length;
+    stOk.textContent = String(ok);
+    stOk.className = ok > 0 ? 'good' : '';
+    stHoles.textContent = String(holes);
+    stHoles.className = holes > 0 ? 'bad' : '';
+    stVerdict.textContent = index === FIELDS.length ? M.verdict : (index === 0 ? '\u2014' : 'auditing\u2026');
+    stVerdict.className = index === FIELDS.length ? M.cls : '';
+  }
+
+  function step() {
+    if (finished) return false;
+    const M = MODES[mode];
+    if (index < FIELDS.length) index += 1;
+    paint();
+    const f = M.fields[index - 1];
+    simMsg.textContent = f.name + ' \u2014 ' + f.ann + ': ' + f.note;
+    if (index >= FIELDS.length) {
+      finished = true;
+      stop();
+      btnStep.disabled = true;
+      btnPlay.disabled = true;
+      simMsg.textContent = M.verdict + '   |   ' + f.name + ' \u2014 ' + f.ann + ': ' + f.note;
+      return false;
+    }
+    return true;
+  }
+
+  function play() {
+    if (timer) return;
+    btnPlay.textContent = 'Pause';
+    timer = setInterval(function () {
+      if (!step()) { timer = null; btnPlay.textContent = 'Play'; }
+    }, 550);
   }
 
   function stop() {
