@@ -21,6 +21,7 @@ Everything lives in one page: **[`index.html`](index.html)**.
 | 9 — GUI Applications | `#ch9` | pp. 117–126: why GUI toolkits are single-threaded (deadlock from opposite-direction lock ordering), the single-thread rule and the EDT as a single-threaded Executor, `invokeLater`/`invokeAndWait` and `GuiExecutor`, short vs. long-running tasks and thread hopping, cancellation with `Future`, `BackgroundTask` on the `FutureTask.done` hook, `SwingWorker`, thread-safe vs. versioned vs. split data models, and confined subsystems beyond GUIs |
 | 10 — Avoiding Liveness Hazards | `#ch10` | pp. 127–136: the dining philosophers and the is-waiting-for graph, lock-ordering deadlocks, dynamic lock order in `transferMoney` and the `System.identityHashCode` fix with a tie-breaking lock, deadlocks between cooperating objects via alien methods, open calls and the atomicity trade-off, resource and thread-starvation deadlocks, the two-part audit, timed `tryLock`, thread-dump analysis, and starvation / poor responsiveness / livelock |
 | 11 — Performance and Scalability | `#ch11` | pp. 137–152: performance vs. scalability, evaluating tradeoffs and premature optimization, Amdahl's law and the serial fraction, serialization hidden in queues and result handling, context switching and memory barriers (lock elision, coarsening), narrow lock scope, lock splitting and striping, hot fields, alternatives to exclusive locks, monitoring CPU utilization, why object pooling loses, comparing map implementations, and reducing context-switch overhead with a logging thread |
+| 12 — Testing Concurrent Programs | `#ch12` | pp. 153–169: safety vs. liveness testing and the Heisenbug problem, throughput/responsiveness/scalability, unit-testing a semaphore-based `BoundedBuffer`, testing blocking with interruption and `LOCKUP_DETECT_TIMEOUT` (and why `Thread.getState` is unreliable), checksums instead of shadow lists, xor-shift and per-thread PRNGs, `PutTakeTest` with a `CyclicBarrier` starting gate, leak and thread-pool expansion tests, callback-based assertions, `Thread.yield` for more interleavings, barrier-based timing and the capacity/threads sweep, comparing blocking-queue implementations, completion-time histograms for fair vs. non-fair semaphores, and the five performance-testing pitfalls (GC, dynamic compilation, code-path sampling, unrealistic contention, dead-code elimination) plus code review, static analysis, AOP and JMX `ThreadInfo` |
 
 ## Notes on the chapter files
 
@@ -28,12 +29,12 @@ Everything lives in one page: **[`index.html`](index.html)**.
   chapter file works offline, from `file://`, or attached to an email. The scanned figure is embedded as a
   base64 `data:` URI.
 * **Original figures.** Figures 1.1 (p. 5), 2.1 (p. 21), 3.1 (p. 25), 5.1–5.4 (pp. 51, 66–68), 9.1–9.2 (pp. 119, 121),
-  10.1 (p. 128) and 11.1–11.3 (pp. 140–150) are taken from the book PDF in this repository and stored in
+  10.1 (p. 128), 11.1–11.3 (pp. 140–150) and 12.1–12.5 (pp. 162–165) are taken from the book PDF in this repository and stored in
   [`assets/`](assets) — 1.1, 2.1 and 3.1 cropped from page renders, 5.1–5.4 extracted from the PDF's own image layer,
-  9.1–9.2, 10.1 and 11.1–11.3 rendered from their page regions — and the HTML embeds their base64 forms. Other diagrams (e.g. the `NumberRange` race in Ch. 4, and the cover
+  9.1–9.2, 10.1, 11.1–11.3 and 12.1–12.5 rendered from their page regions — and the HTML embeds their base64 forms. Other diagrams (e.g. the `NumberRange` race in Ch. 4, and the cover
   art) use hand-drawn inline SVG instead, so the page stays self-contained either way.
-* **Code listings.** All one hundred and forty-five book listings (1.1–1.2, 2.1–2.8, 3.1–3.15, 4.1–4.16, 5.1–5.20,
-  6.1–6.17, 7.1–7.26, 8.1–8.18, 9.1–9.8, 10.1–10.7, 11.1–11.8) are reproduced verbatim; additional listings are the same ideas written out as
+* **Code listings.** All one hundred and fifty-eight book listings (1.1–1.2, 2.1–2.8, 3.1–3.15, 4.1–4.16, 5.1–5.20,
+  6.1–6.17, 7.1–7.26, 8.1–8.18, 9.1–9.8, 10.1–10.7, 11.1–11.8, 12.1–12.13) are reproduced verbatim; additional listings are the same ideas written out as
   runnable fragments. A dependency-free Java highlighter styles them and every block has a copy button.
 * **Interactive simulators.** Chapter 1: step through the Figure 1.1 interleaving, then re-run it with
   `synchronized`. Chapter 2: step through the two-`AtomicReference` cache breaking its invariant, then watch
@@ -55,7 +56,10 @@ Everything lives in one page: **[`index.html`](index.html)**.
   with two locks, four protocols — caller-controlled lock order (deadlock), a global order by identity hash, a forced
   hash collision that funnels both through a tie lock, and timed `tryLock` with back-off. Chapter 11: climb Amdahl's ladder from 1 to 16
   processors under four serial fractions — one exclusive lock (F = 10%), a narrowed lock (2%), lock striping (0.1%) and
-  the unreachable ideal — reading speedup and utilization off each processor count.
+  the unreachable ideal — reading speedup and utilization off each processor count. Chapter 12: run a test suite
+  against a latent race at four disclosure probabilities — 2%, 15%, 45% and 100% — and watch the confidence climb,
+  with the run count needed for 95% confidence beside it; at 2% per run a green suite after forty runs still leaves you
+  under 55% confident.
 
 ## Viewing
 
