@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Java Concurrency in Practice — study notes (Chapters 1–6)</title>
-<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–6: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks and Task Execution, with the book's figures, all code listings and interactive simulators.">
+<title>Java Concurrency in Practice — study notes (Chapters 1–7)</title>
+<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–7: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks, Task Execution, and Cancellation and Shutdown, with the book's figures, all code listings and interactive simulators.">
 <style>
   :root{
     --bg:#0d1117;
@@ -393,6 +393,22 @@
           <a href="#ch6-cheatsheet">Cheat sheet</a>
         </div>
       </div>
+      <div class="navmenu">
+        <button class="navbtn" aria-expanded="false" data-menu="menu-ch7">Chapter 7 · Cancellation &amp; Shutdown ▾</button>
+        <div class="menu" id="menu-ch7">
+          <div class="grp">Sections</div>
+          <a href="#ch7-tldr">TL;DR</a>
+          <a href="#ch7-cancellation">7.1 Task Cancellation</a>
+          <a href="#ch7-shutdown">7.2 Stopping a Thread-based Service</a>
+          <a href="#ch7-abnormal">7.3 Abnormal Thread Termination</a>
+          <a href="#ch7-jvm-shutdown">7.4 JVM Shutdown</a>
+          <div class="grp">Extras</div>
+          <a href="#ch7-sim">Simulator: stopping a blocked producer</a>
+          <a href="#ch7-listings">Patterns</a>
+          <a href="#ch7-terms">Glossary</a>
+          <a href="#ch7-cheatsheet">Cheat sheet</a>
+        </div>
+      </div>
       <a href="#top">↑ Top</a>
     </nav>
   </div>
@@ -440,11 +456,16 @@
         <span class="cc-title">Task Execution</span>
         <span class="cc-meta">pp. 71–84 · tasks, executors, pools, futures, completion services</span>
       </a>
+      <a class="chapter-card" href="#ch7">
+        <span class="cc-num">Chapter 7</span>
+        <span class="cc-title">Cancellation &amp; Shutdown</span>
+        <span class="cc-meta">pp. 85–104 · interruption, policies, service lifecycles, hooks</span>
+      </a>
     </div>
     <div class="meta">
-      <span class="pill">📚 <b>6</b> chapters · <b>78</b> book listings + extras</span>
+      <span class="pill">📚 <b>7</b> chapters · <b>104</b> book listings + extras</span>
       <span class="pill">🖼️ Figures 1.1–5.4 embedded</span>
-      <span class="pill">▶️ <b>5</b> interactive simulators</span>
+      <span class="pill">▶️ <b>6</b> interactive simulators</span>
       <span class="pill">🔌 Fully self-contained</span>
     </div>
     </div>
@@ -7201,8 +7222,1495 @@ void renderWithin(ExecutorService exec, List&lt;ImageInfo&gt; infos,
     </p>
   </div>
 
+  <div class="page-hero chapter-start" id="ch7">
+    <span class="kicker">Java Concurrency in Practice · Chapter 7</span>
+    <h1>Chapter 7 — <span>Cancellation and Shutdown</span></h1>
+    <p class="sub">
+      Starting tasks is easy; stopping them safely is not. Java has <strong>no preemptive way to stop a thread</strong> —
+      only <em>interruption</em>, a cooperative request that a task may honour at its next cancellation point. This
+      chapter is about the protocols that make that work: cancellation policies, interruption policies, shutting down
+      services that own threads, recovering from abnormal thread death, and the JVM's own orderly shutdown.
+    </p>
+    <div class="meta">
+      <span class="pill">📖 <b>pp. 85–104</b></span>
+      <span class="pill">🧩 <b>4</b> sections · <b>26</b> listings · <b>no figures</b></span>
+      <span class="pill">⏱️ ~26 min read</span>
+      <span class="pill">🏷️ Part II — Structuring Concurrent Applications</span>
+    </div>
+  </div>
+
+  <!-- ================= TL;DR ================= -->
+  <section id="ch7-tldr">
+    <h2>Chapter in one paragraph</h2>
+    <div class="card tldr">
+      <h4>TL;DR — the six things worth remembering</h4>
+      <ol>
+        <li><strong>Cancellation is cooperative, by design.</strong> Nothing may stop a task mid-flight and leave shared state inconsistent — so the task itself must agree to stop, and to clean up. Every cancellable task needs a <em>cancellation policy</em>: how to ask, when it checks, what it does.</li>
+        <li><strong>A boolean flag fails the moment anything blocks.</strong> <code>BrokenPrimeProducer</code> sets <code>cancelled</code> while blocked in <code>put</code> — the task never returns to check it, so it never dies.</li>
+        <li><strong>Interruption is the mechanism.</strong> <code>interrupt</code> sets a per-thread status; blocking methods clear it and throw <code>InterruptedException</code>; non-blocking code must poll it. It is "sticky" until someone clears it.</li>
+        <li><strong>Two responses are legitimate: propagate or restore.</strong> Swallowing is only allowed in code that owns the thread's interruption policy — that is, when you are about to terminate.</li>
+        <li><strong>Never interrupt a thread you don't own.</strong> Threads are owned by whoever created them, and a pool thread's interrupt means "cancel the current task" <em>and/or</em> "shut down the worker". Cancel tasks through their <code>Future</code>, not through the thread.</li>
+        <li><strong>Services need lifecycle methods.</strong> Graceful (<code>shutdown</code>) or abrupt (<code>shutdownNow</code>), poison pills for producer–consumer, tracking executors to recover interrupted work, uncaught exception handlers so a dead thread is never silent, and shutdown hooks — but not daemon threads and not finalizers — for the JVM itself.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= 7.1 ================= -->
+  <section id="ch7-cancellation">
+    <h2><span class="num">7.1</span>Task Cancellation</h2>
+    <p class="lede">An activity is <strong>cancellable</strong> if external code can move it to completion before its normal
+    completion. Doing that safely is the whole problem.</p>
+    <p>Why cancel at all?</p>
+    <ul>
+      <li><strong>User request</strong> — a "cancel" button in a GUI, or a management request through JMX.</li>
+      <li><strong>Time-limited activities</strong> — search the problem space for ten minutes, then stop and take the best answer found.</li>
+      <li><strong>Application events</strong> — one task finds a solution, so every other task still searching is cancelled.</li>
+      <li><strong>Errors</strong> — a web crawler hits a full disk, so the other crawler tasks stop and record their state for a restart.</li>
+      <li><strong>Shutdown</strong> — some decision has to be made about in-flight and queued work.</li>
+    </ul>
+    <p>
+      Java provides no safe mechanism for preemptively stopping a thread, and therefore none for stopping a task. The
+      deprecated <code>Thread.stop</code> and <code>suspend</code> were attempts at one and were quickly recognised as
+      seriously flawed. The cooperative approach is not a limitation to work around but a requirement: we rarely want a
+      task to stop <em>immediately</em>, since that could leave shared data in an inconsistent state. The task code is
+      usually better placed to assess what cleanup is needed than the code requesting cancellation.
+    </p>
+    <p>
+      The simplest cooperative mechanism is a <strong>"cancellation requested" flag</strong> that the task polls.
+      <code>PrimeGenerator</code> enumerates primes until cancelled: <code>cancel</code> sets the flag and the run loop
+      polls it before searching for the next prime. For this to work reliably the flag must be <code>volatile</code>, or
+      the loop may never see the write.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">VOLATILE FLAG</span>
+        <span class="name">Listing 7.1 · Using a volatile field to hold cancellation state</span>
+        <button class="copy" data-copy="ch7-l71">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l71">@ThreadSafe
+public class PrimeGenerator implements Runnable {
+     @GuardedBy("this")
+     private final List&lt;BigInteger&gt; primes
+             = new ArrayList&lt;BigInteger&gt;();
+     private  volatile boolean cancelled;
+     public void run() {
+         BigInteger p = BigInteger.ONE;
+         while (!cancelled ) {
+             p = p.nextProbablePrime();
+             synchronized (this) {
+                 primes.add(p);
+             }
+         }
+     }
+     public void cancel() { cancelled = true;  }
+     public synchronized List&lt;BigInteger&gt; get() {
+         return new ArrayList&lt;BigInteger&gt;(primes);
+     }
+}</code></pre>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">CALLER</span>
+        <span class="name">Listing 7.2 · Generating a second's worth of prime numbers</span>
+        <button class="copy" data-copy="ch7-l72">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l72">List&lt;BigInteger&gt; aSecondOfPrimes() throws InterruptedException {
+    PrimeGenerator generator = new PrimeGenerator();
+    new Thread(generator).start();
+    try {
+        SECONDS.sleep(1);
+    } finally {
+        generator.cancel();
+    }
+    return generator.get();
+}</code></pre>
+    </div>
+
+    <p>
+      The generator will not necessarily stop after exactly one second — there is a delay between the request and the
+      next check of the flag. <code>cancel</code> is called from a <code>finally</code> block so the generator is
+      cancelled even if <code>sleep</code> is interrupted; if it were not called, the prime-seeking thread would run
+      forever, burning CPU and preventing the JVM from exiting.
+    </p>
+    <p>
+      That is <code>PrimeGenerator</code>'s <strong>cancellation policy</strong> in full: clients request cancellation by
+      calling <code>cancel</code>; the task checks once per prime; it exits when it observes the request. A real
+      cancellation policy specifies the "how, when and what" — how other code requests cancellation, when the task checks,
+      and what it does in response. The book's analogy is stopping payment on a cheque: banks have rules about how to
+      submit the request, what responsiveness they guarantee, and what procedures follow once payment is actually stopped.
+    </p>
+
+    <h3><span class="num">7.1.1</span>Interruption</h3>
+    <p>
+      The flag eventually works — unless the task is blocked. <code>BrokenPrimeProducer</code> generates primes onto a
+      blocking queue. If the producer gets ahead of the consumer the queue fills and <code>put</code> blocks. Now the
+      consumer cancels: <code>cancel</code> sets <code>cancelled</code>, but the producer will never check it, because it
+      will never return from <code>put</code> — the consumer has stopped taking primes, so the queue never drains.
+      <strong>The task is stuck forever.</strong>
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">STUCK — DON'T DO THIS</span>
+        <span class="name">Listing 7.3 · Unreliable cancellation that can leave producers stuck in a blocking operation</span>
+        <button class="copy" data-copy="ch7-l73">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l73">class BrokenPrimeProducer extends Thread {
+    private final BlockingQueue&lt;BigInteger&gt; queue;
+    private volatile boolean cancelled = false;
+    BrokenPrimeProducer(BlockingQueue&lt;BigInteger&gt; queue) {
+        this.queue = queue;
+    }
+    public void run() {
+        try {
+            BigInteger p = BigInteger.ONE;
+            while (!cancelled)
+                queue.put(p = p.nextProbablePrime());
+        } catch (InterruptedException consumed) { }
+    }
+    public void cancel() { cancelled = true;  }
+}
+
+void consumePrimes() throws InterruptedException {
+    BlockingQueue&lt;BigInteger&gt; primes = ...;
+    BrokenPrimeProducer producer = new BrokenPrimeProducer(primes);
+    producer.start();
+    try {
+        while (needMorePrimes())
+            consume(primes.take());
+    } finally {
+        producer.cancel();
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      The library's answer is <strong>interruption</strong>: a cooperative mechanism by which one thread signals another
+      that it should, at its convenience and if it feels like it, stop what it is doing. Nothing in the API ties
+      interruption to cancellation semantics, but in practice using it for anything else is fragile and hard to sustain.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">API</span>
+        <span class="name">Listing 7.4 · Interruption methods in Thread</span>
+        <button class="copy" data-copy="ch7-l74">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l74">public class Thread {
+    public void interrupt() { ... }
+    public boolean isInterrupted() { ... }
+    public static boolean interrupted() { ... }
+    ...
+}</code></pre>
+    </div>
+
+    <p>
+      Each thread has a boolean <strong>interrupted status</strong>. <code>interrupt</code> sets it;
+      <code>isInterrupted</code> reads the target's status; the poorly named static <code>interrupted</code> clears the
+      <em>current</em> thread's status and returns its previous value — the only way to clear it. Blocking methods like
+      <code>Thread.sleep</code> and <code>Object.wait</code> detect interruption and return early: they respond by
+      <strong>clearing the status and throwing <code>InterruptedException</code></strong>. The JVM guarantees no
+      particular speed of detection, but in practice it is prompt.
+    </p>
+    <p>
+      If a thread is interrupted while <em>not</em> blocked, its status is simply set and it is up to the activity to poll
+      it. Interruption is therefore <strong>"sticky"</strong>: when it does not trigger an exception, the evidence persists
+      until someone deliberately clears it. Calling <code>interrupt</code> does not stop the target; it delivers the
+      message. A good way to think about it: interruption does not interrupt a running thread, it asks the thread to
+      interrupt <em>itself</em> at the next convenient opportunity — a <strong>cancellation point</strong>. Methods like
+      <code>wait</code>, <code>sleep</code> and <code>join</code> take such requests seriously. Well-behaved methods may
+      ignore them, provided they leave the request in place; poorly behaved methods swallow it.
+    </p>
+    <div class="callout warn">
+      <span class="mark">⚠️</span>
+      <p>Use the static <code>interrupted</code> with care, because it <em>clears</em> the status. If it returns
+      <code>true</code> and you are not deliberately swallowing the interruption, do something with it — throw
+      <code>InterruptedException</code> or restore the status by calling <code>interrupt</code> again.</p>
+    </div>
+    <p>
+      <code>BrokenPrimeProducer</code> is fixed, and simplified, by using interruption instead of a flag:
+      <code>cancel()</code> just calls <code>interrupt()</code>. There are two points per iteration where interruption is
+      detected — inside the blocking <code>put</code>, and at the explicit status check in the loop header. The explicit
+      test is not strictly necessary here, but it makes the producer more responsive: it checks <em>before</em> starting
+      the lengthy search for a prime rather than after.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">INTERRUPTION</span>
+        <span class="name">Listing 7.5 · Using interruption for cancellation</span>
+        <button class="copy" data-copy="ch7-l75">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l75">class PrimeProducer extends Thread {
+    private final BlockingQueue&lt;BigInteger&gt; queue;
+    PrimeProducer(BlockingQueue&lt;BigInteger&gt; queue) {
+        this.queue = queue;
+    }
+    public void run() {
+        try {
+            BigInteger p = BigInteger.ONE;
+            while (!Thread.currentThread().isInterrupted())
+                queue.put(p = p.nextProbablePrime());
+        } catch (InterruptedException consumed) {
+            /*  Allow thread to exit  */
+        }
+    }
+    public void cancel() { interrupt(); }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">7.1.2</span>Interruption policies</h3>
+    <p>
+      Just as tasks need a cancellation policy, threads need an <strong>interruption policy</strong>: how a thread
+      interprets an interruption request — what it does when one is detected, which units of work are atomic with respect
+      to interruption, and how quickly it reacts. The sensible default is thread- or service-level cancellation: exit as
+      quickly as practical, clean up if necessary, and possibly notify an owning entity. Pausing and resuming a service is
+      possible, but threads with nonstandard policies may have to be restricted to tasks written with that policy in mind.
+    </p>
+    <div class="callout">
+      <span class="mark">🔑</span>
+      <p><strong>Tasks do not own their threads — they borrow them.</strong> A single interrupt request may have more than
+      one intended recipient: interrupting a pool thread can mean both "cancel the current task" and "shut down this
+      worker". Code that does not own the thread should preserve the interrupted status so the owner can act on it, even
+      if the guest code acts on it too. As the book puts it: house-sitting for someone, you don't throw out their mail —
+      you save it and let them deal with it. This is exactly why most blocking library methods throw
+      <code>InterruptedException</code> instead of swallowing it.</p>
+    </div>
+    <p>
+      A task need not drop everything the instant it notices an interruption: it can postpone, remembering that it was
+      interrupted, finish the unit of work it was performing, and then throw or otherwise indicate interruption — which
+      protects data structures from corruption when an activity is interrupted mid-update. Either way, a task should
+      assume nothing about its executing thread's policy, and should restore the status after catching:
+    </p>
+    <p><code>Thread.currentThread().interrupt();</code></p>
+    <p>
+      Symmetrically, cancellation code should not assume anything about an arbitrary thread's policy.
+      <strong>A thread should be interrupted only by its owner</strong> — the class that created it — which then
+      encapsulates the policy behind a proper cancellation mechanism such as a shutdown method.
+    </p>
+
+    <h3><span class="num">7.1.3</span>Responding to interruption</h3>
+    <p>
+      When you call an interruptible blocking method there are two practical strategies, as §5.4 introduced:
+      <strong>propagate</strong> the exception (possibly after task-specific cleanup), making your method interruptible
+      too; or <strong>restore</strong> the status so code higher up the stack can act.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">PROPAGATE</span>
+        <span class="name">Listing 7.6 · Propagating InterruptedException to callers</span>
+        <button class="copy" data-copy="ch7-l76">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l76">BlockingQueue&lt;Task&gt; queue;
+...
+public Task getNextTask() throws InterruptedException {
+    return queue.take();
+}</code></pre>
+    </div>
+
+    <p>
+      If you cannot propagate — typically because your task is defined by a <code>Runnable</code> — restore the status by
+      calling <code>interrupt</code> again. What you should not do is swallow it. <code>PrimeProducer</code> does swallow
+      the interrupt, but with the specific knowledge that the thread is about to terminate and nothing higher on the stack
+      will need to know. Most code does not know which thread it will run in, so it must preserve the status.
+      <strong>Only code that implements a thread's interruption policy may swallow an interruption request.</strong>
+    </p>
+    <p>
+      Activities that do not support cancellation but still call interruptible methods must call them in a loop, retrying
+      on interruption, and should save the status <em>locally</em> and restore it <strong>just before returning</strong> —
+      not immediately on catching. Setting it too early risks an infinite loop, because most interruptible methods check
+      the status on entry and throw straight away.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">NON-CANCELABLE, STILL POLITE</span>
+        <span class="name">Listing 7.7 · Non-cancelable task that restores interruption before exit</span>
+        <button class="copy" data-copy="ch7-l77">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l77">public Task getNextTask(BlockingQueue&lt;Task&gt; queue) {
+    boolean interrupted = false;
+    try {
+        while (true) {
+            try {
+                return queue.take();
+            } catch (InterruptedException e) {
+                interrupted = true;
+                // fall through and retry
+            }
+        }
+    } finally {
+        if (interrupted)
+            Thread.currentThread().interrupt();
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Code that calls no interruptible blocking methods can still be responsive by polling
+      <code>Thread.currentThread().isInterrupted()</code> throughout. Choosing the polling frequency trades efficiency
+      against responsiveness; demanding high responsiveness rules out calling long-running methods that are not themselves
+      responsive. Cancellation can also involve state other than the status: the interrupting thread can leave
+      instructions elsewhere for the interrupted thread to read — with synchronization, naturally.
+    </p>
+
+    <h3><span class="num">7.1.4</span>Example: timed run</h3>
+    <p>
+      "Spend up to ten minutes looking for the answer" is a useful thing to be able to say. <code>aSecondOfPrimes</code>
+      (§7.1) interrupts the generator after a second, but leaves a gap: if the task throws an unchecked exception first,
+      nobody notices, because it ran in a separate thread that does not handle exceptions.
+    </p>
+    <p>
+      One appealing-but-wrong attempt runs the task in the <em>calling</em> thread and schedules another task to interrupt
+      it after the timeout. That fixes exception handling, and quietly violates the rule that you must know a thread's
+      interruption policy before interrupting it. <code>timedRun</code> can be called from any thread, so it cannot know;
+      and if the task finishes early, the scheduled interrupt fires <em>after</em> <code>timedRun</code> has returned and
+      the caller has moved on to who-knows-what.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">BORROWED THREAD — DON'T DO THIS</span>
+        <span class="name">Listing 7.8 · Scheduling an interrupt on a borrowed thread</span>
+        <button class="copy" data-copy="ch7-l78">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l78">private static final ScheduledExecutorService cancelExec = ...;
+public static void timedRun(Runnable r,
+                           long timeout, TimeUnit unit) {
+    final Thread taskThread = Thread.currentThread();
+    cancelExec.schedule(new Runnable() {
+        public void run() { taskThread.interrupt(); }
+    }, timeout, unit);
+    r.run();
+}</code></pre>
+    </div>
+
+    <p>
+      Worse, if the task is not responsive to interruption, <code>timedRun</code> does not return until the task finishes
+      — which may be long after the timeout, or never.
+    </p>
+    <p>
+      The next attempt runs the task in a dedicated thread with its own execution policy, and does a <strong>timed
+      <code>join</code></strong>, so <code>timedRun</code> returns even if the task ignores the interrupt. It captures a
+      thrown exception in a <code>volatile</code> field — shared between threads, so the null check and the write must be
+      safely published — and rethrows it in the caller's thread. It still inherits <code>join</code>'s deficiency: you
+      cannot tell whether control returned because the thread exited or because the join timed out.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">DEDICATED THREAD</span>
+        <span class="name">Listing 7.9 · Interrupting a task in a dedicated thread</span>
+        <button class="copy" data-copy="ch7-l79">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l79">public static void timedRun(final Runnable r,
+                            long timeout, TimeUnit unit)
+                            throws InterruptedException {
+    class RethrowableTask implements Runnable {
+        private volatile Throwable t;
+        public void run() {
+            try { r.run(); }
+            catch (Throwable t) { this.t = t; }
+        }
+        void rethrow() {
+            if (t != null)
+                throw launderThrowable(t);
+        }
+    }
+    RethrowableTask task = new RethrowableTask();
+    final Thread taskThread = new Thread(task);
+    taskThread.start();
+    cancelExec.schedule(new Runnable() {
+        public void run() { taskThread.interrupt();  }
+    }, timeout, unit);
+    taskThread.join(unit.toMillis(timeout));
+    task.rethrow();
+}</code></pre>
+    </div>
+
+    <h3><span class="num">7.1.5</span>Cancellation via Future</h3>
+    <p>
+      Better to use the library than roll your own: <code>Future</code> already manages task lifecycle, deals with
+      exceptions and facilitates cancellation. <code>Future.cancel(mayInterruptIfRunning)</code> returns whether the
+      cancellation attempt succeeded — which tells you only that the interrupt was <em>delivered</em>, not that the task
+      detected and acted on it. When the flag is <code>true</code> and the task is running, its thread is interrupted;
+      passing <code>false</code> means "don't run this task if it hasn't started yet", which is the right choice for tasks
+      that are not designed for interruption.
+    </p>
+    <p>
+      When <em>is</em> it safe to pass <code>true</code>? Threads created by the standard <code>Executor</code>
+      implementations implement an interruption policy that lets tasks be cancelled through interruption, so cancelling a
+      task through its <code>Future</code> is fine. Interrupting a pool thread <em>directly</em> is not, because you don't
+      know which task is running when the request lands. That is one more reason to write tasks that treat interruption as
+      cancellation: it is what makes them cancellable through their futures.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">FUTURE</span>
+        <span class="name">Listing 7.10 · Cancelling a task using Future</span>
+        <button class="copy" data-copy="ch7-l710">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l710">public static void timedRun(Runnable r,
+                            long timeout, TimeUnit unit)
+                            throws InterruptedException {
+    Future&lt;?&gt; task = taskExec.submit(r);
+    try {
+        task.get(timeout, unit);
+    } catch (TimeoutException e) {
+        // task will be cancelled below
+    } catch (ExecutionException e) {
+        // exception thrown in task; rethrow
+        throw launderThrowable(e.getCause());
+    } finally {
+        // Harmless if task already completed
+        task.cancel(true);  // interrupt if running
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Whenever <code>Future.get</code> throws <code>InterruptedException</code> or <code>TimeoutException</code> and the
+      result is no longer needed, cancel the task. Cancelling unconditionally in a <code>finally</code> block is a tidy
+      idiom: cancelling a completed task has no effect.
+    </p>
+
+    <h3><span class="num">7.1.6</span>Dealing with non-interruptible blocking</h3>
+    <p>
+      Not all blocking is responsive. A thread blocked in synchronous socket I/O, or waiting to acquire an intrinsic lock,
+      does not respond to interruption beyond having its status set. You can sometimes unblock it by other means — but that
+      requires knowing <em>why</em> it is blocked.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Blocked in…</th><th>Interruption does…</th><th>What actually unblocks it</th></tr></thead>
+        <tbody>
+          <tr><td><code>java.io</code> socket read/write</td><td>Nothing but setting the status</td><td>Closing the underlying socket — the blocked threads then throw <code>SocketException</code></td></tr>
+          <tr><td><code>InterruptibleChannel</code> (<code>java.nio</code>)</td><td>Throws <code>ClosedByInterruptException</code> and closes the channel — for every thread blocked on it</td><td>The same; or closing the channel, which throws <code>AsynchronousCloseException</code></td></tr>
+          <tr><td><code>Selector.select</code></td><td>Nothing directly</td><td><code>wakeup()</code> makes it return; use it instead of interrupting</td></tr>
+          <tr><td>Intrinsic lock acquisition</td><td>Nothing</td><td>Nothing — wait for the lock</td></tr>
+          <tr><td><code>Lock.lockInterruptibly()</code></td><td>Throws <code>InterruptedException</code></td><td>Interruption works (Chapter 13)</td></tr>
+          <tr><td><code>BlockingQueue.put/take</code>, <code>sleep</code>, <code>wait</code>, <code>join</code></td><td>Throws <code>InterruptedException</code></td><td>Interruption works</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      <code>ReaderThread</code> encapsulates nonstandard cancellation: it manages a socket connection, reading
+      synchronously and passing data to <code>processBuffer</code>, and it <strong>overrides <code>interrupt</code></strong>
+      to close the socket as well as deliver a normal interrupt. Interrupting a <code>ReaderThread</code> therefore stops
+      it whether it is blocked in <code>read</code> or in an interruptible method.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">OVERRIDE interrupt()</span>
+        <span class="name">Listing 7.11 · Encapsulating nonstandard cancellation in a thread by overriding interrupt</span>
+        <button class="copy" data-copy="ch7-l711">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l711">public class ReaderThread extends Thread {
+    private final Socket socket;
+    private final InputStream in;
+    public ReaderThread(Socket socket) throws IOException {
+        this.socket = socket;
+        this.in = socket.getInputStream();
+    }
+    public void  interrupt()  {
+        try {
+            socket.close();
+        }
+        catch (IOException ignored) { }
+        finally {
+            super.interrupt();
+        }
+    }
+    public void run() {
+        try {
+            byte[] buf = new byte[BUFSZ];
+            while (true) {
+                int count = in.read(buf);
+                if (count &lt; 0)
+                    break;
+                else if (count &gt; 0)
+                    processBuffer(buf, count);
+            }
+        } catch (IOException e) { /*  Allow thread to exit  */  }
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">7.1.7</span>Encapsulating nonstandard cancellation with newTaskFor</h3>
+    <p>
+      The same trick can be applied to <em>tasks</em> rather than threads, using the <code>newTaskFor</code> hook added to
+      <code>ThreadPoolExecutor</code> in Java 6. When a <code>Callable</code> is submitted, <code>submit</code> returns a
+      <code>Future</code>; <code>newTaskFor</code> is the factory that creates it, and it returns a
+      <code>RunnableFuture</code> — both <code>Future</code> and <code>Runnable</code>, implemented by
+      <code>FutureTask</code>. Overriding it lets you substitute your own <code>Future</code>, and overriding
+      <code>Future.cancel</code> lets cancellation do extra work: log it, count it, or stop something that is not
+      responsive to interruption.
+    </p>
+    <p>
+      <code>CancellableTask</code> extends <code>Callable</code> with a <code>cancel</code> method and a
+      <code>newTask</code> factory; <code>CancellingExecutor</code> overrides <code>newTaskFor</code> so that a
+      <code>CancellableTask</code> supplies its own <code>Future</code>. <code>SocketUsingTask</code> then defines
+      <code>cancel</code> to close the socket <em>and</em> call <code>super.cancel</code>, so cancelling through the
+      <code>Future</code> both interrupts the thread and closes the socket — making a task that does blocking socket I/O
+      cancellable through its future like any other.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">OVERRIDE cancel()</span>
+        <span class="name">Listing 7.12 · Encapsulating nonstandard cancellation in a task with newTaskFor</span>
+        <button class="copy" data-copy="ch7-l712">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l712">public interface CancellableTask&lt;T&gt; extends Callable&lt;T&gt; {
+    void cancel();
+    RunnableFuture&lt;T&gt; newTask();
+}
+
+@ThreadSafe
+public class CancellingExecutor extends ThreadPoolExecutor {
+    ...
+    protected&lt;T&gt; RunnableFuture&lt;T&gt; newTaskFor(Callable&lt;T&gt; callable) {
+        if (callable instanceof CancellableTask)
+            return ((CancellableTask&lt;T&gt;) callable).newTask();
+        else
+            return super.newTaskFor(callable);
+    }
+}
+
+public abstract class SocketUsingTask&lt;T&gt;
+        implements CancellableTask&lt;T&gt; {
+    @GuardedBy("this") private Socket socket;
+    protected synchronized void setSocket(Socket s) { socket = s; }
+    public synchronized void cancel() {
+        try {
+            if (socket != null)
+                socket.close();
+        } catch (IOException ignored) { }
+    }
+    public RunnableFuture&lt;T&gt; newTask() {
+        return new FutureTask&lt;T&gt;(this) {
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                try {
+                    SocketUsingTask.this.cancel();
+                } finally {
+                    return super.cancel(mayInterruptIfRunning);
+                }
+            }
+        };
+    }
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ================= 7.2 ================= -->
+  <section id="ch7-shutdown">
+    <h2><span class="num">7.2</span>Stopping a Thread-based Service</h2>
+    <p class="lede">Services own threads, and their lifetime outlives the method that created them. So they must expose a
+    way to stop — and stopping one part means stopping the parts that depend on it.</p>
+    <p>
+      Encapsulation says you should not manipulate a thread — interrupt it, change its priority — unless you own it. The
+      thread API has no formal notion of ownership, but it is a useful one: the owner is usually the class that created
+      the thread. A thread pool owns its workers; if those workers need interrupting, the pool should do it.
+      <strong>Ownership is not transitive</strong>: an application may own a service which owns worker threads, but the
+      application does not own the workers and should not try to stop them directly. Instead the service provides
+      lifecycle methods — <code>shutdown</code> and <code>shutdownNow</code>, or equivalents for your own service.
+    </p>
+
+    <h3><span class="num">7.2.1</span>Example: a logging service</h3>
+    <p>
+      Logging can be as simple as inline <code>println</code> calls — stream classes are thread-safe, so no explicit
+      synchronization is needed (though multi-line messages may need client-side locking to avoid interleaving, and
+      inline logging costs performance at high volume, §11.6). The alternative is a service: <code>log</code> queues the
+      message and a background thread writes it.
+    </p>
+    <p>
+      <code>LogWriter</code> is a multiple-producer, single-consumer design. Any activity calling <code>log</code> is a
+      producer; the logger thread is the consumer. If the logger falls behind, the bounded queue blocks producers until it
+      catches up.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">NO SHUTDOWN</span>
+        <span class="name">Listing 7.13 · Producer–consumer logging service with no shutdown support</span>
+        <button class="copy" data-copy="ch7-l713">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l713">public class LogWriter {
+    private final BlockingQueue&lt;String&gt; queue;
+    private final LoggerThread logger;
+    public LogWriter(Writer writer) {
+        this.queue = new LinkedBlockingQueue&lt;String&gt;(CAPACITY);
+        this.logger = new LoggerThread(writer);
+    }
+    public void start() { logger.start(); }
+    public void log(String msg) throws InterruptedException {
+        queue.put(msg);
+    }
+    private class LoggerThread extends Thread {
+        private final PrintWriter writer;
+        ...
+        public void run() {
+            try {
+                while (true)
+                   writer.println(queue.take());
+            } catch(InterruptedException ignored) {
+            } finally {
+                writer.close();
+            }
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Stopping the logger thread is easy — it sits in <code>take</code>, which is interruptible. But simply making it exit
+      is not a satisfying shutdown: it discards messages already queued, and — more importantly — threads blocked in
+      <code>log</code> because the queue is full will never be unblocked. <strong>Cancelling a producer–consumer activity
+      requires cancelling both the producers and the consumers</strong>, and the producers here are not dedicated threads,
+      so they cannot simply be interrupted.
+    </p>
+    <p>
+      Adding a "shutdown requested" flag that makes the logger drain the queue looks better, but it is a
+      <strong>check-then-act race</strong>: a producer can observe "not yet shut down", be preempted, and then
+      <code>put</code> after shutdown has begun — and block forever in <code>log</code>. Waiting a few seconds before
+      declaring the queue drained only changes the likelihood of failure, not its nature.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">RACY</span>
+        <span class="name">Listing 7.14 · Unreliable way to add shutdown support to the logging service</span>
+        <button class="copy" data-copy="ch7-l714">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l714">public void log(String msg) throws InterruptedException {
+    if (!shutdownRequested)
+        queue.put(msg);
+    else
+        throw new IllegalStateException("logger is shut down");
+}</code></pre>
+    </div>
+
+    <p>
+      The reliable fix is to make submitting a message atomic with the shutdown check — but without holding a lock across
+      <code>put</code>, which can block. <code>LogService</code> does it with a guarded <code>reservations</code> counter:
+      <code>log</code> atomically checks <code>isShutdown</code> and increments the reservation under the lock, <em>then</em>
+      releases the lock and does the blocking <code>put</code>. The logger thread consumes until it sees shutdown
+      requested <em>and</em> no outstanding reservations — at which point every message has either been written or is
+      safely the producer's problem.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">RELIABLE</span>
+        <span class="name">Listing 7.15 · Adding reliable cancellation to LogWriter</span>
+        <button class="copy" data-copy="ch7-l715">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l715">public class LogService {
+    private final BlockingQueue&lt;String&gt; queue;
+    private final LoggerThread loggerThread;
+    private final PrintWriter writer;
+    @GuardedBy("this") private boolean isShutdown;
+    @GuardedBy("this") private int reservations;
+    public void start() { loggerThread.start(); }
+    public void stop() {
+        synchronized (this) { isShutdown = true; }
+        loggerThread.interrupt();
+    }
+    public void log(String msg) throws InterruptedException {
+        synchronized (this) {
+            if (isShutdown)
+                throw new IllegalStateException(...);
+            ++reservations;
+        }
+        queue.put(msg);
+    }
+    private class LoggerThread extends Thread {
+        public void run() {
+            try {
+                while (true) {
+                    try {
+                        synchronized (this) {
+                            if (isShutdown &amp;&amp; reservations == 0)
+                                break;
+                        }
+                        String msg = queue.take();
+                        synchronized (this) { --reservations; }
+                        writer.println(msg);
+                    } catch (InterruptedException e) { /*  retry  */ }
+                }
+            } finally {
+                writer.close();
+            }
+        }
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">7.2.2</span>ExecutorService shutdown</h3>
+    <p>
+      §6.2.4 gave the two modes. In an abrupt shutdown <code>shutdownNow</code> attempts to cancel running tasks and returns
+      the queued ones that never started. The two options trade <strong>safety against responsiveness</strong>: abrupt is
+      faster but riskier — tasks can be interrupted mid-execution — while graceful is slower but safer, since the service
+      does not terminate until the queue is drained. Other thread-owning services should offer the same choice.
+    </p>
+    <p>
+      Simple programs can start and stop a global <code>ExecutorService</code> from <code>main</code>. More sophisticated
+      ones encapsulate it behind a service with its own lifecycle — <code>LogService</code> again, this time delegating to
+      an <code>ExecutorService</code> instead of managing its own thread. That extends the ownership chain from application
+      to service to thread, and each link manages the lifecycle of what it owns.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">DELEGATED</span>
+        <span class="name">Listing 7.16 · Logging service that uses an ExecutorService</span>
+        <button class="copy" data-copy="ch7-l716">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l716">public class LogService {
+    private final ExecutorService exec = newSingleThreadExecutor();
+    ...
+    public void start() { }
+    public void stop() throws InterruptedException {
+        try {
+            exec.shutdown();
+            exec.awaitTermination(TIMEOUT, UNIT);
+        } finally {
+            writer.close();
+        }
+    }
+    public void log(String msg) {
+        try {
+            exec.execute(new WriteTask(msg));
+        } catch (RejectedExecutionException ignored) { }
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">7.2.3</span>Poison pills</h3>
+    <p>
+      Another way to shut down a producer–consumer service is a <strong>poison pill</strong>: a recognisable object placed
+      on the queue that means "when you get this, stop". With a FIFO queue, a pill guarantees the consumer finishes what is
+      already queued, since earlier items come out first — producers must not submit work after placing the pill.
+      <code>IndexingService</code> uses one to shut down a single-producer, single-consumer version of the §5.3.1 desktop
+      search. Note that the producer places the pill in a <code>finally</code> block, retrying if the <code>put</code>
+      itself is interrupted: on a bounded queue the pill must actually get in.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">POISON PILL</span>
+        <span class="name">Listing 7.17 · Shutdown with poison pill</span>
+        <button class="copy" data-copy="ch7-l717">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l717">public class IndexingService {
+    private static final File POISON = new File("");
+    private final IndexerThread consumer = new IndexerThread();
+    private final CrawlerThread producer = new CrawlerThread();
+    private final BlockingQueue&lt;File&gt; queue;
+    private final FileFilter fileFilter;
+    private final File root;
+    class CrawlerThread extends Thread { /* Listing 7.18 */ }
+    class IndexerThread extends Thread { /* Listing 7.19 */ }
+    public void start() {
+        producer.start();
+        consumer.start();
+    }
+    public void stop() { producer.interrupt(); }
+    public void awaitTermination() throws InterruptedException {
+        consumer.join();
+    }
+}</code></pre>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PRODUCER</span>
+        <span class="name">Listing 7.18 · Producer thread for IndexingService</span>
+        <button class="copy" data-copy="ch7-l718">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l718">public class CrawlerThread extends Thread {
+    public void run() {
+        try {
+            crawl(root);
+        } catch (InterruptedException e) { /*  fall through  */  }
+        finally {
+            while (true) {
+                try {
+                    queue.put(POISON);
+                    break;
+                } catch (InterruptedException e1) { /*  retry  */ }
+            }
+        }
+    }
+
+    private void crawl(File root) throws InterruptedException {
+        ...
+    }
+}</code></pre>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">CONSUMER</span>
+        <span class="name">Listing 7.19 · Consumer thread for IndexingService</span>
+        <button class="copy" data-copy="ch7-l719">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l719">public class IndexerThread extends Thread {
+    public void run() {
+        try {
+            while (true) {
+                File file = queue.take();
+                if (file == POISON)
+                   break;
+                else
+                   indexFile(file);
+            }
+        } catch (InterruptedException consumed) { }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Poison pills work only when the number of producers and consumers is <em>known</em>: with several producers each
+      places a pill and the consumer stops after <code>N<sub>producers</sub></code> pills; with several consumers each
+      producer must place <code>N<sub>consumers</sub></code> pills, which gets unwieldy. And they work reliably only with
+      <strong>unbounded</strong> queues.
+    </p>
+
+    <h3><span class="num">7.2.4</span>Example: a one-shot execution service</h3>
+    <p>
+      If a method processes a batch and does not return until the batch is finished, use a <em>private</em> executor whose
+      lifetime is bounded by the method call — and let <code>invokeAll</code> or <code>invokeAny</code> do the
+      waiting. <code>checkMail</code> creates one, submits a task per host, and in a <code>finally</code> block shuts the
+      executor down and awaits termination. (<code>AtomicBoolean</code> rather than a <code>volatile boolean</code>
+      because a local variable captured by the inner <code>Runnable</code> must be final, which would preclude assigning
+      to it.)
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">ONE-SHOT</span>
+        <span class="name">Listing 7.20 · Using a private executor whose lifetime is bounded by a method call</span>
+        <button class="copy" data-copy="ch7-l720">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l720">boolean checkMail(Set&lt;String&gt; hosts, long timeout, TimeUnit unit)
+        throws InterruptedException {
+    ExecutorService exec = Executors.newCachedThreadPool();
+    final AtomicBoolean hasNewMail = new AtomicBoolean(false);
+    try {
+        for (final String host : hosts)
+            exec.execute(new Runnable() {
+                public void run() {
+                   if (checkMail(host))
+                       hasNewMail.set(true);
+                }
+            });
+    } finally {
+        exec.shutdown();
+        exec.awaitTermination(timeout, unit);
+    }
+    return hasNewMail.get();
+}</code></pre>
+    </div>
+
+    <h3><span class="num">7.2.5</span>Limitations of shutdownNow</h3>
+    <p>
+      <code>shutdownNow</code> returns the tasks that were submitted but never started, so they can be logged or saved for
+      later. But <strong>there is no general way to find out which tasks started and did not finish</strong> — so without
+      the tasks checkpointing themselves, you cannot know the state of work that was in progress at shutdown time.
+      (<code>shutdownNow</code>'s returned <code>Runnable</code>s may also be wrapper instances, not the objects you
+      submitted.)
+    </p>
+    <p>
+      <code>TrackingExecutor</code> closes that gap: it encapsulates an <code>ExecutorService</code> and instruments
+      <code>execute</code> to note, in a <code>finally</code> block, whether a task was still running when shutdown was
+      requested and the thread's interrupted status was set — and if so, records it. After termination,
+      <code>getCancelledTasks</code> returns them. For this to work, tasks must preserve the interrupted status when they
+      return, which well-behaved tasks do anyway.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">TRACKING</span>
+        <span class="name">Listing 7.21 · ExecutorService that keeps track of cancelled tasks after shutdown</span>
+        <button class="copy" data-copy="ch7-l721">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l721">public class TrackingExecutor extends AbstractExecutorService {
+    private final ExecutorService exec;
+    private final Set&lt;Runnable&gt; tasksCancelledAtShutdown =
+        Collections.synchronizedSet(new HashSet&lt;Runnable&gt;());
+    ...
+    public List&lt;Runnable&gt; getCancelledTasks() {
+        if (!exec.isTerminated())
+            throw new IllegalStateException(...);
+        return new ArrayList&lt;Runnable&gt;(tasksCancelledAtShutdown);
+    }
+
+    public void execute(final Runnable runnable) {
+        exec.execute(new Runnable() {
+            public void run() {
+                try {
+                    runnable.run();
+                } finally {
+                    if (isShutdown()
+                        &amp;&amp; Thread.currentThread().isInterrupted())
+                        tasksCancelledAtShutdown.add(runnable);
+                }
+            }
+        });
+    }
+
+    // delegate other ExecutorService methods to exec
+}</code></pre>
+    </div>
+
+    <p>
+      <code>WebCrawler</code> puts it to work. Crawling is unbounded work, so a crawler that must stop should remember
+      where it got to: on <code>stop</code> it saves both the tasks that never started and those that were cancelled, and
+      on <code>start</code> it resubmits them.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">RESUMABLE</span>
+        <span class="name">Listing 7.22 · Using TrackingExecutor to save unfinished tasks for later execution</span>
+        <button class="copy" data-copy="ch7-l722">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l722">public abstract class WebCrawler {
+    private volatile TrackingExecutor exec;
+    @GuardedBy("this")
+    private final Set&lt;URL&gt; urlsToCrawl = new HashSet&lt;URL&gt;();
+    ...
+    public synchronized void start() {
+        exec = new TrackingExecutor(
+                Executors.newCachedThreadPool());
+        for (URL url : urlsToCrawl) submitCrawlTask(url);
+        urlsToCrawl.clear();
+    }
+
+    public synchronized void stop() throws InterruptedException {
+        try {
+            saveUncrawled(exec.shutdownNow());
+            if (exec.awaitTermination(TIMEOUT, UNIT))
+                saveUncrawled(exec.getCancelledTasks());
+        } finally {
+            exec = null;
+        }
+    }
+
+    protected abstract List&lt;URL&gt; processPage(URL url);
+
+    private void saveUncrawled(List&lt;Runnable&gt; uncrawled) {
+        for (Runnable task : uncrawled)
+            urlsToCrawl.add(((CrawlTask) task).getPage());
+    }
+    private void submitCrawlTask(URL u) {
+        exec.execute(new CrawlTask(u));
+    }
+    private class CrawlTask implements Runnable {
+        private final URL url;
+        ...
+        public void run() {
+            for (URL link : processPage(url)) {
+                if (Thread.currentThread().isInterrupted())
+                    return;
+                submitCrawlTask(link);
+            }
+        }
+        public URL getPage() { return url; }
+    }
+}</code></pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="mark">⚠️</span>
+      <p><code>TrackingExecutor</code> has an unavoidable race that can produce <strong>false positives</strong>: a task
+      recorded as cancelled that actually completed, because the pool can be shut down between the task's last instruction
+      and the pool recording it as done. Harmless if tasks are idempotent — as crawling is — but otherwise the consumer of
+      <code>getCancelledTasks</code> must be prepared to cope.</p>
+    </div>
+  </section>
+
+  <!-- ================= 7.3 ================= -->
+  <section id="ch7-abnormal">
+    <h2><span class="num">7.3</span>Handling Abnormal Thread Termination</h2>
+    <p class="lede">In a single-threaded console program, a crash is obvious. In a concurrent application a dead thread
+    may look exactly like a quiet one.</p>
+    <p>
+      The stack trace may be printed to a console nobody is watching, and the application may carry on as if nothing
+      happened. The leading cause of premature thread death is <code>RuntimeException</code>: because it indicates a
+      programming error, it is usually not caught, so it propagates and the thread terminates.
+    </p>
+    <p>
+      The consequences depend entirely on the thread's role. Losing one thread from a 50-thread pool is a performance
+      footnote; losing a GUI event dispatch thread freezes the interface; and <code>OutOfTime</code> (§6.2.5) showed a
+      service permanently out of commission because its single timer thread died. Task-processing threads — pool workers,
+      the Swing event thread — spend their whole lives calling unknown code through an abstraction like
+      <code>Runnable</code>, so they should be <em>skeptical</em> of it.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">DEFENSIVE WORKER</span>
+        <span class="name">Listing 7.23 · Typical thread-pool worker thread structure</span>
+        <button class="copy" data-copy="ch7-l723">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l723">public void run() {
+    Throwable thrown = null;
+    try {
+        while (!isInterrupted())
+            runTask(getTaskFromWorkQueue());
+    } catch (Throwable e) {
+        thrown = e;
+    } finally {
+        threadExited(this, thrown);
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      This lets the thread die, but not before telling the framework, which can then replace it — or decide not to,
+      because the pool is shutting down or demand has fallen. <code>ThreadPoolExecutor</code> and Swing both use this
+      technique so one badly behaved task cannot stop subsequent ones from running. It is one of the few places where
+      catching <code>RuntimeException</code> around untrusted code is the right call.
+    </p>
+
+    <h3><span class="num">7.3.1</span>Uncaught exception handlers</h3>
+    <p>
+      The reactive complement is the <code>UncaughtExceptionHandler</code> facility, which lets you detect a thread that
+      has died from an uncaught exception. Before Java 5.0 the only way was to subclass <code>ThreadGroup</code>; now
+      <code>Thread.setUncaughtExceptionHandler</code> sets one per thread and
+      <code>setDefaultUncaughtExceptionHandler</code> sets the default. Only one handler is called: the JVM looks for the
+      per-thread handler first, then a <code>ThreadGroup</code> handler, and the group's default implementation delegates
+      up the parent chain until one handles it or it reaches the top-level group, which delegates to the default system
+      handler — or prints the stack trace to the console if there is none.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">API</span>
+        <span class="name">Listing 7.24 · UncaughtExceptionHandler interface</span>
+        <button class="copy" data-copy="ch7-l724">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l724">public interface UncaughtExceptionHandler {
+    void uncaughtException(Thread t, Throwable e);
+}</code></pre>
+    </div>
+
+    <p>
+      What the handler does depends on quality-of-service requirements. The most common response is to log the message and
+      stack trace; handlers can also try to restart the thread, shut the application down, page an operator, or take other
+      corrective action.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">LOG IT</span>
+        <span class="name">Listing 7.25 · UncaughtExceptionHandler that logs the exception</span>
+        <button class="copy" data-copy="ch7-l725">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l725">public class UEHLogger implements Thread.UncaughtExceptionHandler {
+    public void uncaughtException(Thread t, Throwable e) {
+        Logger logger = Logger.getAnonymousLogger();
+        logger.log(Level.SEVERE,
+              "Thread terminated with exception: " + t.getName(),
+              e);
+    }
+}</code></pre>
+    </div>
+
+    <div class="callout">
+      <span class="mark">📝</span>
+      <p>In long-running applications, <strong>always install uncaught exception handlers on all threads</strong>, if only
+      to log. For pool threads, supply a <code>ThreadFactory</code> to the <code>ThreadPoolExecutor</code> constructor —
+      and remember that only the thread's owner should change its handler.</p>
+    </div>
+    <p>
+      There is one more subtlety worth knowing: exceptions reach the uncaught exception handler
+      <strong>only for tasks submitted with <code>execute</code></strong>. For tasks submitted with <code>submit</code>,
+      any thrown exception — checked or not — is part of the task's return status, rethrown from
+      <code>Future.get</code> wrapped in <code>ExecutionException</code>. If you want task-level failure notification,
+      wrap the task in something that catches, or override the <code>afterExecute</code> hook.
+    </p>
+  </section>
+
+  <!-- ================= 7.4 ================= -->
+  <section id="ch7-jvm-shutdown">
+    <h2><span class="num">7.4</span>JVM Shutdown</h2>
+    <p class="lede">The JVM shuts down in one of two ways — and only one of them gives you a chance to clean up.</p>
+    <p>
+      An <strong>orderly shutdown</strong> is initiated when the last normal (non-daemon) thread terminates, when someone
+      calls <code>System.exit</code>, or by platform-specific means such as <kbd>Ctrl-C</kbd> or <code>SIGINT</code>. An
+      <strong>abrupt shutdown</strong> is <code>Runtime.halt</code> or the OS killing the process with
+      <code>SIGKILL</code>.
+    </p>
+
+    <h3><span class="num">7.4.1</span>Shutdown hooks</h3>
+    <p>
+      In an orderly shutdown the JVM starts all registered <strong>shutdown hooks</strong> — unstarted threads registered
+      with <code>Runtime.addShutdownHook</code>. The order is not guaranteed. Application threads that are still running
+      continue to run concurrently with the shutdown, and the JVM makes no attempt to stop or interrupt them: they are
+      abandoned when it halts. If a hook does not complete, the orderly shutdown hangs — and then the JVM has to be killed
+      abruptly, which runs no hooks at all.
+    </p>
+    <p>
+      Hooks must therefore be <strong>thread-safe</strong> (they may run alongside anything), must make no assumptions
+      about application state or why the JVM is shutting down, and must exit as quickly as possible — someone is waiting
+      for the process to go away. Because all hooks run <em>concurrently</em>, a logger closed by one hook can break
+      another. The recommended pattern is a <strong>single shutdown hook that runs a series of shutdown actions</strong>:
+      sequentially, in one thread, avoiding races and deadlock between actions — and, where dependencies are known, in the
+      right order.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">HOOK</span>
+        <span class="name">Listing 7.26 · Registering a shutdown hook to stop the logging service</span>
+        <button class="copy" data-copy="ch7-l726">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-l726">public void start() {
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+        public void run() {
+            try { LogService.this.stop(); }
+            catch (InterruptedException ignored) {}
+        }
+    });
+}</code></pre>
+    </div>
+
+    <h3><span class="num">7.4.2</span>Daemon threads</h3>
+    <p>
+      Daemon threads exist so that a helper thread does not keep the JVM alive. When the JVM starts, all the threads it
+      creates — GC and housekeeping — are daemons except <code>main</code>; new threads <em>inherit</em> the daemon status
+      of the thread that created them. The only difference between the two kinds is what happens at exit: when a thread
+      exits, the JVM takes an inventory, and if only daemons remain it starts an orderly shutdown. Then remaining daemons
+      are <strong>abandoned</strong> — no <code>finally</code> blocks, no stack unwinding.
+    </p>
+    <div class="callout warn">
+      <span class="mark">⚠️</span>
+      <p>Use daemon threads sparingly — few activities can be abandoned at any moment with no cleanup. They are
+      especially dangerous for anything doing I/O. Keep them for housekeeping, such as a thread that periodically expires
+      entries in an in-memory cache. <strong>Daemon threads are not a substitute for managing service lifecycle.</strong></p>
+    </div>
+
+    <h3><span class="num">7.4.3</span>Finalizers</h3>
+    <p>
+      The garbage collector reclaims memory, but file and socket handles must be returned to the OS explicitly. Finalizers
+      were meant to help: an object with a nontrivial <code>finalize</code> gets it called after collection. In practice
+      they are a poor tool — they run in a JVM-managed thread, so any state they touch is shared and must be synchronized;
+      there is no guarantee of when, or even whether, they run; they impose significant performance cost; and they are
+      extremely difficult to write correctly. <strong><code>finally</code> blocks plus explicit close methods do a better
+      job</strong>, with the sole exception of native-method-acquired resources.
+    </p>
+    <p style="text-align:center;font-family:var(--mono);font-size:.95rem;color:var(--accent);margin:22px 0">Avoid finalizers.</p>
+
+    <div class="card">
+      <h4>Chapter summary, in the book's words</h4>
+      <p style="margin-top:0">
+        End-of-lifecycle issues for tasks, threads, services and applications can add complexity to their design and
+        implementation. Java does not provide a preemptive mechanism for cancelling activities or terminating threads.
+        Instead, it provides a cooperative interruption mechanism that can be used to facilitate cancellation, but it is
+        up to you to construct protocols for cancellation and use them consistently. Using <code>FutureTask</code> and the
+        Executor framework simplifies building cancellable tasks and services.
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= simulator ================= -->
+  <section id="ch7-sim">
+    <h2><span class="num">▶</span>Interactive: four ways to stop a blocked producer</h2>
+    <p class="lede">A producer is blocked in <code>queue.put()</code> because the queue is full and the consumer has walked
+    away. Now try to cancel it. Watch the thread state and the interrupted status at each step.</p>
+
+    <div class="sim">
+      <div class="sim-controls">
+        <button class="btn primary" id="ch7-simStep">Step ▸</button>
+        <button class="btn" id="ch7-simPlay">Play</button>
+        <button class="btn" id="ch7-simReset">Reset</button>
+        <div class="sim-toggle">
+          <button id="ch7-modeFlag" class="on">boolean flag</button>
+          <button id="ch7-modeInterrupt">interrupt</button>
+          <button id="ch7-modeSwallow">swallowed</button>
+          <button id="ch7-modeFuture">Future.cancel</button>
+        </div>
+      </div>
+
+      <div class="lanes">
+        <div class="lane-label">producer</div>
+        <div class="lane" id="ch7-laneA"></div>
+        <div class="lane-label">canceller</div>
+        <div class="lane" id="ch7-laneB"></div>
+      </div>
+
+      <div class="sim-readout">
+        <div class="stat"><span>queue</span><b id="ch7-stQueue">—</b></div>
+        <div class="stat"><span>thread state</span><b id="ch7-stState">NEW</b></div>
+        <div class="stat"><span>interrupted</span><b id="ch7-stFlag">false</b></div>
+        <div class="stat"><span>verdict</span><b id="ch7-stVerdict">idle</b></div>
+      </div>
+      <div class="sim-msg" id="ch7-simMsg">Press “Step” to advance one operation.</div>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🔍</span>
+      <p><strong>boolean flag</strong>: <code>cancel()</code> sets <code>cancelled = true</code>, but the producer is inside
+      <code>put</code> and will never reach the loop condition — it stays blocked forever.
+      <strong>interrupt</strong>: <code>cancel()</code> calls <code>interrupt()</code>, <code>put</code> throws
+      <code>InterruptedException</code>, the loop ends and the thread terminates.
+      <strong>swallowed</strong>: the interrupt is delivered and <code>put</code> throws, but the catch block ignores it and
+      the loop tries again — the flag is cleared, the request is lost, and the thread will block forever.
+      <strong>Future.cancel</strong>: the caller waits with a timeout, so it returns on schedule either way; the
+      <code>cancel(true)</code> in <code>finally</code> interrupts the worker, and the task ends in the
+      <code>CANCELLED</code> state rather than hanging.</p>
+    </div>
+  </section>
+
+  <!-- ================= patterns ================= -->
+  <section id="ch7-listings">
+    <h2><span class="num">§</span>Patterns worth stealing</h2>
+    <p class="lede">The twenty-six listings above are the book's. These two put the chapter's protocols together the way a
+    service actually needs them.</p>
+
+    <h3><span class="num">1</span>A cancellable, shutdown-able worker service</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">Cancellation policy + interruption policy + lifecycle, in one class</span>
+        <button class="copy" data-copy="ch7-c1">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-c1">/**
+ * Cancellation policy:
+ *   request - cancelAll(), or shutdown() for graceful
+ *   check   - inside the task, at its own cancellation points
+ *   action  - interrupt the worker, task restores status, cleanup in finally
+ */
+public class JobService {
+    private final ThreadPoolExecutor exec;      // owns the threads
+    private final Set&lt;Future&lt;?&gt;&gt; inFlight =
+            Collections.synchronizedSet(new HashSet&lt;Future&lt;?&gt;&gt;());
+
+    public JobService(int nThreads, int maxBacklog) {
+        this.exec = new ThreadPoolExecutor(
+            nThreads, nThreads, 0L, TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue&lt;Runnable&gt;(maxBacklog),   // bounded backlog
+            new ThreadFactory() {
+                private final AtomicInteger n = new AtomicInteger();
+                public Thread newThread(Runnable r) {
+                    Thread t = new Thread(r, "job-" + n.incrementAndGet());
+                    // Only the owner sets the handler -- and now any death is visible.
+                    t.setUncaughtExceptionHandler((th, e) -&gt;
+                        log("worker " + th.getName() + " died", e));
+                    return t;
+                }
+            },
+            new ThreadPoolExecutor.AbortPolicy());          // loud rejection
+    }
+
+    /** Submission returns the task's handle, which is also its cancellation handle. */
+    public Future&lt;?&gt; submit(Job job) {
+        Future&lt;?&gt; f = exec.submit(job::run);
+        inFlight.add(f);
+        return f;
+    }
+
+    /** Abrupt: cancel through futures, never by interrupting pool threads. */
+    public List&lt;Runnable&gt; cancelAll() {
+        synchronized (inFlight) {
+            for (Future&lt;?&gt; f : inFlight)
+                f.cancel(true);            // safe: pool threads have a known policy
+        }
+        return exec.shutdownNow();         // returns the never-started tasks
+    }
+
+    /** Graceful: accept nothing new, let the queue drain, escalate if it won't. */
+    public boolean shutdown(long timeout, TimeUnit unit)
+            throws InterruptedException {
+        exec.shutdown();
+        if (!exec.awaitTermination(timeout, unit)) {
+            cancelAll();
+            return exec.awaitTermination(5, TimeUnit.SECONDS);
+        }
+        return true;
+    }
+
+    /** A batch with one deadline: timed invokeAll cancels the stragglers itself. */
+    public List&lt;Result&gt; runBatch(List&lt;Job&gt; jobs, long timeout, TimeUnit unit)
+            throws InterruptedException {
+        List&lt;Callable&lt;Result&gt;&gt; tasks = new ArrayList&lt;Callable&lt;Result&gt;&gt;();
+        for (Job job : jobs)
+            tasks.add(() -&gt; job.call());
+        List&lt;Future&lt;Result&gt;&gt; done = exec.invokeAll(tasks, timeout, unit);
+        List&lt;Result&gt; results = new ArrayList&lt;Result&gt;();
+        for (Future&lt;Result&gt; f : done) {
+            try {
+                results.add(f.get());
+            } catch (CancellationException timedOut) {
+                results.add(Result.SKIPPED);      // never started, or cancelled
+            } catch (ExecutionException failed) {
+                results.add(Result.failed(failed.getCause()));
+            }
+        }
+        return results;
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">2</span>Shutting a whole application down in the right order</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">One hook, sequential actions, bounded total time</span>
+        <button class="copy" data-copy="ch7-c2">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch7-c2">public final class Shutdown {
+    private static final List&lt;Runnable&gt; ACTIONS =
+            new CopyOnWriteArrayList&lt;Runnable&gt;();
+    private static final AtomicBoolean STARTED = new AtomicBoolean();
+
+    /** Register in dependency order: the last registered runs first. */
+    public static void register(Runnable action) { ACTIONS.add(action); }
+
+    public static void install() {
+        Runtime.getRuntime().addShutdownHook(
+                new Thread(Shutdown::runActions, "shutdown"));
+    }
+
+    /**
+     * One thread, one pass, reverse order. Every action is isolated so a
+     * failure cannot stop the rest -- a hook that throws delays JVM exit.
+     */
+    public static void runActions() {
+        if (!STARTED.compareAndSet(false, true))
+            return;                                   // at most once, ever
+        for (int i = ACTIONS.size() - 1; i &gt;= 0; i--) {
+            try {
+                ACTIONS.get(i).run();
+            } catch (Throwable t) {
+                System.err.println("shutdown action failed: " + t);
+            }
+        }
+        ACTIONS.clear();
+    }
+}
+
+// Wiring: services registered in dependency order, one hook to rule them all.
+Shutdown.register(() -&gt; cache.shutdown());     // runs last: nothing depends on it
+Shutdown.register(() -&gt; logService.stop());
+Shutdown.register(() -&gt; pool.shutdown(5, TimeUnit.SECONDS));   // runs first
+Shutdown.install();</code></pre>
+    </div>
+    <p class="lede" style="margin-top:14px">
+      Note the pattern's shape: <strong>one</strong> hook, actions run <strong>in reverse registration order</strong> so
+      dependencies stop before their dependents, every action wrapped so a failure cannot abort the rest, and no assumption
+      that any other service is still alive.
+    </p>
+  </section>
+
+  <!-- ================= glossary ================= -->
+  <section id="ch7-terms">
+    <h2><span class="num">§</span>Vocabulary introduced in Chapter 7</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Term</th><th>Meaning as used here</th><th>Where it goes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Cancellable</strong></td><td>An activity external code can move to completion before its normal completion.</td><td>Ch. 7.1</td></tr>
+          <tr><td><strong>Cancellation policy</strong></td><td>The "how, when, what" of cancellation: how to request it, when the task checks, what it does in response.</td><td>Ch. 7.1</td></tr>
+          <tr><td><strong>Interruption</strong></td><td>A cooperative request, delivered as a per-thread boolean status; honoured at cancellation points.</td><td>Ch. 7.1.1</td></tr>
+          <tr><td><strong>Interrupted status</strong></td><td>The per-thread flag set by <code>interrupt</code>; cleared by blocking methods or by <code>Thread.interrupted</code>.</td><td>Ch. 7.1.1</td></tr>
+          <tr><td><strong>Cancellation point</strong></td><td>A convenient opportunity — usually a blocking call — at which a task checks for interruption.</td><td>Ch. 7.1.1</td></tr>
+          <tr><td><strong>Sticky interruption</strong></td><td>When no exception is thrown, the status persists until deliberately cleared.</td><td>Ch. 7.1.1</td></tr>
+          <tr><td><strong>Interruption policy</strong></td><td>How a thread interprets interruption: what it does, which work units are atomic, how fast it reacts.</td><td>Ch. 7.1.2</td></tr>
+          <tr><td><strong>Thread ownership</strong></td><td>The (informal) rule that only the class that created a thread may interrupt it or change its policy; not transitive.</td><td>Ch. 7.2</td></tr>
+          <tr><td><strong>Poison pill</strong></td><td>A sentinel object on the queue meaning "stop"; needs a known number of parties and an unbounded queue.</td><td>Ch. 7.2.3</td></tr>
+          <tr><td><strong>One-shot execution service</strong></td><td>A private executor whose lifetime is bounded by the method that creates it.</td><td>Ch. 7.2.4</td></tr>
+          <tr><td><strong>Tracking executor</strong></td><td>An executor that records tasks interrupted by shutdown, so unfinished work can be resumed.</td><td>Ch. 7.2.5</td></tr>
+          <tr><td><strong>Idempotent task</strong></td><td>A task whose repetition has the same effect as one execution — what makes false-positive recovery safe.</td><td>Ch. 7.2.5</td></tr>
+          <tr><td><strong>Thread leakage</strong></td><td>A thread that terminates (or fails to) and is silently lost — the <code>Timer</code> failure mode.</td><td>Ch. 7.3</td></tr>
+          <tr><td><strong>UncaughtExceptionHandler</strong></td><td>Per-thread or default callback invoked when a thread dies of an uncaught exception.</td><td>Ch. 7.3.1</td></tr>
+          <tr><td><strong>Orderly vs. abrupt shutdown</strong></td><td>Last non-daemon thread / <code>System.exit</code> / SIGINT (hooks run) vs. <code>Runtime.halt</code> / SIGKILL (they don't).</td><td>Ch. 7.4</td></tr>
+          <tr><td><strong>Shutdown hook</strong></td><td>An unstarted thread registered with <code>Runtime.addShutdownHook</code>; runs concurrently, unordered, best-effort.</td><td>Ch. 7.4.1</td></tr>
+          <tr><td><strong>Daemon thread</strong></td><td>A thread that does not keep the JVM alive; abandoned at exit with no <code>finally</code>.</td><td>Ch. 7.4.2</td></tr>
+          <tr><td><strong>Finalizer</strong></td><td><code>finalize()</code> — unschedulable, costly, hard to write; avoid.</td><td>Ch. 7.4.3</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= cheat sheet ================= -->
+  <section id="ch7-cheatsheet">
+    <h2><span class="num">✓</span>Cheat sheet &amp; self-check</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>You need to…</th><th>Do this</th><th>Not this</th></tr></thead>
+        <tbody>
+          <tr><td>Cancel a long computation</td><td><code>volatile</code> flag polled in the loop, or <code>Future.cancel</code></td><td><code>Thread.stop</code></td></tr>
+          <tr><td>Cancel something blocked in <code>put</code>/<code>take</code></td><td><code>interrupt()</code> — the blocking call throws</td><td>A flag the blocked code never reads</td></tr>
+          <tr><td>Handle <code>InterruptedException</code> in a library method</td><td>Rethrow it, or restore status and return</td><td><code>catch (InterruptedException e) { }</code></td></tr>
+          <tr><td>Handle it in a <code>Runnable</code></td><td><code>Thread.currentThread().interrupt()</code> in the catch, then exit</td><td>Ignoring it and looping</td></tr>
+          <tr><td>Run a task with a timeout</td><td><code>Future.get(timeout)</code> then <code>cancel(true)</code> in <code>finally</code></td><td>Interrupting the calling thread from a scheduler</td></tr>
+          <tr><td>Cancel a task that blocks in socket I/O</td><td>Override <code>interrupt</code> (thread) or <code>Future.cancel</code> (task) to also close the socket</td><td>Assuming interrupt is enough</td></tr>
+          <tr><td>Stop a producer–consumer service</td><td>Reservation counter + interrupt (reliable), or poison pills (known parties, unbounded queue)</td><td>A bare "shutdownRequested" flag</td></tr>
+          <tr><td>Stop an executor</td><td><code>shutdown()</code> + <code>awaitTermination</code>, escalate to <code>shutdownNow()</code></td><td>Leaving it running (the JVM won't exit)</td></tr>
+          <tr><td>Know what was interrupted by shutdown</td><td><code>TrackingExecutor</code>, with idempotent tasks</td><td>Assuming <code>shutdownNow</code>'s list is complete</td></tr>
+          <tr><td>Notice a dead thread</td><td><code>UncaughtExceptionHandler</code> (or a <code>ThreadFactory</code> that installs one); try/finally in workers</td><td>Relying on a console nobody reads</td></tr>
+          <tr><td>Clean up at JVM exit</td><td>One shutdown hook running actions sequentially</td><td>Many hooks racing; daemon threads; finalizers</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">✅</div><h5>Do</h5>
+        <p>Write the cancellation policy down next to the task. Preserve the interrupted status unless you own the thread.
+        Cancel through futures, never through pool threads. Give every thread-owning service lifecycle methods. Log every
+        thread death.</p></div>
+      <div class="tile"><div class="ico">🚫</div><h5>Avoid</h5>
+        <p>Boolean flags guarding code that blocks. Swallowing <code>InterruptedException</code>. Interrupting a thread you
+        didn't create. <code>shutdownNow</code> with no plan for half-done work. Daemon threads for anything that touches
+        I/O. Finalizers.</p></div>
+      <div class="tile"><div class="ico">🧠</div><h5>The one habit</h5>
+        <p>When you write a loop or a blocking call, ask: <em>where is the cancellation point, and who owns this thread?</em>
+        A task with no cancellation point can be started but not stopped — and one day it will have to be stopped.</p></div>
+    </div>
+
+    <div class="card">
+      <h4>Five questions the chapter leaves you with</h4>
+      <ol>
+        <li>If someone asked this task to stop right now, where would it notice — and how long would it take?</li>
+        <li>Does any code of mine catch <code>InterruptedException</code> without rethrowing or restoring the status?</li>
+        <li>Do my services expose shutdown methods, and do those methods stop the threads they own?</li>
+        <li>If the JVM exited one second from now, which queued or in-flight work would be silently lost?</li>
+        <li>Would I find out if a worker thread died — or would the application just get quietly slower?</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= chapter 7 footnotes ================= -->
+  <div class="footnotes">
+    <h4 style="margin:0 0 10px;font-size:.8rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)">Notes carried over from the chapter</h4>
+    <ol>
+      <li>The deprecated <code>Thread.stop</code> and <code>suspend</code> methods were an attempt at preemptive stopping; they were quickly recognised as seriously flawed and should be avoided (see the JDK's thread-primitive deprecation guide for why).</li>
+      <li>The timed <code>join</code> used in Listing 7.9 shares <code>join</code>'s deficiency: it does not report whether it returned because the thread exited or because it timed out — a flaw in the <code>Thread</code> API, since success or failure has memory-visibility consequences in the Java Memory Model.</li>
+      <li>The <code>AtomicBoolean</code> in <code>checkMail</code> is used because a local captured by the inner <code>Runnable</code> must be final, which would preclude assigning to it.</li>
+      <li><code>shutdownNow</code>'s returned <code>Runnable</code>s might not be the objects that were submitted — they may be wrapped instances of the submitted tasks.</li>
+      <li>There is no shutdown option in which not-yet-started tasks are returned to the caller but in-progress tasks are allowed to complete; such an option would eliminate the uncertain intermediate state <code>TrackingExecutor</code> has to work around.</li>
+      <li>There is some controversy over the safety of catching <code>RuntimeException</code> around untrusted code: when a thread throws an unchecked exception the whole application may already be compromised. But shutting the entire application down instead is usually not practical.</li>
+      <li>If you log multi-line messages through a shared stream with one <code>println</code> per line, output from different threads can interleave into something that looks like one large, meaningless stack trace; client-side locking may be needed.</li>
+      <li>Writing correct finalizers is hard; Boehm (2005) discusses some of the challenges. Prefer <code>finally</code> blocks and explicit <code>close</code> methods, except for resources acquired by native methods.</li>
+    </ol>
+    <p style="margin-top:14px">
+      Summary of <em>Java Concurrency in Practice</em>, Chapter 7 (Cancellation and Shutdown), pp. 85–104.
+      All code listings are the book's, with annotations added; diagrams are drawn for these notes.
+    </p>
+  </div>
+
 <footer>
-  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–6 ·
+  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–7 ·
   self-contained HTML (no external requests)
 </footer>
 </main>
@@ -8253,6 +9761,200 @@ function initChapter6Sim() {
   reset('seq');
 }
 
+/* ---- Chapter 7: four ways to stop a blocked producer ---- */
+function initChapter7Sim() {
+  const laneA = document.getElementById('ch7-laneA');
+  const laneB = document.getElementById('ch7-laneB');
+  const btnStep = document.getElementById('ch7-simStep');
+  const btnPlay = document.getElementById('ch7-simPlay');
+  const btnReset = document.getElementById('ch7-simReset');
+  const modeFlag = document.getElementById('ch7-modeFlag');
+  const modeInterrupt = document.getElementById('ch7-modeInterrupt');
+  const modeSwallow = document.getElementById('ch7-modeSwallow');
+  const modeFuture = document.getElementById('ch7-modeFuture');
+  const stQueue = document.getElementById('ch7-stQueue');
+  const stState = document.getElementById('ch7-stState');
+  const stFlag = document.getElementById('ch7-stFlag');
+  const stVerdict = document.getElementById('ch7-stVerdict');
+  const simMsg = document.getElementById('ch7-simMsg');
+
+  /*
+   * The producer is blocked in queue.put() on a full queue, and the consumer
+   * has gone away. The four modes differ only in how cancellation is requested
+   * and in whether the request is honoured -- or thrown away.
+   */
+  const SCHEDULES = {
+    flag: {
+      ops: [
+        { t: 'A', label: 'queue.put(p)  [queue full]', kind: 'block' },
+        { t: 'B', label: 'cancel() → cancelled = true', kind: 'setFlag' },
+        { t: 'A', label: 'still blocked in put()', kind: 'stuck' },
+        { t: 'B', label: '… waits for the producer', kind: 'wait' },
+        { t: 'A', label: 'never returns to the loop test', kind: 'stuck' }
+      ],
+      verdict: 'hangs forever ✗',
+      note: 'The flag is set, but the producer is inside put() and will never reach the while (!cancelled) test. The thread is not blocked on interruption -- it is blocked on a queue that nobody will ever drain. This is Listing 7.3, and it is why a bare boolean is not a cancellation mechanism.'
+    },
+    interrupt: {
+      ops: [
+        { t: 'A', label: 'queue.put(p)  [queue full]', kind: 'block' },
+        { t: 'B', label: 'cancel() → interrupt()', kind: 'interrupt' },
+        { t: 'A', label: 'put() throws InterruptedException', kind: 'threw' },
+        { t: 'A', label: 'catch → allow thread to exit', kind: 'exit' },
+        { t: 'B', label: 'join() returns', kind: 'done' }
+      ],
+      verdict: 'terminates ✓',
+      note: 'Interrupting makes the blocking call return early: put() clears the interrupted status and throws InterruptedException, the run method falls out of the loop and the thread terminates. This is Listing 7.5 -- cancel() is just interrupt(), and the blocking library does the rest.'
+    },
+    swallow: {
+      ops: [
+        { t: 'A', label: 'queue.put(p)  [queue full]', kind: 'block' },
+        { t: 'B', label: 'cancel() → interrupt()', kind: 'interrupt' },
+        { t: 'A', label: 'put() throws InterruptedException', kind: 'threw' },
+        { t: 'A', label: 'catch { } → loop retries put()', kind: 'swallow' },
+        { t: 'A', label: 'blocked again, status cleared', kind: 'stuck' }
+      ],
+      verdict: 'interrupt lost ✗',
+      note: 'The interrupt was delivered and the exception was thrown -- and then thrown away. Because the blocking method cleared the interrupted status before throwing, the request leaves no trace: the loop retries put(), blocks again, and the thread hangs exactly as in the flag case. Code that swallows InterruptedException destroys evidence it does not own.'
+    },
+    future: {
+      ops: [
+        { t: 'B', label: 'f = exec.submit(producer)', kind: 'submit' },
+        { t: 'A', label: 'queue.put(p)  [queue full]', kind: 'block' },
+        { t: 'B', label: 'f.get(1, SECONDS)', kind: 'wait' },
+        { t: 'B', label: 'TimeoutException → finally', kind: 'timeout' },
+        { t: 'B', label: 'f.cancel(true)', kind: 'interrupt' },
+        { t: 'A', label: 'put() throws → task CANCELLED', kind: 'exit' },
+        { t: 'B', label: 'timedRun returns on schedule', kind: 'done' }
+      ],
+      verdict: 'bounded wait ✓',
+      note: 'The caller is not wedged: a timed get() gives up after the budget, then cancel(true) interrupts the worker for you. The task ends in the CANCELLED state instead of hanging, and no code had to touch a pool thread directly -- cancellation went through the Future, which is the only handle you are allowed to pull.'
+    }
+  };
+
+  let mode = 'flag';
+  let index = 0;
+  let verdict = 'idle';
+  let queue = 10;          // full: capacity 10
+  let state = 'RUNNABLE';
+  let flag = false;
+  let timer = null;
+  let sched = null;
+  const lanes = { A: laneA, B: laneB };
+
+  function buildLanes() {
+    laneA.innerHTML = '';
+    laneB.innerHTML = '';
+    sched.ops.forEach(function (op, i) {
+      const div = document.createElement('div');
+      div.className = 'op';
+      div.id = 'ch7-op-' + i;
+      div.textContent = op.t + ': ' + op.label;
+      lanes[op.t].appendChild(div);
+    });
+  }
+
+  function paint() {
+    sched.ops.forEach(function (op, i) {
+      const el = document.getElementById('ch7-op-' + i);
+      el.className = 'op' + (i < index ? ' done' : '') + (i === index - 1 ? ' active' : '');
+      if (i < index && (op.kind === 'stuck' || op.kind === 'swallow')) el.classList.add('dup');
+    });
+    stQueue.textContent = queue + ' / 10';
+    stQueue.className = queue >= 10 ? 'bad' : '';
+    stState.textContent = state;
+    stState.className = state === 'WAITING' ? 'bad' : (state === 'TERMINATED' ? 'good' : '');
+    stFlag.textContent = String(flag);
+    stFlag.className = flag ? 'good' : '';
+    stVerdict.textContent = verdict;
+    stVerdict.className = verdict === 'idle' ? '' : (verdict.indexOf('\u2717') >= 0 ? 'bad' : 'good');
+  }
+
+  function step() {
+    if (index >= sched.ops.length) { stop(); return false; }
+    const op = sched.ops[index];
+
+    if (op.kind === 'block') { state = 'WAITING'; }
+    if (op.kind === 'setFlag') { flag = true; }             // set, but nobody reads it
+    if (op.kind === 'interrupt') { flag = true; }            // delivered
+    if (op.kind === 'threw') { flag = false; }               // blocking call clears it
+    if (op.kind === 'swallow') { flag = false; queue = 10; } // retries and re-blocks
+    if (op.kind === 'wait') { state = 'WAITING'; }
+    if (op.kind === 'stuck') { state = 'WAITING'; }
+    if (op.kind === 'exit') { state = 'TERMINATED'; queue = 10; }
+    if (op.kind === 'submit') { state = 'RUNNABLE'; }
+    if (op.kind === 'timeout') { state = 'WAITING'; }
+    if (op.kind === 'done') { state = 'TERMINATED'; }
+
+    index++;
+    paint();
+    if (index >= sched.ops.length) {
+      stop();
+      verdict = sched.verdict;
+      paint();
+      simMsg.textContent = sched.note;
+      btnStep.disabled = true;
+      btnPlay.disabled = true;
+    }
+    return true;
+  }
+
+  function play() {
+    if (index >= sched.ops.length) return;
+    btnPlay.textContent = 'Pause';
+    timer = setInterval(function () {
+      if (!step()) return;
+      if (index >= sched.ops.length) { clearInterval(timer); timer = null; btnPlay.textContent = 'Play'; }
+    }, 950);
+  }
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    btnPlay.textContent = (sched && index >= sched.ops.length) ? 'Play' : 'Resume';
+  }
+
+  function reset(newMode) {
+    stop();
+    if (newMode) mode = newMode;
+    sched = JSON.parse(JSON.stringify(SCHEDULES[mode]));
+    index = 0;
+    queue = 10;
+    state = 'RUNNABLE';
+    flag = false;
+    verdict = 'idle';
+    btnStep.disabled = false;
+    btnPlay.disabled = false;
+    btnPlay.textContent = 'Play';
+    modeFlag.classList.toggle('on', mode === 'flag');
+    modeInterrupt.classList.toggle('on', mode === 'interrupt');
+    modeSwallow.classList.toggle('on', mode === 'swallow');
+    modeFuture.classList.toggle('on', mode === 'future');
+    buildLanes();
+    paint();
+    const hints = {
+      flag: 'cancel() sets a boolean. The producer is blocked and will never read it.',
+      interrupt: 'cancel() interrupts: the blocking put() throws and the loop exits.',
+      swallow: 'The interrupt arrives, but the catch block throws the evidence away.',
+      future: 'Timed get() plus cancel(true): the caller returns, and the task is cancelled.'
+    };
+    simMsg.textContent = hints[mode];
+  }
+
+  btnStep.addEventListener('click', function () { step(); });
+  btnPlay.addEventListener('click', function () {
+    if (timer) { stop(); return; }
+    if (index >= sched.ops.length) reset();
+    play();
+  });
+  btnReset.addEventListener('click', function () { reset(); });
+  modeFlag.addEventListener('click', function () { reset('flag'); });
+  modeInterrupt.addEventListener('click', function () { reset('interrupt'); });
+  modeSwallow.addEventListener('click', function () { reset('swallow'); });
+  modeFuture.addEventListener('click', function () { reset('future'); });
+
+  reset('flag');
+}
+
 /* ------------------------------------------------------------------ *
  * Boot
  * ------------------------------------------------------------------ */
@@ -8262,6 +9964,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initChapter3Sim();
   initChapter5Sim();
   initChapter6Sim();
+  initChapter7Sim();
 
   /* nav dropdowns */
   const btns = document.querySelectorAll('.navbtn');
