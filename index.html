@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Java Concurrency in Practice — study notes (Chapters 1–4)</title>
-<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–4: Introduction, Thread Safety, Sharing Objects and Composing Objects, with the book's figures, all code listings and interactive simulators.">
+<title>Java Concurrency in Practice — study notes (Chapters 1–5)</title>
+<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–5: Introduction, Thread Safety, Sharing Objects, Composing Objects and Building Blocks, with the book's figures, all code listings and interactive simulators.">
 <style>
   :root{
     --bg:#0d1117;
@@ -221,7 +221,7 @@
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
   /* ---------- cover chapter cards ---------- */
-  .chapter-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:22px;max-width:1000px}
+  .chapter-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:22px;max-width:1180px}
   .chapter-card{
     display:block;padding:14px 16px;border-radius:12px;border:1px solid var(--line);
     background:linear-gradient(180deg,var(--panel),var(--bg-soft));transition:.18s;text-decoration:none
@@ -338,6 +338,25 @@
           <a href="#ch4-cheatsheet">Cheat sheet</a>
         </div>
       </div>
+      <div class="navmenu">
+        <button class="navbtn" aria-expanded="false" data-menu="menu-ch5">Chapter 5 · Building Blocks ▾</button>
+        <div class="menu" id="menu-ch5">
+          <div class="grp">Sections</div>
+          <a href="#ch5-tldr">TL;DR</a>
+          <a href="#ch5-synchronized-collections">5.1 Synchronized Collections</a>
+          <a href="#ch5-concurrent-collections">5.2 Concurrent Collections</a>
+          <a href="#ch5-blocking-queues">5.3 Blocking Queues</a>
+          <a href="#ch5-interruptible">5.4 Interruptible Methods</a>
+          <a href="#ch5-synchronizers">5.5 Synchronizers</a>
+          <a href="#ch5-cache">5.6 A Result Cache</a>
+          <div class="grp">Extras</div>
+          <a href="#ch5-fig51">Figures 5.1–5.4</a>
+          <a href="#ch5-listings">Patterns</a>
+          <a href="#ch5-sim">Simulator: how wide is the window?</a>
+          <a href="#ch5-terms">Glossary</a>
+          <a href="#ch5-cheatsheet">Cheat sheet</a>
+        </div>
+      </div>
       <a href="#top">↑ Top</a>
     </nav>
   </div>
@@ -375,11 +394,16 @@
         <span class="cc-title">Composing Objects</span>
         <span class="cc-meta">pp. 37–50 · class design, instance confinement, delegation, composition, documentation</span>
       </a>
+      <a class="chapter-card" href="#ch5">
+        <span class="cc-num">Chapter 5</span>
+        <span class="cc-title">Building Blocks</span>
+        <span class="cc-meta">pp. 51–70 · collections, queues, synchronizers, a scalable cache</span>
+      </a>
     </div>
     <div class="meta">
-      <span class="pill">📚 <b>4</b> chapters · <b>41</b> book listings + extras</span>
-      <span class="pill">🖼️ Figures 1.1, 2.1 &amp; 3.1 embedded</span>
-      <span class="pill">▶️ <b>3</b> interactive simulators</span>
+      <span class="pill">📚 <b>5</b> chapters · <b>61</b> book listings + extras</span>
+      <span class="pill">🖼️ Figures 1.1–5.4 embedded</span>
+      <span class="pill">▶️ <b>4</b> interactive simulators</span>
       <span class="pill">🔌 Fully self-contained</span>
     </div>
     </div>
@@ -4400,8 +4424,1595 @@ public class DocumentedTracker {
     </p>
   </div>
 
+  <div class="page-hero chapter-start" id="ch5">
+    <span class="kicker">Java Concurrency in Practice · Chapter 5</span>
+    <h1>Chapter 5 — <span>Building Blocks</span></h1>
+    <p class="sub">
+      Chapter 4 said the best way to make a class thread-safe is to <strong>delegate</strong> to classes that already
+      are. This chapter is the catalogue of what you can delegate to: <strong>synchronized and concurrent
+      collections</strong>, <strong>blocking queues</strong>, <strong>synchronizers</strong> (latches, futures,
+      semaphores, barriers) — and one long worked example, an <strong>efficient, scalable result cache</strong>, in
+      which every improvement is a smaller race window.
+    </p>
+    <div class="meta">
+      <span class="pill">📖 <b>pp. 51–70</b></span>
+      <span class="pill">🧩 <b>6</b> sections · <b>20</b> listings · <b>4</b> figures</span>
+      <span class="pill">⏱️ ~24 min read</span>
+      <span class="pill">🏷️ Part I — Fundamentals</span>
+    </div>
+  </div>
+
+  <!-- ================= TL;DR ================= -->
+  <section id="ch5-tldr">
+    <h2>Chapter in one paragraph</h2>
+    <div class="card tldr">
+      <h4>TL;DR — the six things worth remembering</h4>
+      <ol>
+        <li><strong>Thread-safe collections are safe one method at a time, not one action at a time.</strong> Iteration, navigation and put-if-absent are <em>compound actions</em>: <code>getLast</code> on a <code>Vector</code> can still throw <code>ArrayIndexOutOfBoundsException</code> if another thread deletes between <code>size</code> and <code>get</code> — so lock the collection for the whole sequence.</li>
+        <li><strong>Iterators are fail-fast, not foolproof.</strong> They throw <code>ConcurrentModificationException</code> on a best-effort basis, and <em>hidden</em> iteration — <code>toString</code>, <code>hashCode</code>, <code>equals</code>, <code>containsAll</code>, copy constructors — needs the lock just as much as a visible loop.</li>
+        <li><strong>Prefer concurrent collections.</strong> <code>ConcurrentHashMap</code> (lock striping, weakly consistent iterators), <code>CopyOnWriteArrayList</code> (traversal-dominant), <code>ConcurrentSkipListMap/Set</code> (sorted) — they replace <code>synchronizedXxx</code> with better scalability and no <code>ConcurrentModificationException</code>.</li>
+        <li><strong>Blocking queues turn flow control into a data structure.</strong> <code>put</code>/<code>take</code> block; <code>offer</code>/<code>poll</code> have timed and failure-returning forms. Bounded queues are a <em>resource-management</em> tool: they throttle producers instead of letting the heap fill.</li>
+        <li><strong>Synchronizers encode a state that threads wait for.</strong> Latches wait for <em>events</em> (one-shot), barriers wait for <em>other threads</em> (reusable), <code>FutureTask</code> waits for a <em>result</em>, semaphores wait for a <em>permit</em>.</li>
+        <li><strong>A cache is a concurrency problem in disguise.</strong> <code>Memorizer1</code> is correct but serialized; <code>Memorizer2</code> is concurrent but computes twice; <code>Memorizer3</code> narrows the window to a check-then-act race; atomic <code>putIfAbsent</code> closes it.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= 5.1 ================= -->
+  <section id="ch5-synchronized-collections">
+    <h2><span class="num">5.1</span>Synchronized Collections</h2>
+    <p class="lede">A synchronized collection is thread-safe. Your <em>program</em> still may not be.</p>
+    <p>
+      The synchronized collections are <code>Vector</code> and <code>Hashtable</code> — part of the original JDK — and
+      their JDK 1.2 cousins, the wrappers produced by <code>Collections.synchronizedXxx</code>. They achieve thread
+      safety the crudest way available: they encapsulate their state and synchronize <em>every public method</em> on a
+      single lock, so only one thread at a time touches the collection's state.
+    </p>
+
+    <h3><span class="num">5.1.1</span>Problems with synchronized collections</h3>
+    <p>
+      Being thread-safe per method is not the same as being thread-safe per <em>operation</em>. Common
+      <strong>compound actions</strong> on collections are iteration (fetch elements until exhausted), navigation (find
+      the next element after this one), and conditional operations such as <strong>put-if-absent</strong> (add a mapping
+      only if the key is absent). With a synchronized collection these are still technically thread-safe without
+      client-side locking — nothing is corrupted — but they may not behave the way the caller expects while another
+      thread modifies the collection.
+    </p>
+    <p>
+      Listing 5.1 shows two such methods on a <code>Vector</code>. Both are <em>check-then-act</em>: read
+      <code>size</code>, then use the result to fetch or remove the last element.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">CONFUSING RESULTS</span>
+        <span class="name">Listing 5.1 · Compound actions on a Vector that may produce confusing results</span>
+        <button class="copy" data-copy="ch5-l51">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l51">public static Object getLast(Vector list) {
+    int lastIndex = list.size() - 1;
+    return list.get(lastIndex);
+}
+
+public static void deleteLast(Vector list) {
+    int lastIndex = list.size() - 1;
+    list.remove(lastIndex);
+}</code></pre>
+    </div>
+
+    <p>
+      These methods seem harmless, and in a sense they are: they cannot corrupt the <code>Vector</code>, no matter how
+      many threads call them simultaneously. The <em>caller</em> may have a different opinion. If thread A calls
+      <code>getLast</code> on a <code>Vector</code> with ten elements while thread B calls <code>deleteLast</code> on
+      the same vector, and the operations interleave as in Figure 5.1, <code>getLast</code> throws
+      <code>ArrayIndexOutOfBoundsException</code>: between <code>size</code> and <code>get</code> the vector shrank, and
+      the index computed in the first step is no longer valid. That is perfectly consistent with <code>Vector</code>'s
+      specification — it throws if asked for a nonexistent element — but it is not what a caller expects
+      <code>getLast</code> to do, unless the vector was empty to begin with.
+    </p>
+
+    <figure id="ch5-fig51">
+      <img src="data:image/png;base64,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"
+           alt="Figure 5.1 — Thread A calls size, gets 10, then remove(9); thread B calls size, gets 10, then get(9) after A's removal, and the access fails with ArrayIndexOutOfBoundsException.">
+      <figcaption><strong>Figure 5.1</strong> — Interleaving of <code>getLast</code> and <code>deleteLast</code> that
+      throws <code>ArrayIndexOutOfBoundsException</code>. Both threads observed <code>size → 10</code>; only one of the
+      ten elements is still there when B asks for index 9.</figcaption>
+    </figure>
+
+    <p>
+      Because the synchronized collections commit to a synchronization policy that <strong>supports client-side
+      locking</strong>, you can build new operations that are atomic with respect to the collection's own operations —
+      as long as you know which lock to use. Each method is guarded by the lock on the collection object itself, so
+      acquiring that lock makes <code>getLast</code> and <code>deleteLast</code> atomic and keeps the size from changing
+      between <code>size</code> and <code>get</code>, as in Listing 5.2.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">CLIENT-SIDE LOCKING</span>
+        <span class="name">Listing 5.2 · Compound actions on Vector using client-side locking</span>
+        <button class="copy" data-copy="ch5-l52">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l52">public static Object getLast(Vector list) {
+    synchronized (list) {
+        int lastIndex = list.size() - 1;
+        return list.get(lastIndex);
+    }
+}
+
+public static void deleteLast(Vector list) {
+    synchronized (list) {
+        int lastIndex = list.size() - 1;
+        list.remove(lastIndex);
+    }
+}</code></pre>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🔑</span>
+      <p>The lock is the <em>collection object</em>, not your helper class. That is exactly the property Chapter 4
+      warned you not to rely on in someone else's class — here it is documented, so the extension is legitimate.</p>
+    </div>
+
+    <p>The same risk exists in the plain iteration idiom of Listing 5.3, which relies on a leap of faith that nobody
+    modifies the vector between <code>size</code> and <code>get</code>.</p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">UNRELIABLE</span>
+        <span class="name">Listing 5.3 · Iteration that may throw ArrayIndexOutOfBoundsException</span>
+        <button class="copy" data-copy="ch5-l53">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l53">for (int i = 0; i &lt; vector.size(); i++)
+    doSomething(vector.get(i));</code></pre>
+    </div>
+
+    <p>
+      In a single-threaded environment the assumption is perfectly valid; with concurrent modification it is not, and
+      an unlucky interleaving throws <code>ArrayIndexOutOfBoundsException</code>. That does not mean <code>Vector</code>
+      isn't thread-safe: its state is still valid and the exception conforms to its specification. It means that
+      "fetching the last element" and "iterating" are compound actions, and compound actions need locking. Listing 5.4
+      does that — at a cost to scalability, because it also prevents every other thread from touching the collection for
+      the duration.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">CLIENT-SIDE LOCKING</span>
+        <span class="name">Listing 5.4 · Iteration with client-side locking</span>
+        <button class="copy" data-copy="ch5-l54">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l54">synchronized (vector) {
+    for (int i = 0; i &lt; vector.size(); i++)
+        doSomething(vector.get(i));
+}</code></pre>
+    </div>
+
+    <h3><span class="num">5.1.2</span>Iterators and ConcurrentModificationException</h3>
+    <p>
+      <code>Vector</code> is used for clarity in the book's examples even though it is a "legacy" class. The more modern
+      collections do not eliminate the problem of compound actions: the standard way to iterate a <code>Collection</code>
+      is an <code>Iterator</code>, explicitly or through the for-each loop added in Java 5.0, and using an iterator does
+      not remove the need to lock the collection during iteration if other threads can modify it. The iterators returned
+      by the synchronized collections are not designed for concurrent modification and are <strong>fail-fast</strong>:
+      if they detect that the collection has changed since iteration began, they throw an unchecked
+      <code>ConcurrentModificationException</code>.
+    </p>
+    <p>
+      Fail-fast iterators are <em>not</em> foolproof. They are designed to catch concurrency errors on a
+      <strong>"good-faith effort"</strong> basis, and act as early-warning indicators. They are implemented with a
+      modification count associated with the collection: if it changes during iteration, <code>hasNext</code> or
+      <code>next</code> throws. But the check is performed <em>without synchronization</em>, so there is a risk of
+      reading a stale modification count and missing a modification altogether — a deliberate tradeoff to reduce the
+      cost of the detection code.
+    </p>
+
+    <div class="callout warn">
+      <span class="mark">⚠️</span>
+      <p><code>ConcurrentModificationException</code> can arise in single-threaded code too: it happens whenever
+      elements are removed from the collection directly rather than through <code>Iterator.remove</code>. Seeing it is
+      a symptom, not a proof of a concurrency bug — but its absence proves nothing either.</p>
+    </div>
+
+    <p>
+      Listing 5.5 iterates with the for-each syntax. Internally <code>javac</code> generates an <code>Iterator</code> and
+      repeatedly calls <code>hasNext</code> and <code>next</code>; the way to prevent the exception is exactly as before
+      — hold the collection lock for the whole iteration.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">MAY THROW CME</span>
+        <span class="name">Listing 5.5 · Iterating a List with an Iterator</span>
+        <button class="copy" data-copy="ch5-l55">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l55">List&lt;Widget&gt; widgetList
+    = Collections.synchronizedList(new ArrayList&lt;Widget&gt;());
+...
+// May throw ConcurrentModificationException
+for (Widget w : widgetList)
+    doSomething(w);</code></pre>
+    </div>
+
+    <p>
+      Locking a collection during iteration is often undesirable, for several reasons. Other threads that need the
+      collection block until the iteration finishes — which may be a long time if the collection is large or the
+      per-element task is slow. Calling <code>doSomething</code> while holding the lock is also a deadlock risk
+      (Chapter 10). And even without starvation or deadlock, holding a lock for a significant period hurts
+      scalability: the longer a lock is held, the more likely it is to be contended (Chapter 11).
+    </p>
+    <p>
+      The alternative is to <strong>clone the collection and iterate the copy</strong>. The clone is thread-confined, so
+      nobody can modify it during iteration and <code>ConcurrentModificationException</code> is impossible — though the
+      collection must still be locked <em>during the clone</em>. Cloning has an obvious cost; whether it pays depends on
+      the size of the collection, the work done per element, the ratio of iterations to other operations, and your
+      responsiveness and throughput requirements.
+    </p>
+
+    <h3><span class="num">5.1.3</span>Hidden iterators</h3>
+    <p>
+      Locking prevents <code>ConcurrentModificationException</code> only if you remember to lock <em>everywhere</em> a
+      shared collection might be iterated — and iterators are frequently hidden. <code>HiddenIterator</code> in Listing
+      5.6 contains no explicit iteration, yet the debug statement iterates anyway: string concatenation is compiled into
+      <code>StringBuilder.append(Object)</code>, which calls the collection's <code>toString</code>, whose standard
+      implementation iterates the collection and calls <code>toString</code> on every element.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">NOT THREAD-SAFE</span>
+        <span class="name">Listing 5.6 · Iteration hidden within string concatenation — don't do this</span>
+        <button class="copy" data-copy="ch5-l56">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l56">public class HiddenIterator {
+    @GuardedBy("this")
+    private final Set&lt;Integer&gt; set = new HashSet&lt;Integer&gt;();
+
+    public synchronized void add(Integer i) { set.add(i); }
+    public synchronized void remove(Integer i) { set.remove(i); }
+
+    public void addTenThings() {
+        Random r = new Random();
+        for (int i = 0; i &lt; 10; i++)
+            add(r.nextInt());
+        System.out.println("DEBUG: added ten elements to " + set);
+   }
+}</code></pre>
+    </div>
+
+    <p>
+      <code>addTenThings</code> can throw <code>ConcurrentModificationException</code> because <code>toString</code>
+      iterates the set while preparing a debugging message. The real problem is that <code>HiddenIterator</code> is not
+      thread-safe: the lock should be acquired before using <code>set</code> in the <code>println</code> call — and
+      debugging and logging code commonly neglects exactly that.
+    </p>
+    <p>
+      Iteration is also invoked indirectly by <code>hashCode</code> and <code>equals</code>, which are called when the
+      collection is used as an element or key of another collection; likewise <code>containsAll</code>,
+      <code>removeAll</code> and <code>retainAll</code>, and the constructors that take collections as arguments. All of
+      these can throw <code>ConcurrentModificationException</code>.
+    </p>
+    <p>
+      The lesson: <strong>the greater the distance between the state and the synchronization that guards it, the more
+      likely someone forgets to synchronize.</strong> Had <code>HiddenIterator</code> wrapped the <code>HashSet</code> in
+      a <code>synchronizedSet</code>, encapsulating the synchronization, the error could not occur. Encapsulating
+      synchronization makes it as easy to enforce a synchronization policy as encapsulating state makes it to preserve
+      invariants.
+    </p>
+  </section>
+
+  <!-- ================= 5.2 ================= -->
+  <section id="ch5-concurrent-collections">
+    <h2><span class="num">5.2</span>Concurrent Collections</h2>
+    <p class="lede">Serializing every access buys safety with throughput. The concurrent collections buy both.</p>
+    <p>
+      Java 5.0 adds concurrent collection classes that are designed from the start for access by multiple threads.
+      <code>ConcurrentHashMap</code> replaces synchronized hash-based maps; <code>CopyOnWriteArrayList</code> replaces
+      synchronized lists where traversal dominates; the new <code>ConcurrentMap</code> interface adds atomic compound
+      actions such as put-if-absent, replace and conditional remove. Replacing synchronized collections with concurrent
+      ones can offer <strong>dramatic scalability improvements with little risk</strong>.
+    </p>
+    <p>
+      Java 5.0 also adds <code>Queue</code> and <code>BlockingQueue</code>. A <code>Queue</code> holds elements
+      temporarily while they await processing; operationally it does not block, and retrieval on an empty queue returns
+      <code>null</code>. Implementations include <code>ConcurrentLinkedQueue</code> (a traditional FIFO queue) and
+      <code>PriorityQueue</code> (non-concurrent, priority-ordered). <code>LinkedList</code> also implements
+      <code>Queue</code>; the <code>Queue</code> classes exist because dropping <code>List</code>'s random-access
+      requirement admits much more efficient concurrent implementations.
+    </p>
+    <p>
+      <code>BlockingQueue</code> extends <code>Queue</code> with blocking insertion and retrieval: retrieval blocks on an
+      empty queue until an element arrives, insertion blocks on a full (bounded) queue until space appears. That is the
+      subject of §5.3. And just as <code>ConcurrentHashMap</code> replaces a synchronized map, Java 6 adds
+      <code>ConcurrentSkipListMap</code> and <code>ConcurrentSkipListSet</code> as concurrent replacements for a
+      synchronized <code>SortedMap</code>/<code>SortedSet</code>.
+    </p>
+
+    <h3><span class="num">5.2.1</span>ConcurrentHashMap</h3>
+    <p>
+      Synchronized collection classes hold their lock for the duration of <em>each</em> operation, and some operations do
+      more work than is obvious: <code>HashMap.get</code> or <code>List.contains</code> traverse a bucket or a list
+      calling <code>equals</code> on candidate objects. With a poor hash function a hash table degenerates into a linked
+      list, and traversing it — while holding the collection-wide lock — blocks everyone.
+    </p>
+    <p>
+      <code>ConcurrentHashMap</code> is a hash-based map with an entirely different locking strategy:
+      <strong>lock striping</strong>. Instead of synchronizing every method on one lock, it uses finer-grained locking so
+      that arbitrarily many readers can access the map concurrently, readers can access it concurrently with writers,
+      and a limited number of writers can modify it concurrently. The result is far higher throughput under concurrent
+      access, with little penalty for single-threaded access.
+    </p>
+    <p>
+      It also offers iterators that do not throw <code>ConcurrentModificationException</code>, eliminating the need to
+      lock during iteration. They are <strong>weakly consistent</strong> rather than fail-fast: they tolerate concurrent
+      modification, traverse elements as they existed when the iterator was constructed, and <em>may</em> (but are not
+      guaranteed to) reflect modifications made afterwards.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Operation</th><th><code>synchronizedMap</code> / <code>Hashtable</code></th><th><code>ConcurrentHashMap</code></th></tr></thead>
+        <tbody>
+          <tr><td><code>get</code>, <code>containsKey</code></td><td>One lock; blocks during any other operation</td><td>No lock for readers; never blocks</td></tr>
+          <tr><td><code>put</code>, <code>remove</code></td><td>One lock for the whole map</td><td>Striped locks; writers proceed in parallel on different segments</td></tr>
+          <tr><td>Iteration</td><td>Must hold the map lock, or suffer CME</td><td>Weakly consistent; no lock, no CME</td></tr>
+          <tr><td><code>size</code>, <code>isEmpty</code></td><td>Exact</td><td>An <em>estimate</em> — a moving target</td></tr>
+          <tr><td>Exclusive lock over the map</td><td>Yes: <code>synchronized (map)</code></td><td><strong>No</strong> — use <code>ConcurrentMap</code> compound ops instead</td></tr>
+          <tr><td>Concurrent writes</td><td>Serialized</td><td>Up to the stripe count, concurrently</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      There are tradeoffs. Methods that operate on the entire map, <code>size</code> and <code>isEmpty</code>, have
+      deliberately weakened semantics: since a size computed under concurrent modification is out of date by the time it
+      is returned, it is only an estimate. That seems disturbing until you notice that these quantities are moving
+      targets in concurrent code anyway; the requirements were weakened to enable optimizations for the operations that
+      matter — <code>get</code>, <code>put</code>, <code>containsKey</code>, <code>remove</code>.
+    </p>
+    <p>
+      The one feature of the synchronized map implementations that <code>ConcurrentHashMap</code> does not offer is the
+      ability to <strong>lock the whole map</strong>. With <code>Hashtable</code> or <code>synchronizedMap</code>,
+      acquiring the map lock excludes every other thread — occasionally necessary, e.g. to add several mappings
+      atomically or to iterate the map repeatedly and see the same elements in the same order. On the whole this is a
+      reasonable tradeoff: concurrent collections are <em>expected</em> to change continuously. Replacing a synchronized
+      map with <code>ConcurrentHashMap</code> yields only better scalability in most cases; it is inappropriate only if
+      you truly need exclusive access (or are relying on the map's synchronization side effects).
+    </p>
+
+    <h3><span class="num">5.2.2</span>Additional atomic map operations</h3>
+    <p>
+      Since a <code>ConcurrentHashMap</code> cannot be locked for exclusive access, you cannot use client-side locking to
+      build new atomic operations on it, as §5.1 did for <code>Vector</code>. Instead the common compound operations —
+      put-if-absent, remove-if-equal, replace-if-equal — are implemented as atomic operations and specified by the
+      <code>ConcurrentMap</code> interface.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">INTERFACE</span>
+        <span class="name">Listing 5.7 · ConcurrentMap interface</span>
+        <button class="copy" data-copy="ch5-l57">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l57">public interface ConcurrentMap&lt;K,V&gt; extends Map&lt;K,V&gt; {
+    // Insert into map only if no value is mapped from K
+    V putIfAbsent(K key, V value);
+
+    // Remove only if K is mapped to V
+    boolean remove(K key, V value);
+
+    // Replace value only if K is mapped to oldValue
+    boolean replace(K key, V oldValue, V newValue);
+
+    // Replace value only if K is mapped to some value
+    V replace(K key, V newValue);
+}</code></pre>
+    </div>
+
+    <p>
+      If you find yourself adding such functionality to an existing synchronized map, that is a sign you should be using a
+      <code>ConcurrentMap</code> instead. Listing 5.7 is also the tool that finally fixes the cache in §5.6.
+    </p>
+
+    <h3><span class="num">5.2.3</span>CopyOnWriteArrayList</h3>
+    <p>
+      <code>CopyOnWriteArrayList</code> is a concurrent replacement for a synchronized <code>List</code> that offers
+      better concurrency in some common situations and eliminates the need to lock or copy the collection during
+      iteration (<code>CopyOnWriteArraySet</code> is the <code>Set</code> equivalent).
+    </p>
+    <p>
+      The copy-on-write collections derive their thread safety from the fact that <strong>an effectively immutable object
+      needs no further synchronization once it is properly published</strong>. They implement mutability by creating and
+      republishing a new copy of the collection on every modification. Iterators keep a reference to the backing array
+      that was current when iteration began; since that array never changes, they synchronize only briefly to ensure
+      visibility of its contents. Multiple threads can therefore iterate without interfering with each other or with
+      writers, no <code>ConcurrentModificationException</code> is possible, and the elements you see are exactly those
+      present when the iterator was created.
+    </p>
+    <p>
+      Copying the backing array on every write is expensive, especially for a large collection, so copy-on-write is
+      reasonable <em>only when iteration is far more common than modification</em>. That criterion describes many
+      event-notification systems exactly: delivering a notification means iterating the registered listeners and calling
+      each one, while registering or unregistering a listener is comparatively rare.
+    </p>
+  </section>
+
+  <!-- ================= 5.3 ================= -->
+  <section id="ch5-blocking-queues">
+    <h2><span class="num">5.3</span>Blocking Queues and the Producer–Consumer Pattern</h2>
+    <p class="lede">A queue that blocks is a queue with a built-in flow-control policy.</p>
+    <p>
+      Blocking queues provide blocking <code>put</code> and <code>take</code>, plus the timed equivalents
+      <code>offer</code> and <code>poll</code>. If the queue is full, <code>put</code> blocks until space appears; if the
+      queue is empty, <code>take</code> blocks until an element appears. Queues may be bounded or unbounded; an unbounded
+      queue is never full, so <code>put</code> never blocks.
+    </p>
+    <p>
+      Blocking queues support the <strong>producer–consumer</strong> design pattern, which separates the
+      <em>identification</em> of work from its <em>execution</em> by putting work items on a "to do" list instead of
+      processing them on the spot. This removes code dependencies between producer and consumer classes and decouples
+      activities that produce and consume at different or variable rates.
+    </p>
+    <p>
+      Producers place data on the queue as it becomes available; consumers take it when ready to act. Producers need know
+      nothing about the number or identity of consumers — or whether they are the only producer. Consumers need not know
+      who produced the work or where it came from. One of the most common producer–consumer designs is a thread pool
+      coupled with a work queue, which is precisely the <code>Executor</code> framework of Chapters 6 and 8.
+    </p>
+    <div class="callout">
+      <span class="mark">🍽️</span>
+      <p><strong>The dish rack.</strong> One person washes and puts dishes in the rack; another takes and dries. The rack
+      is a blocking queue: if it is empty the consumer waits, and if it fills the producer stops washing. The analogy
+      scales to many producers (contending for the sink) and many consumers, each interacting only with the rack. The
+      roles are relative too — drying "consumes" wet dishes and "produces" dry ones, so a third person putting dishes
+      away makes the drier a producer <em>and</em> a consumer, with two queues either of which can block it.</p>
+    </div>
+    <p>
+      Consumers are easy to write because <code>take</code> blocks. If producers are slow, consumers simply wait — fine
+      for a server with no requests, but a sign you should adjust the producer-to-consumer ratio in something like a web
+      crawler with effectively infinite work. If producers are consistently faster than consumers and the queue is
+      unbounded, the queue grows without limit until the application dies of <code>OutOfMemoryError</code>. With a
+      <strong>bounded</strong> queue, producers block when it fills, which gives consumers time to catch up: a blocked
+      producer cannot generate more work.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Method</th><th>On full / empty</th><th>Use when</th></tr></thead>
+        <tbody>
+          <tr><td><code>put(e)</code> / <code>take()</code></td><td>Blocks indefinitely</td><td>Backpressure is the point; no cancellation deadline to honour</td></tr>
+          <tr><td><code>offer(e, timeout, unit)</code> / <code>poll(timeout, unit)</code></td><td>Blocks until timeout, then reports failure</td><td>Bounded wait: give up and shed load, serialize to disk, log</td></tr>
+          <tr><td><code>offer(e)</code> / <code>poll()</code></td><td>Returns <code>false</code> / <code>null</code> immediately</td><td>Never block the producer thread; drop or handle overflow yourself</td></tr>
+          <tr><td><code>add(e)</code> / <code>remove()</code> / <code>element()</code></td><td>Throws on full / empty</td><td>Only where "full" is a programming error</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      <code>offer</code>'s failure status is what makes richer overload policies possible: shed load, spill excess work
+      to disk, reduce the number of producer threads, or throttle producers some other way.
+      <strong>Bounded queues are a powerful resource-management tool</strong> — they make a program robust to overload by
+      throttling activities that threaten to produce more work than can be handled.
+    </p>
+    <p>
+      Producer and consumer behaviour is still coupled <em>indirectly</em>, through the shared queue. It is tempting to
+      assume consumers will always keep up and leave work queues unbounded, but that is a prescription for
+      rearchitecting the system later. Build resource management in from the start; it is much easier than retrofitting
+      it. If blocking queues don't fit the design, you can build other blocking data structures with
+      <code>Semaphore</code> (§5.5.3).
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Implementation</th><th>Ordering</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>LinkedBlockingQueue</code></td><td>FIFO</td><td>Like <code>LinkedList</code>, with much better concurrent performance; optionally bounded</td></tr>
+          <tr><td><code>ArrayBlockingQueue</code></td><td>FIFO</td><td>Like <code>ArrayList</code>; bounded by construction, one lock for puts and takes</td></tr>
+          <tr><td><code>PriorityBlockingQueue</code></td><td>Priority</td><td>Natural ordering or a <code>Comparator</code>; unbounded</td></tr>
+          <tr><td><code>SynchronousQueue</code></td><td>None — direct handoff</td><td>No storage: <code>put</code> blocks until a consumer takes. Lowest handoff latency; needs enough consumers</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      <code>SynchronousQueue</code> is not really a queue: it stores no elements, just a list of threads waiting to
+      enqueue or dequeue. In the dish analogy there is no rack — you hand each washed dish to the next free drier. That
+      reduces handoff latency because enqueue and dequeue no longer have to complete sequentially, and the direct handoff
+      tells the producer more: when the handoff is accepted, a consumer has taken responsibility, rather than the item
+      sitting in a mailbox somewhere. Since it has no capacity, <code>put</code> and <code>take</code> block unless
+      another thread is already waiting, so it suits designs with enough consumers that one is nearly always ready.
+    </p>
+
+    <h3><span class="num">5.3.1</span>Example: desktop search</h3>
+    <p>
+      A desktop search agent that scans local drives for documents and indexes them decomposes naturally into producers
+      and consumers. <code>FileCrawler</code> in Listing 5.8 is the producer: it walks a file hierarchy and puts the
+      names of files meeting the indexing criterion on the work queue. <code>Indexer</code> is the consumer: it takes
+      file names and indexes them.
+    </p>
+    <p>
+      Factoring crawling and indexing into separate activities yields code that is more readable and reusable than a
+      monolithic activity doing both; each has a single task and the blocking queue handles all the flow control. There
+      are performance benefits too: producer and consumer run concurrently, so if one is I/O-bound and the other
+      CPU-bound, running them together beats running them sequentially; and if the two activities parallelize to
+      different degrees, coupling them tightly would reduce parallelism to that of the less parallelizable one.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PRODUCER / CONSUMER</span>
+        <span class="name">Listing 5.8 · Producer and consumer tasks in a desktop search application</span>
+        <button class="copy" data-copy="ch5-l58">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l58">public class FileCrawler implements Runnable {
+    private final BlockingQueue&lt;File&gt; fileQueue;
+    private final FileFilter fileFilter;
+    private final File root;
+    ...
+    public void run() {
+        try {
+            crawl(root);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void crawl(File root) throws InterruptedException {
+        File[] entries = root.listFiles(fileFilter);
+        if (entries != null) {
+            for (File entry : entries)
+                if (entry.isDirectory())
+                    crawl(entry);
+                else if (!alreadyIndexed(entry))
+                    fileQueue.put(entry);
+        }
+    }
+}
+
+public class Indexer implements Runnable {
+    private final BlockingQueue&lt;File&gt; queue;
+
+    public Indexer(BlockingQueue&lt;File&gt; queue) {
+        this.queue = queue;
+    }
+
+    public void run() {
+        try {
+            while (true)
+                indexFile(queue.take());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Listing 5.9 starts several crawlers and indexers, each in its own thread. As written the consumer threads never
+      exit, which prevents the program from terminating — Chapter 7 shows techniques for that. And although this example
+      uses explicitly managed threads, many producer–consumer designs can be expressed with the
+      <code>Executor</code> framework, which is itself a producer–consumer design.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">WIRING</span>
+        <span class="name">Listing 5.9 · Starting the desktop search</span>
+        <button class="copy" data-copy="ch5-l59">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l59">public static void startIndexing(File[] roots) {
+    BlockingQueue&lt;File&gt; queue = new LinkedBlockingQueue&lt;File&gt;(BOUND);
+    FileFilter filter = new FileFilter() {
+        public boolean accept(File file) { return true; }
+    };
+
+    for (File root : roots)
+        new Thread(new FileCrawler(queue, filter, root)).start();
+
+    for (int i = 0; i &lt; N_CONSUMERS; i++)
+        new Thread(new Indexer(queue)).start();
+}</code></pre>
+    </div>
+
+    <h3><span class="num">5.3.2</span>Serial thread confinement</h3>
+    <p>
+      All the blocking queue implementations in <code>java.util.concurrent</code> contain enough internal synchronization
+      to <strong>safely publish objects from a producer thread to a consumer thread</strong>. For mutable objects, that
+      makes producer–consumer designs a way to hand off <em>ownership</em>: a thread-confined object is owned
+      exclusively by one thread, but ownership can be <strong>transferred</strong> by publishing it safely where exactly
+      one other thread will gain access, and then never touching it again. Safe publication makes the object's state
+      visible to the new owner; the original owner's silence keeps it confined; and the new owner may then modify it
+      freely.
+    </p>
+    <p>
+      Object pools exploit this, "lending" an object to a requesting thread. As long as the pool publishes pooled objects
+      safely and clients neither publish the object nor use it after returning it, ownership moves safely from thread to
+      thread. Other publication mechanisms work too, provided <em>only one</em> thread can receive the object: blocking
+      queues make it easy, and with more work you can use <code>ConcurrentMap</code>'s atomic <code>remove</code> or
+      <code>AtomicReference.compareAndSet</code>.
+    </p>
+
+    <h3><span class="num">5.3.3</span>Deques and work stealing</h3>
+    <p>
+      Java 6 adds <code>Deque</code> ("deck") and <code>BlockingDeque</code>, extending <code>Queue</code> and
+      <code>BlockingQueue</code> with efficient insertion and removal at <em>both</em> ends; implementations include
+      <code>ArrayDeque</code> and <code>LinkedBlockingDeque</code>.
+    </p>
+    <p>
+      Just as blocking queues lend themselves to producer–consumer, deques lend themselves to <strong>work
+      stealing</strong>. In a producer–consumer design there is one shared work queue; in work stealing,
+      <em>every consumer has its own deque</em>. If a consumer exhausts its own deque, it steals work from the
+      <strong>tail</strong> of someone else's. This scales better because workers do not contend for a shared queue —
+      most of the time they touch only their own — and even when they must reach into another's deque they use the tail,
+      where the owner (working at the head) is not.
+    </p>
+    <p>
+      Work stealing suits problems where consumers are also producers: doing a unit of work tends to identify more work.
+      Processing a page in a web crawler finds new pages; graph exploration such as marking the heap during garbage
+      collection parallelizes well this way. A worker finding new work pushes it onto the end of its own deque; when its
+      deque is empty it looks at the end of someone else's, which keeps every worker busy.
+    </p>
+  </section>
+
+  <!-- ================= 5.4 ================= -->
+  <section id="ch5-interruptible">
+    <h2><span class="num">5.4</span>Blocking and Interruptible Methods</h2>
+    <p class="lede"><code>InterruptedException</code> is not an annoyance to be swallowed. It is a message from the
+    library: <em>this call can block, and I can stop blocking early if you ask.</em></p>
+    <p>
+      Threads block for many reasons: waiting for I/O, waiting to acquire a lock, waiting to wake from
+      <code>Thread.sleep</code>, or waiting for another thread's computation. A blocked thread is suspended in one of
+      the blocked states — <code>BLOCKED</code>, <code>WAITING</code> or <code>TIMED_WAITING</code>. What distinguishes a
+      blocking operation from an ordinary slow one is that the blocked thread must wait for an event beyond its control
+      before it can proceed; when that event happens, the thread returns to <code>RUNNABLE</code> and becomes eligible
+      for scheduling again.
+    </p>
+    <p>
+      <code>BlockingQueue.put</code> and <code>take</code> throw the checked <code>InterruptedException</code>, as do
+      many other library methods such as <code>Thread.sleep</code>. When a method declares it, it is telling you that it
+      is a blocking method and that, if interrupted, it will make an effort to stop blocking early.
+      <code>Thread.interrupt</code> sets a per-thread boolean interrupted status and can also query it.
+    </p>
+    <div class="callout warn">
+      <span class="mark">🤝</span>
+      <p><strong>Interruption is cooperative.</strong> One thread cannot force another to stop what it is doing. When A
+      interrupts B, A is merely <em>requesting</em> that B stop at a convenient stopping point — if B feels like it.
+      Nothing in the API demands application-level semantics, but the most sensible use of interruption is to
+      <strong>cancel</strong> an activity; blocking methods that respond to interruption make timely cancellation
+      possible.</p>
+    </div>
+    <p>
+      If your code calls a method that throws <code>InterruptedException</code>, your method is a blocking method too and
+      must have a <em>plan</em>. For library code there are basically two choices:
+    </p>
+    <div class="grid">
+      <div class="tile"><div class="ico">↗️</div><h5>Propagate</h5>
+        <p>Often the most sensible policy: don't catch it, or catch it, do brief activity-specific cleanup, and rethrow.
+        The caller learns that the operation was interrupted, with the stack intact.</p></div>
+      <div class="tile"><div class="ico">♻️</div><h5>Restore</h5>
+        <p>When you cannot throw it — typically inside a <code>Runnable</code> — catch it and call
+        <code>Thread.currentThread().interrupt()</code> so code higher up the stack still sees that an interrupt was
+        issued.</p></div>
+      <div class="tile"><div class="ico">🚫</div><h5>Never swallow</h5>
+        <p>Catching and doing nothing deprives callers of the chance to act, because the evidence that the thread was
+        interrupted is gone. The sole exception: you extend <code>Thread</code> and therefore own all the code above.</p></div>
+    </div>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">RESTORE</span>
+        <span class="name">Listing 5.10 · Restoring the interrupted status so as not to swallow the interrupt</span>
+        <button class="copy" data-copy="ch5-l510">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l510">public class TaskRunnable implements Runnable {
+    BlockingQueue&lt;Task&gt; queue;
+    ...
+    public void run() {
+        try {
+            processTask(queue.take());
+        } catch (InterruptedException e) {
+             // restore interrupted status
+             Thread.currentThread().interrupt();
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>Cancellation and interruption in depth are Chapter 7 — the point here is only that these two policies cover the
+    vast majority of situations, and that swallowing the exception covers none of them.</p>
+  </section>
+
+  <!-- ================= 5.5 ================= -->
+  <section id="ch5-synchronizers">
+    <h2><span class="num">5.5</span>Synchronizers</h2>
+    <p class="lede">Blocking queues are unique among collections: they hold objects <em>and</em> coordinate control flow,
+    because <code>take</code> and <code>put</code> block until the queue reaches the state you need.</p>
+    <p>
+      A <strong>synchronizer</strong> is any object that coordinates the control flow of threads based on its state.
+      Blocking queues are synchronizers; so are semaphores, barriers and latches. The platform library provides several;
+      if none fits, you can build your own with the mechanisms of Chapter 14.
+    </p>
+    <div class="callout">
+      <span class="mark">🧩</span>
+      <p>All synchronizers share three structural properties: they <strong>encapsulate state</strong> that determines
+      whether arriving threads may pass or must wait; they expose <strong>methods to manipulate that state</strong>; and
+      they offer <strong>methods to wait efficiently</strong> until the synchronizer enters the desired state. Change the
+      state and you have described every class in this section.</p>
+    </div>
+
+    <h3><span class="num">5.5.1</span>Latches</h3>
+    <p>
+      A <strong>latch</strong> delays the progress of threads until it reaches its terminal state. It is a gate: closed
+      until the terminal state, then open for all threads, and — crucially — <em>it never closes again</em>. Latches are
+      for ensuring one-time activities complete before other activities proceed:
+    </p>
+    <ul>
+      <li>A computation must not proceed until the resources it needs are initialized — a binary latch meaning "resource R
+      is ready".</li>
+      <li>A service must not start until the services it depends on have started — one latch per service, waited on
+      before startup and released after.</li>
+      <li>All parties in an activity (say, the players of a multi-player game) must be ready to proceed; the latch reaches
+      its terminal state when the last one arrives.</li>
+    </ul>
+    <p>
+      <code>CountDownLatch</code> is the flexible implementation: a counter initialized to the number of events to wait
+      for. <code>countDown</code> decrements it, <code>await</code> blocks until it reaches zero, the waiting thread is
+      interrupted, or the wait times out.
+    </p>
+    <p>
+      <code>TestHarness</code> in Listing 5.11 uses two latches, a <strong>starting gate</strong> initialized to one and
+      an <strong>ending gate</strong> initialized to the number of worker threads. Every worker waits on the start gate
+      before doing anything, and counts down the end gate when finished, so the master thread can wait efficiently for the
+      last worker rather than polling each in turn.
+    </p>
+    <p>
+      Why bother, rather than starting threads as they are created? Because the harness measures how long it takes to run
+      a task <em>n</em> times <em>concurrently</em>. Started one by one, early threads get a head start and the degree of
+      contention varies over the run as the number of active threads ramps up and down — you would be timing a moving
+      target.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">START + END GATE</span>
+        <span class="name">Listing 5.11 · Using CountDownLatch for starting and stopping threads in timing tests</span>
+        <button class="copy" data-copy="ch5-l511">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l511">public class TestHarness {
+    public long timeTasks(int nThreads, final Runnable task)
+            throws InterruptedException {
+        final CountDownLatch startGate = new CountDownLatch(1);
+        final CountDownLatch endGate = new CountDownLatch(nThreads);
+
+        for (int i = 0; i &lt; nThreads; i++) {
+            Thread t = new Thread() {
+                public void run() {
+                    try {
+                        startGate.await();
+                        try {
+                            task.run();
+                        } finally {
+                            endGate.countDown();
+                        }
+                    } catch (InterruptedException ignored) { }
+                }
+            };
+            t.start();
+        }
+
+        long start = System.nanoTime();
+        startGate.countDown();
+        endGate.await();
+        long end = System.nanoTime();
+        return end-start;
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">5.5.2</span>FutureTask</h3>
+    <p>
+      <code>FutureTask</code> also acts like a latch, and it implements <code>Future</code>: a result-bearing computation.
+      The computation is a <code>Callable</code> — the result-bearing equivalent of <code>Runnable</code> — and the task
+      is in one of three states: <strong>waiting to run, running, or completed</strong>, where completion subsumes normal
+      completion, cancellation and exception. Once completed it stays completed forever.
+    </p>
+    <p>
+      <code>Future.get</code> returns immediately if the task is completed and otherwise blocks until it transitions,
+      then returns the result or throws. The specification guarantees that this transfer of the result from the
+      computing thread to the retrieving threads is a <strong>safe publication</strong> — which is why a
+      <code>FutureTask</code> is a legitimate way to hand a mutable object to another thread.
+    </p>
+    <p>
+      <code>Preloader</code> in Listing 5.12 uses a <code>FutureTask</code> for an expensive computation whose result is
+      needed later: start it early and the later wait is shorter. It exposes a <code>start</code> method rather than
+      starting the thread in the constructor — starting a thread from a constructor or static initializer is inadvisable,
+      since the object may not be fully constructed when the thread runs.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">PRELOAD</span>
+        <span class="name">Listing 5.12 · Using FutureTask to preload data that is needed later</span>
+        <button class="copy" data-copy="ch5-l512">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l512">public class Preloader {
+    private final FutureTask&lt;ProductInfo&gt; future =
+        new FutureTask&lt;ProductInfo&gt;(new Callable&lt;ProductInfo&gt;() {
+            public ProductInfo call() throws DataLoadException {
+                return loadProductInfo();
+            }
+        });
+    private final Thread thread = new Thread(future);
+
+    public void start() { thread.start(); }
+
+    public ProductInfo get()
+            throws DataLoadException, InterruptedException {
+        try {
+            return future.get();
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof DataLoadException)
+                throw (DataLoadException) cause;
+            else
+                throw launderThrowable(cause);
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Tasks described by <code>Callable</code> can throw checked exceptions, unchecked exceptions or errors; whatever the
+      task throws is wrapped in an <code>ExecutionException</code> and rethrown from <code>Future.get</code>. That
+      complicates callers: they must deal with <code>ExecutionException</code> (and the unchecked
+      <code>CancellationException</code>), and its cause arrives as a <code>Throwable</code>. The cause falls into one of
+      three categories — a checked exception from the <code>Callable</code>, a <code>RuntimeException</code>, or an
+      <code>Error</code>. <code>Preloader</code> tests for the known checked exceptions and rethrows them, leaving only
+      unchecked ones for <code>launderThrowable</code> (Listing 5.13), which rethrows an <code>Error</code>, returns a
+      <code>RuntimeException</code> to its caller, and otherwise throws <code>IllegalStateException</code> to signal a
+      logic error.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">UTILITY</span>
+        <span class="name">Listing 5.13 · Coercing an unchecked Throwable to a RuntimeException</span>
+        <button class="copy" data-copy="ch5-l513">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l513">/** If the Throwable is an Error, throw it; if it is a
+ *  RuntimeException return it, otherwise throw IllegalStateException
+ */
+public static RuntimeException launderThrowable(Throwable t) {
+    if (t instanceof RuntimeException)
+        return (RuntimeException) t;
+    else if (t instanceof Error)
+        throw (Error) t;
+    else
+        throw new IllegalStateException("Not unchecked", t);
+}</code></pre>
+    </div>
+
+    <h3><span class="num">5.5.3</span>Semaphores</h3>
+    <p>
+      A counting <strong>semaphore</strong> controls the number of activities that can access a resource or perform an
+      action at the same time. It manages a set of virtual <strong>permits</strong>, created with an initial count;
+      activities <code>acquire</code> a permit before proceeding and <code>release</code> it when done. If none is
+      available, <code>acquire</code> blocks until one is (or until interrupted or timed out). A
+      <strong>binary semaphore</strong> — initial count one — can serve as a mutex with <em>non-reentrant</em> locking
+      semantics: whoever holds the sole permit holds the mutex.
+    </p>
+    <div class="callout warn">
+      <span class="mark">🪙</span>
+      <p>The implementation has no actual permit objects, and a <code>Semaphore</code> does not associate dispensed
+      permits with threads — so a permit acquired in one thread can be released from another. Think of
+      <code>acquire</code> as consuming a permit and <code>release</code> as creating one; a semaphore is not limited to
+      the number of permits it was created with.</p>
+    </div>
+    <p>
+      Semaphores implement resource pools such as database connection pools. A fixed-size pool that fails when empty is
+      easy; what you want is to <em>block</em> when empty and unblock when nonempty. Initialize the semaphore to the pool
+      size, acquire before fetching a resource, release after returning one, and <code>acquire</code> blocks until the
+      pool is nonempty. (An easier blocking pool is a <code>BlockingQueue</code> holding the resources.)
+    </p>
+    <p>
+      Similarly a semaphore turns any collection into a <strong>blocking bounded collection</strong>, as
+      <code>BoundedHashSet</code> in Listing 5.14 shows: the semaphore is initialized to the maximum size; <code>add</code>
+      acquires a permit before adding and releases it again if nothing was actually added; a successful
+      <code>remove</code> releases a permit, letting the next add proceed. The underlying <code>Set</code> knows nothing
+      about the bound — <code>BoundedHashSet</code> owns that policy.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">BOUNDED</span>
+        <span class="name">Listing 5.14 · Using Semaphore to bound a collection</span>
+        <button class="copy" data-copy="ch5-l514">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l514">public class BoundedHashSet&lt;T&gt; {
+    private final Set&lt;T&gt; set;
+    private final Semaphore sem;
+
+    public BoundedHashSet(int bound) {
+        this.set = Collections.synchronizedSet(new HashSet&lt;T&gt;());
+        sem = new Semaphore(bound);
+    }
+
+    public boolean add(T o) throws InterruptedException {
+        sem.acquire();
+        boolean wasAdded = false;
+        try {
+            wasAdded = set.add(o);
+            return wasAdded;
+        }
+        finally {
+            if (!wasAdded)
+                sem.release();
+        }
+    }
+
+    public boolean remove(Object o) {
+        boolean wasRemoved = set.remove(o);
+        if (wasRemoved)
+            sem.release();
+        return wasRemoved;
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">5.5.4</span>Barriers</h3>
+    <p>
+      Latches start a group of activities or wait for them to complete — but they are <strong>single-use</strong>: once
+      in the terminal state, a latch cannot be reset. <strong>Barriers</strong> are similar in that they block a group of
+      threads until some event has occurred; the key difference is that with a barrier <em>all the threads must arrive at
+      the barrier point</em> in order to proceed. Latches wait for <strong>events</strong>; barriers wait for
+      <strong>other threads</strong>. The book's analogy is the family rendezvous at the mall: everyone meet at
+      McDonald's at 6:00, and once you're there stay there until everyone shows up.
+    </p>
+    <p>
+      <code>CyclicBarrier</code> lets a fixed number of parties rendezvous <em>repeatedly</em>, which suits parallel
+      iterative algorithms that split a problem into a fixed number of independent subproblems. Threads call
+      <code>await</code> at the barrier point and block until all have arrived; then all are released and the barrier
+      resets for the next iteration. If a call times out or a waiting thread is interrupted, the barrier is
+      <strong>broken</strong> and all outstanding <code>await</code> calls terminate with
+      <code>BrokenBarrierException</code>. On success <code>await</code> returns a unique <strong>arrival index</strong>,
+      usable to elect a leader that does something special next round. The constructor also accepts a
+      <strong>barrier action</strong> — a <code>Runnable</code> run in one of the subtask threads after the barrier is
+      passed but before the blocked threads are released.
+    </p>
+    <p>
+      Barriers appear in simulations, where the work for one step parallelizes but all of step <em>k</em> must finish
+      before step <em>k+1</em> begins — n-body particle updates, for instance.
+      <code>CellularAutomata</code> in Listing 5.15 computes Conway's Life: assigning a thread per cell is impractical,
+      so the board is partitioned into <code>Ncpu</code> parts, one per worker. Each step, workers compute new values for
+      their part and wait at the barrier; the barrier action commits the new values to the model; then workers are
+      released to compute the next step, checking <code>hasConverged</code> first.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">BARRIER ACTION</span>
+        <span class="name">Listing 5.15 · Coordinating computation in a cellular automaton with CyclicBarrier</span>
+        <button class="copy" data-copy="ch5-l515">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l515">public class CellularAutomata {
+    private final Board mainBoard;
+    private final CyclicBarrier barrier;
+    private final Worker[] workers;
+
+    public CellularAutomata(Board board) {
+        this.mainBoard = board;
+        int count = Runtime.getRuntime().availableProcessors();
+        this.barrier = new CyclicBarrier(count,
+                new Runnable() {
+                    public void run() {
+                        mainBoard.commitNewValues();
+                    }});
+        this.workers = new Worker[count];
+        for (int i = 0; i &lt; count; i++)
+            workers[i] = new Worker(mainBoard.getSubBoard(count, i));
+    }
+
+    private class Worker implements Runnable {
+        private final Board board;
+
+        public Worker(Board board) { this.board = board; }
+        public void run() {
+            while (!board.hasConverged()) {
+                for (int x = 0; x &lt; board.getMaxX(); x++)
+                    for (int y = 0; y &lt; board.getMaxY(); y++)
+                        board.setNewValue(x, y, computeValue(x, y));
+                try {
+                    barrier.await();
+                } catch (InterruptedException ex) {
+                    return;
+                } catch (BrokenBarrierException ex) {
+                    return;
+                }
+            }
+        }
+    }
+
+    public void start() {
+        for (int i = 0; i &lt; workers.length; i++)
+            new Thread(workers[i]).start();
+        mainBoard.waitForConvergence();}
+}</code></pre>
+    </div>
+
+    <p>
+      Another form of barrier is <code>Exchanger</code>, a <strong>two-party</strong> barrier at which the parties swap
+      data. It suits asymmetric activities — one thread fills a buffer while another drains it, meeting to trade a full
+      buffer for an empty one. When two threads exchange objects through an <code>Exchanger</code>, the exchange
+      constitutes a safe publication of both objects to the other party. When to exchange is a responsiveness decision:
+      exchanging only when the buffer is full (filler) or empty (drainer) minimizes exchanges but can delay processing
+      when the arrival rate is unpredictable; exchanging a partially filled buffer after some elapsed time is the
+      alternative.
+    </p>
+  </section>
+
+  <!-- ================= 5.6 ================= -->
+  <section id="ch5-cache">
+    <h2><span class="num">5.6</span>Building an Efficient, Scalable Result Cache</h2>
+    <p class="lede">Nearly every server application caches. Like most frequently reinvented wheels, caching looks simpler
+    than it is — and a naive cache turns a performance bottleneck into a scalability bottleneck.</p>
+    <p>
+      Reusing a previous computation reduces latency and increases throughput at the cost of memory. The chapter builds a
+      result cache for a computationally expensive function in four steps, and <strong>every step shrinks a race
+      window</strong>:
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Attempt</th><th>Backing store</th><th>Concurrency</th><th>Defect</th><th>Figure</th></tr></thead>
+        <tbody>
+          <tr><td><code>Memorizer1</code> (5.16)</td><td><code>HashMap</code>, <code>synchronized compute</code></td><td>None — one thread at a time</td><td>Serialized; can be slower than no cache at all</td><td>5.2</td></tr>
+          <tr><td><code>Memorizer2</code> (5.17)</td><td><code>ConcurrentHashMap</code></td><td>Full</td><td>Duplicate computation: check-then-act on the value</td><td>5.3</td></tr>
+          <tr><td><code>Memorizer3</code> (5.18)</td><td><code>ConcurrentHashMap&lt;A, Future&lt;V&gt;&gt;</code></td><td>Full, and waiters share one computation</td><td>Small window: two threads both see "absent"</td><td>5.4</td></tr>
+          <tr><td><code>Memorizer</code> (5.19)</td><td>Same, plus <code>putIfAbsent</code></td><td>Full, exactly-once</td><td>No expiration, no eviction</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      The <code>Computable&lt;A,V&gt;</code> interface in Listing 5.16 describes a function from <code>A</code> to
+      <code>V</code>; <code>ExpensiveFunction</code> takes a long time. The goal is a <code>Computable</code> wrapper that
+      remembers previous results — <strong>memorization</strong>.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag bad">SERIALIZED</span>
+        <span class="name">Listing 5.16 · Initial cache attempt using HashMap and synchronization</span>
+        <button class="copy" data-copy="ch5-l516">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l516">public interface Computable&lt;A, V&gt; {
+    V compute(A arg) throws InterruptedException;
+}
+
+public class ExpensiveFunction
+        implements Computable&lt;String, BigInteger&gt; {
+    public BigInteger compute(String arg) {
+        // after deep thought...
+        return new BigInteger(arg);
+    }
+}
+
+public class Memorizer1&lt;A, V&gt; implements Computable&lt;A, V&gt; {
+    @GuardedBy("this")
+    private final Map&lt;A, V&gt; cache = new HashMap&lt;A, V&gt;();
+    private final Computable&lt;A, V&gt; c;
+
+    public Memorizer1(Computable&lt;A, V&gt; c) {
+        this.c = c;
+    }
+
+    public synchronized V compute(A arg) throws InterruptedException {
+        V result = cache.get(arg);
+        if (result == null) {
+            result = c.compute(arg);
+            cache.put(arg, result);
+        }
+        return result;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      <code>Memorizer1</code> caches in a <code>HashMap</code>, which is not thread-safe, so it takes the conservative
+      route: synchronize the entire <code>compute</code> method. Thread safety, yes — but only one thread can execute
+      <code>compute</code> at all. If one thread is busy on a long computation, every other thread calling
+      <code>compute</code> blocks, even for values already computed. With several threads queued for uncached values,
+      <code>compute</code> may take <em>longer</em> than it would have without memorization at all.
+    </p>
+
+    <figure id="ch5-fig52">
+      <img src="data:image/png;base64,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"
+           alt="Figure 5.2 — Three threads: A locks, computes f(1), unlocks; B waits for the lock, then locks, computes f(2), unlocks; C waits again and only then locks to return cached f(1).">
+      <figcaption><strong>Figure 5.2</strong> — Poor concurrency of <code>Memorizer1</code>. C wants a value that is
+      already cached, but must wait for B's entire computation of <code>f(2)</code> before it can return
+      <code>f(1)</code>.</figcaption>
+    </figure>
+
+    <p>
+      <code>Memorizer2</code> (Listing 5.17) improves on that awful behaviour by replacing the <code>HashMap</code> with a
+      <code>ConcurrentHashMap</code>. Since the map is thread-safe, no synchronization is needed when accessing it, and
+      the serialization disappears.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">CONCURRENT, BUT DUPLICATES</span>
+        <span class="name">Listing 5.17 · Replacing HashMap with ConcurrentHashMap</span>
+        <button class="copy" data-copy="ch5-l517">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l517">public class Memorizer2&lt;A, V&gt; implements Computable&lt;A, V&gt; {
+    private final Map&lt;A, V&gt; cache = new ConcurrentHashMap&lt;A, V&gt;();
+    private final Computable&lt;A, V&gt; c;
+
+    public Memorizer2(Computable&lt;A, V&gt; c) { this.c = c; }
+
+    public V compute(A arg) throws InterruptedException {
+        V result = cache.get(arg);
+        if (result == null) {
+            result = c.compute(arg);
+            cache.put(arg, result);
+        }
+        return result;
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Better concurrency, but still defective as a cache: there is a <strong>window of vulnerability</strong> in which two
+      threads calling <code>compute</code> at the same time both compute the same value. For memorization that is merely
+      inefficient — the whole point of a cache is not to calculate the same thing twice. For a general-purpose object
+      cache that promises once-and-only-once initialization, it is a <strong>safety</strong> problem.
+    </p>
+    <p>
+      The issue is that a thread starting an expensive computation does not tell anyone it is doing so, so others start
+      the same computation. We want to represent "thread X is currently computing <code>f(27)</code>", so that a thread
+      arriving later for <code>f(27)</code> knows the efficient route: go to X's house, wait until X is done, and ask what
+      X got.
+    </p>
+
+    <figure id="ch5-fig53">
+      <img src="data:image/png;base64,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"
+           alt="Figure 5.3 — Thread A finds f(1) absent, computes f(1), adds it to the cache; thread B, starting before A's add, also finds f(1) absent, computes f(1), and adds it to the cache.">
+      <figcaption><strong>Figure 5.3</strong> — Two threads computing the same value when using <code>Memorizer2</code>.
+      Both passed the <code>if (result == null)</code> test before either reached <code>cache.put</code>.</figcaption>
+    </figure>
+
+    <p>
+      We have already met a class that does almost exactly this: <code>FutureTask</code>. It represents a computation that
+      may or may not have completed, and <code>get</code> returns immediately if the result is available or blocks until
+      it is. <code>Memorizer3</code> (Listing 5.18) redefines the backing map as <code>ConcurrentHashMap&lt;A,
+      Future&lt;V&gt;&gt;</code> and checks whether the calculation has been <em>started</em> (rather than finished): if
+      not, it creates a <code>FutureTask</code>, registers it in the map and runs it; otherwise it waits for the existing
+      computation. Whether the result is ready now or in progress is transparent to the caller.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">NARROW WINDOW</span>
+        <span class="name">Listing 5.18 · Memorizing wrapper using FutureTask</span>
+        <button class="copy" data-copy="ch5-l518">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l518">public class Memorizer3&lt;A, V&gt; implements Computable&lt;A, V&gt; {
+    private final Map&lt;A, Future&lt;V&gt;&gt; cache
+            = new ConcurrentHashMap&lt;A, Future&lt;V&gt;&gt;();
+    private final Computable&lt;A, V&gt; c;
+
+    public Memorizer3(Computable&lt;A, V&gt; c) { this.c = c; }
+
+    public V compute(final A arg) throws InterruptedException {
+        Future&lt;V&gt; f = cache.get(arg);
+        if (f == null) {
+            Callable&lt;V&gt; eval = new Callable&lt;V&gt;() {
+                public V call() throws InterruptedException {
+                    return c.compute(arg);
+                }
+            };
+            FutureTask&lt;V&gt; ft = new FutureTask&lt;V&gt;(eval);
+            f = ft;
+            cache.put(arg, ft);
+            ft.run(); // call to c.compute happens here
+        }
+        try {
+            return f.get();
+        } catch (ExecutionException e) {
+            throw launderThrowable(e.getCause());
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Almost perfect: very good concurrency (inherited from <code>ConcurrentHashMap</code>), efficient return of known
+      results, patient waiting when someone else is computing. One defect remains — a small window in which two threads
+      may compute the same value.
+    </p>
+
+    <figure id="ch5-fig54">
+      <img src="data:image/png;base64,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"
+           alt="Figure 5.4 — Threads A and B both find f(1) not in the cache, both put a Future for f(1) in the cache, both compute f(1), and both set the result.">
+      <figcaption><strong>Figure 5.4</strong> — Unlucky timing that could cause <code>Memorizer3</code> to calculate the
+      same value twice. The <code>if</code> block in <code>compute</code> is still a non-atomic check-then-act
+      sequence.</figcaption>
+    </figure>
+
+    <p>
+      <code>Memorizer3</code> is vulnerable because a put-if-absent compound action is performed on the backing map in a
+      way that cannot be made atomic with locking. <code>Memorizer</code> (Listing 5.19) uses the atomic
+      <code>putIfAbsent</code> of <code>ConcurrentMap</code> — the operation from Listing 5.7 — and closes the window:
+      exactly one thread's <code>FutureTask</code> is installed, and only that thread runs it.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">EXACTLY ONCE</span>
+        <span class="name">Listing 5.19 · Final implementation of Memorizer</span>
+        <button class="copy" data-copy="ch5-l519">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l519">public class Memorizer&lt;A, V&gt; implements Computable&lt;A, V&gt; {
+    private final ConcurrentMap&lt;A, Future&lt;V&gt;&gt; cache
+        = new ConcurrentHashMap&lt;A, Future&lt;V&gt;&gt;();
+    private final Computable&lt;A, V&gt; c;
+
+    public Memorizer(Computable&lt;A, V&gt; c) { this.c = c; }
+
+    public V compute(final A arg) throws InterruptedException {
+        while (true) {
+            Future&lt;V&gt; f = cache.get(arg);
+            if (f == null) {
+                Callable&lt;V&gt; eval = new Callable&lt;V&gt;() {
+                    public V call() throws InterruptedException {
+                        return c.compute(arg);
+                    }
+                };
+                FutureTask&lt;V&gt; ft = new FutureTask&lt;V&gt;(eval);
+                f = cache.putIfAbsent(arg, ft);
+                if (f == null) { f = ft; ft.run(); }
+            }
+            try {
+                return f.get();
+            } catch (CancellationException e) {
+                cache.remove(arg, f);
+            } catch (ExecutionException e) {
+                throw launderThrowable(e.getCause());
+            }
+        }
+    }
+}</code></pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="mark">🧹</span>
+      <p><strong>Cache pollution.</strong> Caching a <code>Future</code> instead of a value means a cancelled or failed
+      computation poisons the entry: later callers would see the same cancellation or failure. <code>Memorizer</code>
+      therefore removes the <code>Future</code> when it detects cancellation, and you may want to do the same for a
+      <code>RuntimeException</code> that might succeed on a retry. It still ignores <strong>expiration</strong> (a
+      <code>FutureTask</code> subclass with a timestamp plus periodic scanning would do) and <strong>eviction</strong>
+      (removing old entries so the cache does not grow without bound).</p>
+    </div>
+
+    <p>
+      With the cache complete, the factorizing servlet promised back in Chapter 2 finally gets real caching: Listing 5.20
+      wraps <code>factor</code> in a <code>Memorizer</code> and serves results from it, translating
+      <code>InterruptedException</code> into an error response.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag good">PUT TO WORK</span>
+        <span class="name">Listing 5.20 · Factorizing servlet that caches results using Memorizer</span>
+        <button class="copy" data-copy="ch5-l520">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-l520">@ThreadSafe
+public class Factorizer implements Servlet {
+    private final Computable&lt;BigInteger, BigInteger[]&gt; c =
+        new Computable&lt;BigInteger, BigInteger[]&gt;() {
+            public BigInteger[] compute(BigInteger arg) {
+                return factor(arg);
+            }
+        };
+    private final Computable&lt;BigInteger, BigInteger[]&gt; cache
+        = new Memorizer&lt;BigInteger, BigInteger[]&gt;(c);
+
+    public void service(ServletRequest req,
+                        ServletResponse resp) {
+        try {
+            BigInteger i = extractFromRequest(req);
+            encodeIntoResponse(resp, cache.compute(i));
+        } catch (InterruptedException e) {
+            encodeError(resp, "factorization interrupted");
+        }
+    }
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ================= simulator ================= -->
+  <section id="ch5-sim">
+    <h2><span class="num">▶</span>Interactive: how wide is the window?</h2>
+    <p class="lede">Three threads, one expensive function, four cache designs. Press <em>Step</em> and watch how many
+    times <code>f(27)</code> is actually computed.</p>
+
+    <div class="sim">
+      <div class="sim-controls">
+        <button class="btn primary" id="ch5-simStep">Step ▸</button>
+        <button class="btn" id="ch5-simPlay">Play</button>
+        <button class="btn" id="ch5-simReset">Reset</button>
+        <div class="sim-toggle">
+          <button id="ch5-modeM1" class="on">Memorizer1</button>
+          <button id="ch5-modeM2">Memorizer2</button>
+          <button id="ch5-modeM3">Memorizer3</button>
+          <button id="ch5-modeM4">Memorizer</button>
+        </div>
+      </div>
+
+      <div class="lanes">
+        <div class="lane-label">thread A</div>
+        <div class="lane" id="ch5-laneA"></div>
+        <div class="lane-label">thread B</div>
+        <div class="lane" id="ch5-laneB"></div>
+        <div class="lane-label">thread C</div>
+        <div class="lane" id="ch5-laneC"></div>
+      </div>
+
+      <div class="sim-readout">
+        <div class="stat"><span>computes run</span><b id="ch5-stComputes">0 times</b></div>
+        <div class="stat"><span>cache holds</span><b id="ch5-stCache">—</b></div>
+        <div class="stat"><span>max waiters</span><b id="ch5-stWaiters">0</b></div>
+        <div class="stat"><span>verdict</span><b id="ch5-stVerdict">idle</b></div>
+      </div>
+      <div class="sim-msg" id="ch5-simMsg">Press “Step” to advance one operation at a time.</div>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🔍</span>
+      <p><strong>Memorizer1</strong>: the whole method is synchronized, so B and C sit outside the lock even though C only
+      wants a cached value — total time is the sum of all three calls. <strong>Memorizer2</strong>: everyone runs, but A and
+      B both compute <code>f(27)</code> — the cache prevented nothing. <strong>Memorizer3</strong>: C reuses A's
+      <code>Future</code> and waits; only in the unlucky case where B checks the map before A installs its
+      <code>Future</code> does anyone compute twice. <strong>Memorizer</strong>: <code>putIfAbsent</code> makes exactly one
+      <code>Future</code> win, so <code>f(27)</code> is computed once no matter how the threads interleave.</p>
+    </div>
+  </section>
+
+  <!-- ================= patterns ================= -->
+  <section id="ch5-listings">
+    <h2><span class="num">§</span>Patterns worth stealing</h2>
+    <p class="lede">The twenty listings above are the book's. These two are the chapter's ideas written the way you would
+    actually reach for them.</p>
+
+    <h3><span class="num">1</span>Bounded producer–consumer, shut down cleanly</h3>
+    <p>
+      Listings 5.8 and 5.9 leave the consumers running forever. In practice a work queue needs a bound (§5.3, resource
+      management), a way to stop (§5.4, interruption), and a poison pill so the consumers drain and exit.
+    </p>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">Bounded queue, graceful shutdown, counting work done</span>
+        <button class="copy" data-copy="ch5-c1">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-c1">public class IndexingService {
+    private static final int BOUND = 1000;
+    private static final File POISON = new File("");   // sentinel
+
+    private final BlockingQueue&lt;File&gt; queue =
+            new LinkedBlockingQueue&lt;File&gt;(BOUND);
+    private final Indexer[] consumers;
+
+    public IndexingService(int nConsumers) {
+        consumers = new Indexer[nConsumers];
+        for (int i = 0; i &lt; nConsumers; i++) {
+            consumers[i] = new Indexer(queue);
+            new Thread(consumers[i], "indexer-" + i).start();
+        }
+    }
+
+    /** Never blocks: sheds the file if the queue is saturated. */
+    public boolean submit(File f) {
+        return queue.offer(f);          // caller decides what to do on false
+    }
+
+    /** Blocks with a deadline instead of forever. */
+    public boolean submit(File f, long timeout, TimeUnit unit)
+            throws InterruptedException {
+        return queue.offer(f, timeout, unit);
+    }
+
+    public long shutdown() throws InterruptedException {
+        for (int i = 0; i &lt; consumers.length; i++)
+            queue.put(POISON);          // one pill per consumer
+        long indexed = 0;
+        for (int i = 0; i &lt; consumers.length; i++)
+            indexed += consumers[i].awaitCompletion();
+        return indexed;
+    }
+
+    private static class Indexer implements Runnable {
+        private final BlockingQueue&lt;File&gt; queue;
+        private final CountDownLatch done = new CountDownLatch(1);
+        private long count;
+
+        Indexer(BlockingQueue&lt;File&gt; queue) { this.queue = queue; }
+
+        public void run() {
+            try {
+                while (true) {
+                    File f = queue.take();
+                    if (f == POISON) return;      // drain-then-exit
+                    indexFile(f);
+                    count++;
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();   // Listing 5.10
+            } finally {
+                done.countDown();                     // Listing 5.11
+            }
+        }
+
+        long awaitCompletion() throws InterruptedException {
+            done.await();
+            return count;
+        }
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">2</span>Choosing a synchronizer</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">Four synchronizers, one shape: state + manipulate + wait</span>
+        <button class="copy" data-copy="ch5-c2">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch5-c2">// ---------------------------------------------------------------
+// All four share the same structure: private state, methods that
+// move it, and a wait that ends when the state is right.
+// ---------------------------------------------------------------
+
+// 1. LATCH — wait for events, once. Never resets.
+CountDownLatch ready = new CountDownLatch(N);
+// ...each worker: ready.countDown();
+ready.await();                       // returns when the count hits 0
+
+// 2. BARRIER — wait for threads, repeatedly. Resets after each pass.
+CyclicBarrier step = new CyclicBarrier(N, commitNewValues);
+while (!board.hasConverged()) {
+    computeMyPart();
+    int arrivalIndex = step.await(); // 0..N-1; BrokenBarrierException if broken
+}
+
+// 3. SEMAPHORE — wait for a permit. Not tied to threads: acquire here,
+//    release there. A binary semaphore is a non-reentrant mutex.
+Semaphore permits = new Semaphore(poolSize);
+permits.acquire();                   // blocks when the pool is empty
+try { use(resourcePool.take()); }
+finally { resourcePool.put(resource); permits.release(); }
+
+// 4. FUTURE / FUTURE-TASK — wait for a result, and publish it safely.
+Future&lt;ProductInfo&gt; f = executor.submit(new Callable&lt;ProductInfo&gt;() {
+    public ProductInfo call() { return loadProductInfo(); }
+});
+ProductInfo info = f.get();          // blocks; ExecutionException wraps failures</code></pre>
+    </div>
+  </section>
+
+  <!-- ================= glossary ================= -->
+  <section id="ch5-terms">
+    <h2><span class="num">§</span>Vocabulary introduced in Chapter 5</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Term</th><th>Meaning as used here</th><th>Where it goes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Compound action</strong></td><td>A sequence of operations that must be atomic to be correct — iteration, navigation, put-if-absent.</td><td>Ch. 5.1.1</td></tr>
+          <tr><td><strong>Client-side locking</strong></td><td>Guarding a compound action with the collection's own lock; supported by the synchronized collections.</td><td>Ch. 5.1.1</td></tr>
+          <tr><td><strong>Fail-fast iterator</strong></td><td>Throws <code>ConcurrentModificationException</code> on a best-effort basis when it sees a modification; checks <code>modCount</code> without synchronizing.</td><td>Ch. 5.1.2</td></tr>
+          <tr><td><strong>Hidden iterator</strong></td><td>Iteration you did not write: <code>toString</code>, <code>hashCode</code>, <code>equals</code>, <code>containsAll</code>, collection constructors.</td><td>Ch. 5.1.3</td></tr>
+          <tr><td><strong>Lock striping</strong></td><td>Splitting one lock into many so that independent parts of a structure can be written concurrently — how <code>ConcurrentHashMap</code> scales.</td><td>Ch. 5.2.1</td></tr>
+          <tr><td><strong>Weakly consistent iterator</strong></td><td>Never throws CME; traverses elements as of construction and may or may not reflect later changes.</td><td>Ch. 5.2.1</td></tr>
+          <tr><td><strong>Copy-on-write</strong></td><td>Mutate by publishing a fresh copy of the backing array; readers keep the old one. Cheap only when reads ≫ writes.</td><td>Ch. 5.2.3</td></tr>
+          <tr><td><strong>Producer–consumer</strong></td><td>Decoupling identification of work from its execution via a shared work queue.</td><td>Ch. 5.3</td></tr>
+          <tr><td><strong>Bounded queue</strong></td><td>A queue with capacity, used as a resource-management and overload-throttling tool.</td><td>Ch. 5.3</td></tr>
+          <tr><td><strong>Serial thread confinement</strong></td><td>Transferring ownership of a mutable object by safe publication to exactly one other thread, which then owns it exclusively.</td><td>Ch. 5.3.2</td></tr>
+          <tr><td><strong>Work stealing</strong></td><td>Each worker owns a deque; idle workers steal from the tail of another's deque. Scales because contention is rare.</td><td>Ch. 5.3.3</td></tr>
+          <tr><td><strong>Interruption</strong></td><td>A cooperative request to stop; a set flag plus <code>InterruptedException</code> from blocking methods.</td><td>Ch. 5.4</td></tr>
+          <tr><td><strong>Synchronizer</strong></td><td>An object that coordinates thread control flow based on its state: encapsulates state, manipulates it, waits for it.</td><td>Ch. 5.5</td></tr>
+          <tr><td><strong>Latch</strong></td><td>One-shot gate; threads wait for events. <code>CountDownLatch</code>.</td><td>Ch. 5.5.1</td></tr>
+          <tr><td><strong>Barrier</strong></td><td>Reusable rendezvous point; threads wait for <em>each other</em>. <code>CyclicBarrier</code>, <code>Exchanger</code>.</td><td>Ch. 5.5.4</td></tr>
+          <tr><td><strong>Barrier action</strong></td><td>A <code>Runnable</code> run once per pass, after the last arrival and before threads are released.</td><td>Ch. 5.5.4</td></tr>
+          <tr><td><strong>Broken barrier</strong></td><td>A barrier whose wait was interrupted or timed out; all waiting threads get <code>BrokenBarrierException</code>.</td><td>Ch. 5.5.4</td></tr>
+          <tr><td><strong>Semaphore / permit</strong></td><td>A counter of virtual permits; <code>acquire</code> consumes, <code>release</code> creates. Not tied to threads.</td><td>Ch. 5.5.3</td></tr>
+          <tr><td><strong>Memorization</strong></td><td>Wrapping a function so results of previous computations are remembered.</td><td>Ch. 5.6</td></tr>
+          <tr><td><strong>Cache pollution</strong></td><td>A failed or cancelled <code>Future</code> left in the cache, making later attempts fail too.</td><td>Ch. 5.6</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= cheat sheet ================= -->
+  <section id="ch5-cheatsheet">
+    <h2><span class="num">✓</span>Cheat sheet &amp; self-check</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>You need…</th><th>Reach for</th><th>Watch out for</th></tr></thead>
+        <tbody>
+          <tr><td>A thread-safe map, no exclusive locking</td><td><code>ConcurrentHashMap</code></td><td><code>size</code> is an estimate; no compound op outside the <code>ConcurrentMap</code> methods</td></tr>
+          <tr><td>A map with put-if-absent / remove-if-equal</td><td><code>ConcurrentMap.putIfAbsent</code> / <code>remove(k,v)</code></td><td>Don't hand-roll it with <code>get</code> then <code>put</code></td></tr>
+          <tr><td>Sorted concurrent map or set</td><td><code>ConcurrentSkipListMap</code> / <code>Set</code></td><td>Weaker <code>size</code>, like all concurrent collections</td></tr>
+          <tr><td>A list read far more than written</td><td><code>CopyOnWriteArrayList</code></td><td>Each write copies the array</td></tr>
+          <tr><td>To hand work between threads</td><td><code>BlockingQueue</code> — bounded</td><td>Unbounded queues turn overload into <code>OutOfMemoryError</code></td></tr>
+          <tr><td>Lowest handoff latency, consumers always ready</td><td><code>SynchronousQueue</code></td><td>No storage: <code>put</code> blocks without a waiting taker</td></tr>
+          <tr><td>A worker pool with per-worker queues</td><td><code>Deque</code> + work stealing</td><td>Steal from the tail, work from the head</td></tr>
+          <tr><td>To wait for one-time initialization</td><td><code>CountDownLatch</code></td><td>Not reusable; don't wait on it while holding a lock you need</td></tr>
+          <tr><td>To wait for a result computed elsewhere</td><td><code>FutureTask</code> / <code>Future</code></td><td><code>ExecutionException</code> unwrapping; <code>launderThrowable</code></td></tr>
+          <tr><td>A mutex that can be released by another thread</td><td>Binary <code>Semaphore</code></td><td>Non-reentrant; permits are not owned</td></tr>
+          <tr><td>A bounded collection / resource pool</td><td><code>Semaphore</code> + delegate</td><td>Release the permit on the "nothing happened" path too</td></tr>
+          <tr><td>Repeated rendezvous in a parallel algorithm</td><td><code>CyclicBarrier</code></td><td>Handle <code>BrokenBarrierException</code> and restore interrupts</td></tr>
+          <tr><td>A cache over an expensive function</td><td><code>Memorizer</code>: <code>ConcurrentHashMap&lt;A, Future&lt;V&gt;&gt;</code> + <code>putIfAbsent</code></td><td>Expiration, eviction, cache pollution</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">✅</div><h5>Do</h5>
+        <p>Lock the collection for the whole compound action — or switch to a concurrent collection that provides it.
+        Bound your queues. Prefer <code>putIfAbsent</code> to <code>get</code>-then-<code>put</code>. Propagate or restore
+        <code>InterruptedException</code>. Encapsulate synchronizers so callers can't get it wrong.</p></div>
+      <div class="tile"><div class="ico">🚫</div><h5>Avoid</h5>
+        <p>Iterating a synchronized collection without its lock — including via <code>toString</code> in a log line.
+        Assuming <code>size</code> is exact. Leaving a work queue unbounded "for now". Catching
+        <code>InterruptedException</code> and doing nothing. Caching failures forever.</p></div>
+      <div class="tile"><div class="ico">🧠</div><h5>The one habit</h5>
+        <p>Name the compound action. If an invariant spans two calls on a collection — <em>check the size, then
+        get</em>; <em>see it's absent, then put</em> — you have a race until you find the lock or the atomic method that
+        covers both.</p></div>
+    </div>
+
+    <div class="card">
+      <h4>Five questions the chapter leaves you with</h4>
+      <ol>
+        <li>Which of my "thread-safe collection" uses are really multi-method sequences that another thread can invalidate in between?</li>
+        <li>Where does my code iterate a collection — explicitly, or inside <code>toString</code>, <code>equals</code>, a copy constructor, a log statement?</li>
+        <li>Are my work queues bounded, and what happens to a producer when one is full?</li>
+        <li>Does every path that can block have an interruption policy — and does any of them swallow the interrupt?</li>
+        <li>If I cache something, can a failure be cached too? Can the cache grow without bound?</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h4>Summary of Part I — the concurrency cheat sheet</h4>
+      <p style="margin-top:0"><em>The book closes Part I with a page of rules. Condensed, they are:</em></p>
+      <ul>
+        <li><strong>It's the mutable state, stupid.</strong> Every concurrency bug is about coordinating access to shared mutable state — so the less of it there is, the easier correctness becomes.</li>
+        <li><strong>Make fields final unless they need to be mutable.</strong></li>
+        <li><strong>Immutable objects are automatically thread-safe.</strong> They are simpler, safer, and can be shared freely without locking or defensive copying.</li>
+        <li><strong>Encapsulation makes complexity manageable.</strong> Encapsulating state makes invariants preservable; encapsulating synchronization makes the policy enforcible.</li>
+        <li><strong>Guard each mutable variable with a lock</strong>, and <strong>guard all variables in an invariant with the same lock.</strong></li>
+        <li><strong>Hold locks for the duration of compound actions.</strong></li>
+        <li><strong>A program that accesses a mutable variable from multiple threads without synchronization is a broken program.</strong></li>
+        <li><strong>Don't rely on clever reasoning</strong> about why you don't need to synchronize.</li>
+        <li><strong>Include thread safety in the design process</strong> — or explicitly document that your class is not thread-safe.</li>
+        <li><strong>Document your synchronization policy.</strong></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= chapter 5 footnotes ================= -->
+  <div class="footnotes">
+    <h4 style="margin:0 0 10px;font-size:.8rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)">Notes carried over from the chapter</h4>
+    <ol>
+      <li>Client-side locking on synchronized collections is documented only obliquely in the Java 5.0 Javadoc, as an example of the correct iteration idiom.</li>
+      <li><code>ConcurrentModificationException</code> can arise in single-threaded code as well; this happens when objects are removed from the collection directly rather than through <code>Iterator.remove</code>.</li>
+      <li><code>ConcurrentHashMap</code> is not an appropriate drop-in replacement for a synchronized map if you rely on the ability to lock the map for exclusive access — or on the synchronization side effects of the synchronized implementations.</li>
+      <li>The implementation has no actual permit objects, and <code>Semaphore</code> does not associate dispensed permits with threads, so a permit acquired in one thread can be released from another. <code>acquire</code> consumes a permit and <code>release</code> creates one; a semaphore is not limited to the number of permits it was created with.</li>
+      <li>For computational problems that do no I/O and access no shared data, <code>Ncpu</code> or <code>Ncpu + 1</code> threads yield optimal throughput; more threads do not help, and may degrade performance as they compete for CPU and memory resources.</li>
+      <li>"It's the mutable state, stupid" is a nod to James Carville, who hung a sign reading "The economy, stupid" in Bill Clinton's 1992 campaign headquarters to keep the campaign on message.</li>
+    </ol>
+    <p style="margin-top:14px">
+      Summary of <em>Java Concurrency in Practice</em>, Chapter 5 (Building Blocks), pp. 51–70.
+      All code listings are the book's, with annotations added; Figures 5.1–5.4 are reproduced from the book.
+    </p>
+  </div>
+
 <footer>
-  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–4 ·
+  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–5 ·
   self-contained HTML (no external requests)
 </footer>
 </main>
@@ -4769,7 +6380,7 @@ function initChapter2Sim() {
 
   function stop() {
     if (timer) { clearInterval(timer); timer = null; }
-    btnPlay.textContent = index >= sched.ops.length ? 'Play' : 'Resume';
+    btnPlay.textContent = (sched && index >= sched.ops.length) ? 'Play' : 'Resume';
   }
 
   function reset(newMode) {
@@ -4972,6 +6583,247 @@ function initChapter3Sim() {
 
   reset('unsafe');
 }
+/* ---- Chapter 5: four caches, one expensive function ---- */
+function initChapter5Sim() {
+  const laneA = document.getElementById('ch5-laneA');
+  const laneB = document.getElementById('ch5-laneB');
+  const laneC = document.getElementById('ch5-laneC');
+  const btnStep = document.getElementById('ch5-simStep');
+  const btnPlay = document.getElementById('ch5-simPlay');
+  const btnReset = document.getElementById('ch5-simReset');
+  const modeM1 = document.getElementById('ch5-modeM1');
+  const modeM2 = document.getElementById('ch5-modeM2');
+  const modeM3 = document.getElementById('ch5-modeM3');
+  const modeM4 = document.getElementById('ch5-modeM4');
+  const stComputes = document.getElementById('ch5-stComputes');
+  const stCache = document.getElementById('ch5-stCache');
+  const stWaiters = document.getElementById('ch5-stWaiters');
+  const stVerdict = document.getElementById('ch5-stVerdict');
+  const simMsg = document.getElementById('ch5-simMsg');
+
+  /*
+   * Three threads hit the same cache. Only the shape of the
+   * interleaving -- and therefore the window of vulnerability -- changes
+   * between modes:
+   *   M1  synchronized compute          -> nobody may enter
+   *   M2  ConcurrentHashMap<A,V>        -> everyone may enter, everyone recomputes
+   *   M3  ConcurrentHashMap<A,Future<V>>-> late arrivals wait on the Future
+   *   M4  putIfAbsent                   -> exactly one Future wins
+   */
+  const SCHEDULES = {
+    m1: {
+      ops: [
+        { t: 'A', label: 'synchronized compute', kind: 'lock' },
+        { t: 'A', label: 'cache.get(27) → null', kind: 'check', hit: null },
+        { t: 'A', label: 'compute f(27)  [long]', kind: 'compute' },
+        { t: 'B', label: 'blocked: wants the lock', kind: 'wait' },
+        { t: 'C', label: 'blocked: wants cached f(27)', kind: 'wait' },
+        { t: 'A', label: 'cache.put(27, v)', kind: 'put' },
+        { t: 'A', label: 'unlock → return', kind: 'unlock' },
+        { t: 'B', label: 'lock; get(28) → null', kind: 'lock' },
+        { t: 'B', label: 'compute f(28)  [long]', kind: 'compute' },
+        { t: 'B', label: 'put(28); unlock', kind: 'unlock' },
+        { t: 'C', label: 'lock; get(27) → hit', kind: 'wake' },
+        { t: 'C', label: 'return cached value', kind: 'get' }
+      ],
+      verdict: 'serialized ✗',
+      cache: 'f(27), f(28)',
+      note: 'One lock over the whole method. C only wanted a value that was already cached, but it had to wait for B to finish computing f(28) — exactly Figure 5.2. With three threads the wall-clock time is the sum of all three calls, so the cache can be slower than no cache at all.'
+    },
+    m2: {
+      ops: [
+        { t: 'A', label: 'cache.get(27) → null', kind: 'check', hit: null },
+        { t: 'B', label: 'cache.get(27) → null', kind: 'check', hit: null },
+        { t: 'A', label: 'compute f(27)  [long]', kind: 'compute' },
+        { t: 'B', label: 'compute f(27)  [long]', kind: 'compute', dup: true },
+        { t: 'A', label: 'cache.put(27, v)', kind: 'put' },
+        { t: 'B', label: 'cache.put(27, v)  (overwrites)', kind: 'put', dup: true },
+        { t: 'C', label: 'cache.get(27) → hit', kind: 'check', hit: 'value' },
+        { t: 'C', label: 'return cached value', kind: 'get' }
+      ],
+      verdict: 'duplicate ✗',
+      cache: 'f(27)',
+      note: 'No serialization — but the whole duration of A\'s computation is a window in which a late arrival sees "absent" and starts over. Two threads computed f(27) and the cache prevented nothing. For a once-and-only-once initialization this is a safety bug, not just waste (Figure 5.3).'
+    },
+    m3: {
+      ops: [
+        { t: 'A', label: 'cache.get(27) → null', kind: 'check', hit: null },
+        { t: 'A', label: 'cache.put(27, Future)', kind: 'put' },
+        { t: 'A', label: 'ft.run() → compute f(27)', kind: 'compute' },
+        { t: 'B', label: 'get(27) → A\'s Future', kind: 'check', hit: 'future' },
+        { t: 'C', label: 'get(27) → A\'s Future', kind: 'check', hit: 'future' },
+        { t: 'B', label: 'blocked in f.get()', kind: 'wait' },
+        { t: 'C', label: 'blocked in f.get()', kind: 'wait' },
+        { t: 'A', label: 'set result; release', kind: 'put' },
+        { t: 'B', label: 'get() returns A\'s value', kind: 'wake' },
+        { t: 'C', label: 'get() returns A\'s value', kind: 'wake' },
+        { t: 'B', label: 'return', kind: 'get' },
+        { t: 'C', label: 'return', kind: 'get' }
+      ],
+      verdict: 'shared future ✓',
+      cache: 'Future f(27) ✓',
+      note: 'Caching the Future instead of the value makes late arrivals wait on the computation in progress rather than repeating it: A computes, B and C block in f.get() and are handed the same result — a safe publication. The remaining window is only the gap between get returning null and put, which is a few instructions wide (Figure 5.4).'
+    },
+    m4: {
+      ops: [
+        { t: 'A', label: 'cache.get(27) → null', kind: 'check', hit: null },
+        { t: 'B', label: 'cache.get(27) → null  (unlucky)', kind: 'check', hit: null },
+        { t: 'A', label: 'putIfAbsent(27, ftA) → null', kind: 'pia', win: true },
+        { t: 'B', label: 'putIfAbsent(27, ftB) → ftA', kind: 'pia', win: false },
+        { t: 'A', label: 'ftA.run() → compute f(27)', kind: 'compute' },
+        { t: 'B', label: 'f = ftA; blocked in get()', kind: 'wait' },
+        { t: 'C', label: 'get(27) → ftA; blocked', kind: 'wait' },
+        { t: 'A', label: 'set result; release', kind: 'put' },
+        { t: 'B', label: 'get() returns A\'s value', kind: 'wake' },
+        { t: 'C', label: 'get() returns A\'s value', kind: 'wake' },
+        { t: 'B', label: 'return', kind: 'get' },
+        { t: 'C', label: 'return', kind: 'get' }
+      ],
+      verdict: 'exactly once ✓',
+      cache: 'Future f(27) ✓',
+      note: 'Same unlucky interleaving as memorizer3 could not survive: both threads saw null. But putIfAbsent is atomic, so only A\'s Future is installed; B\'s attempt returns A\'s Future and B simply waits on it. The check-then-act is gone, and f(27) is computed exactly once.'
+    }
+  };
+
+  let mode = 'm1';
+  let index = 0;
+  let computes = 0;
+  let waiters = 0;
+  let maxWaiters = 0;
+  let cache = '—';
+  let verdict = 'idle';
+  let timer = null;
+  let sched = null;
+  const lanes = { A: laneA, B: laneB, C: laneC };
+
+  function buildLanes() {
+    laneA.innerHTML = '';
+    laneB.innerHTML = '';
+    laneC.innerHTML = '';
+    sched.ops.forEach(function (op, i) {
+      const div = document.createElement('div');
+      div.className = 'op';
+      div.id = 'ch5-op-' + i;
+      div.textContent = op.t + ': ' + op.label;
+      lanes[op.t].appendChild(div);
+    });
+  }
+
+  function paint() {
+    sched.ops.forEach(function (op, i) {
+      const el = document.getElementById('ch5-op-' + i);
+      el.className = 'op' + (i < index ? ' done' : '') + (i === index - 1 ? ' active' : '') +
+        (i < index && op.dup ? ' dup' : '');
+    });
+    stComputes.textContent = computes + (computes === 1 ? ' time' : ' times');
+    stComputes.className = computes > 1 ? 'bad' : (computes === 1 ? 'good' : '');
+    stCache.textContent = cache;
+    stWaiters.textContent = String(maxWaiters);
+    stVerdict.textContent = verdict;
+    stVerdict.className = verdict === 'idle' ? '' : (verdict.indexOf('✓') >= 0 ? 'good' : 'bad');
+  }
+
+  function step() {
+    if (index >= sched.ops.length) { stop(); return false; }
+    const op = sched.ops[index];
+
+    switch (op.kind) {
+      case 'compute':
+        computes++;
+        if (mode === 'm1' || mode === 'm2') cache = 'computing f(27)…';
+        break;
+      case 'check':
+        if (op.hit === 'value') cache = 'f(27) = v';
+        break;
+      case 'put':
+        cache = mode === 'm1' ? 'f(27) = v' : (mode === 'm3' || mode === 'm4' ? 'Future f(27) ✓' : 'f(27) = v');
+        break;
+      case 'pia':
+        if (op.win) cache = 'Future f(27) installing';
+        break;
+      case 'wait':
+        waiters++;
+        if (waiters > maxWaiters) maxWaiters = waiters;
+        break;
+      case 'wake':
+        waiters = Math.max(0, waiters - 1);
+        break;
+      case 'get':
+        waiters = Math.max(0, waiters - 1);
+        break;
+    }
+
+    index++;
+    paint();
+    if (index >= sched.ops.length) {
+      stop();
+      cache = sched.cache;
+      verdict = sched.verdict;
+      paint();
+      simMsg.textContent = sched.note;
+      btnStep.disabled = true;
+      btnPlay.disabled = true;
+    }
+    return true;
+  }
+
+  function play() {
+    if (index >= sched.ops.length) return;
+    btnPlay.textContent = 'Pause';
+    timer = setInterval(function () {
+      if (!step()) return;
+      if (index >= sched.ops.length) { clearInterval(timer); timer = null; btnPlay.textContent = 'Play'; }
+    }, 900);
+  }
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    btnPlay.textContent = (sched && index >= sched.ops.length) ? 'Play' : 'Resume';
+  }
+
+  function reset(newMode) {
+    stop();
+    if (newMode) mode = newMode;
+    sched = JSON.parse(JSON.stringify(SCHEDULES[mode]));
+    index = 0;
+    computes = 0;
+    waiters = 0;
+    maxWaiters = 0;
+    cache = '—';
+    verdict = 'idle';
+    btnStep.disabled = false;
+    btnPlay.disabled = false;
+    btnPlay.textContent = 'Play';
+    modeM1.classList.toggle('on', mode === 'm1');
+    modeM2.classList.toggle('on', mode === 'm2');
+    modeM3.classList.toggle('on', mode === 'm3');
+    modeM4.classList.toggle('on', mode === 'm4');
+    buildLanes();
+    paint();
+    const hints = {
+      m1: 'The whole method is synchronized: correctness, at the price of concurrency.',
+      m2: 'A thread-safe map used naively: concurrency, at the price of duplicate work.',
+      m3: 'Cache the Future: late arrivals wait instead of recomputing.',
+      m4: 'putIfAbsent: only one Future can be installed, however the threads interleave.'
+    };
+    simMsg.textContent = hints[mode];
+  }
+
+  btnStep.addEventListener('click', function () { step(); });
+  btnPlay.addEventListener('click', function () {
+    if (timer) { stop(); return; }
+    if (index >= sched.ops.length) reset();
+    play();
+  });
+  btnReset.addEventListener('click', function () { reset(); });
+  modeM1.addEventListener('click', function () { reset('m1'); });
+  modeM2.addEventListener('click', function () { reset('m2'); });
+  modeM3.addEventListener('click', function () { reset('m3'); });
+  modeM4.addEventListener('click', function () { reset('m4'); });
+
+  reset('m1');
+}
+
 /* ------------------------------------------------------------------ *
  * Boot
  * ------------------------------------------------------------------ */
@@ -4979,6 +6831,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initChapter1Sim();
   initChapter2Sim();
   initChapter3Sim();
+  initChapter5Sim();
 
   /* nav dropdowns */
   const btns = document.querySelectorAll('.navbtn');
