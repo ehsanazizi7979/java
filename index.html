@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Java Concurrency in Practice — study notes (Chapters 1–8)</title>
-<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–8: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks, Task Execution, Cancellation and Shutdown, and Applying Thread Pools, with the book's figures, all code listings and interactive simulators.">
+<title>Java Concurrency in Practice — study notes (Chapters 1–9)</title>
+<meta name="description" content="Visual, self-contained study notes for Java Concurrency in Practice: Chapters 1–9: Introduction, Thread Safety, Sharing Objects, Composing Objects, Building Blocks, Task Execution, Cancellation and Shutdown, Applying Thread Pools, and GUI Applications, with the book's figures, all code listings and interactive simulators.">
 <style>
   :root{
     --bg:#0d1117;
@@ -426,6 +426,26 @@
           <a href="#ch8-cheatsheet">Cheat sheet</a>
         </div>
       </div>
+      <div class="navmenu">
+        <button class="navbtn" aria-expanded="false" data-menu="menu-ch9">Chapter 9 · GUI Applications ▾</button>
+        <div class="menu" id="menu-ch9">
+          <div class="grp">Sections</div>
+          <a href="#ch9-tldr">TL;DR</a>
+          <a href="#ch9-single-threaded">9.1 Why Are GUIs Single-threaded?</a>
+          <a href="#ch9-short-tasks">9.2 Short-running GUI Tasks</a>
+          <a href="#ch9-long-tasks">9.3 Long-running GUI Tasks</a>
+          <a href="#ch9-shared-models">9.4 Shared Data Models</a>
+          <a href="#ch9-other-subsystems">9.5 Other Single-threaded Subsystems</a>
+          <div class="grp">Figures</div>
+          <a href="#ch9-fig91">Figure 9.1</a>
+          <a href="#ch9-fig92">Figure 9.2</a>
+          <div class="grp">Extras</div>
+          <a href="#ch9-sim">Simulator: one button, four mistakes</a>
+          <a href="#ch9-listings">Patterns</a>
+          <a href="#ch9-terms">Glossary</a>
+          <a href="#ch9-cheatsheet">Cheat sheet</a>
+        </div>
+      </div>
       <a href="#top">↑ Top</a>
     </nav>
   </div>
@@ -484,11 +504,17 @@
         <span class="cc-title">Applying Thread Pools</span>
         <span class="cc-meta">pp. 105–116 · task–policy coupling, sizing, saturation, hooks</span>
       </a>
+
+      <a class="chapter-card" href="#ch9">
+        <span class="cc-num">Chapter 9</span>
+        <span class="cc-title">GUI Applications</span>
+        <span class="cc-meta">pp. 117–126 · the EDT, long tasks, split models</span>
+      </a>
     </div>
     <div class="meta">
-      <span class="pill">📚 <b>8</b> chapters · <b>122</b> book listings + extras</span>
-      <span class="pill">🖼️ Figures 1.1–5.4 embedded</span>
-      <span class="pill">▶️ <b>7</b> interactive simulators</span>
+      <span class="pill">📚 <b>9</b> chapters · <b>130</b> book listings + extras</span>
+      <span class="pill">🖼️ Figures 1.1–9.2 embedded</span>
+      <span class="pill">▶️ <b>8</b> interactive simulators</span>
       <span class="pill">🔌 Fully self-contained</span>
     </div>
     </div>
@@ -9821,8 +9847,962 @@ public class ValueLatch&lt;T&gt; {
     </p>
   </div>
 
+  <!-- ================= CHAPTER 9 ================= -->
+  <div class="page-hero chapter-start" id="ch9">
+    <span class="kicker">Java Concurrency in Practice · Chapter 9</span>
+    <h1>Chapter 9 — <span>GUI Applications</span></h1>
+    <p class="sub">
+      Every swing you have ever made at a frozen window was a thread bug. GUI toolkits are
+      <strong>single-threaded subsystems</strong>: all presentation state lives in one event dispatch thread, and
+      thread confinement — not synchronization — is what keeps it consistent. That single decision gives you a simple
+      programming model and one hard rule: <em>never block the event thread</em>. The rest of the chapter is about
+      obeying that rule without losing the ability to cancel, report progress, and share data.
+    </p>
+    <div class="meta">
+      <span class="pill">📖 <b>pp. 117–126</b></span>
+      <span class="pill">🧩 <b>5</b> sections · <b>8</b> listings · <b>2</b> figures</span>
+      <span class="pill">⏱️ ~22 min read</span>
+      <span class="pill">🏷️ Part II — Structuring Concurrent Applications</span>
+    </div>
+  </div>
+
+  <!-- ================= TL;DR ================= -->
+  <section id="ch9-tldr">
+    <h2>Chapter in one paragraph</h2>
+    <div class="card tldr">
+      <h4>TL;DR — the six things worth remembering</h4>
+      <ol>
+        <li><strong>GUI toolkits are single-threaded on purpose.</strong> Multithreaded GUI frameworks were tried repeatedly and abandoned: the two-way flow between input events and application callbacks makes inconsistent lock ordering inevitable (§9.1).</li>
+        <li><strong>The single-thread rule.</strong> Swing components and models may be created, modified, and queried only from the event dispatch thread. Safety comes from confinement, not from <code>synchronized</code>.</li>
+        <li><strong>The event thread is an Executor.</strong> Events are tasks, the event queue is a work queue, and <code>invokeLater</code>/<code>invokeAndWait</code> are <code>execute</code>/<code>submit().get()</code> — which is why <code>GuiExecutor</code> is nine lines long.</li>
+        <li><strong>Never block the event thread.</strong> A long task run there freezes the UI — the user cannot even press Cancel, because the cancel listener is itself an event waiting behind the task.</li>
+        <li><strong>Long tasks hop threads.</strong> Start in the event thread, run in a background pool, then hop <em>back</em> to the event thread to touch presentation objects. Cancellation and progress belong in a reusable helper, not in each listener.</li>
+        <li><strong>Shared data models need a plan.</strong> Either make the model thread-safe, or split it: presentation model confined to the event thread, shared model thread-safe, updates flowing as snapshots or increments.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= 9.1 ================= -->
+  <section id="ch9-single-threaded">
+    <h2><span class="num">9.1</span>Why Are GUIs Single-threaded?</h2>
+    <p class="lede">Not for lack of trying. Multithreaded GUI toolkits are one of the recurring "failed dreams" of computer
+    science, and the reason is structural rather than accidental.</p>
+
+    <p>
+      Old GUI applications processed events from a "main event loop". Modern frameworks are only slightly different: they
+      create a dedicated <strong>event dispatch thread (EDT)</strong> that pulls events off a queue and dispatches them
+      to application-defined handlers. Qt, NextStep, MacOS Cocoa, X Windows and Swing all converged on this design.
+    </p>
+
+    <p>
+      The reason is the direction in which work flows. User-initiated actions <strong>bubble up</strong> from the OS into
+      the application: the OS detects a click, the toolkit turns it into a mouse event, and it arrives at a listener as a
+      higher-level "button pressed" event. Application-initiated actions <strong>bubble down</strong>: changing a
+      component's background colour starts in application code and is dispatched to a component class and onward to the
+      OS for rendering.
+    </p>
+
+    <div class="card">
+      <h4>The recipe for deadlock</h4>
+      <p style="margin:0">
+        Activities access the same GUI objects in <em>opposite orders</em>. Add a requirement that each object be
+        thread-safe, and each thread must acquire the objects' locks — in whatever order its direction of travel implies.
+        Inconsistent lock ordering, and therefore deadlock (Chapter 10), is the predictable result.
+      </p>
+    </div>
+
+    <p>
+      Model–view–controller makes it worse rather than better. Factoring a user interaction into cooperating model, view
+      and controller objects simplifies the application, but the controller calls into the model, the model notifies the
+      view, and the controller can also call into the view — which may call back into the model to query state. Three
+      objects, two directions, no global order.
+    </p>
+
+    <div class="callout">
+      <span class="mark">📎</span>
+      <p>Graham Hamilton, then a Sun VP, put it plainly on his weblog: a multithreaded GUI toolkit can be made to work
+      <em>if</em> it is very carefully designed, exposes its locking methodology in gory detail, and if you are very
+      smart, very careful, and hold the whole structure of the toolkit in your head. "If you get one of these things
+      slightly wrong, things will mostly work, but you will get occasional hangs (due to deadlocks) or glitches (due to
+      races)." That set of characteristics does not scale to widespread commercial use — which is why your toolkit is
+      single-threaded.</p>
+    </div>
+
+    <p>
+      Single-threaded GUI frameworks achieve thread safety through <strong>thread confinement</strong>: every GUI object,
+      visual component and data model is accessed exclusively from the event thread. The burden is pushed back onto the
+      application developer, who must make sure the confinement actually holds.
+    </p>
+
+    <h3><span class="num">9.1.1</span>Sequential event processing</h3>
+    <p>
+      GUI applications process fine-grained events — mouse clicks, key presses, timer expirations. Events are a kind of
+      task, and the AWT/Swing event machinery is structurally an Executor with a single worker and an unbounded queue.
+    </p>
+    <p>
+      One thread means tasks run <strong>sequentially</strong>: one finishes before the next begins, and no two overlap.
+      That simplifies task code considerably — you never have to reason about interference from another task. The price
+      is that a slow task makes every other task wait. If those other tasks are what respond to user input or paint
+      feedback, the application <em>looks</em> frozen: a long task in the event thread means the user cannot even click
+      Cancel, because the cancel button's listener is an event queued behind the task that is running.
+    </p>
+    <p>
+      So: tasks that execute in the event thread must return control quickly. Anything long-running — spell-checking a
+      document, walking the file system, fetching a resource over the network — must run in another thread, and any
+      update to the UI (progress, completion) must come back to the event thread. That is the whole of §9.3 in one
+      sentence, and it can get complicated quickly.
+    </p>
+
+    <h3><span class="num">9.1.2</span>Thread confinement in Swing</h3>
+    <p>
+      All Swing components (<code>JButton</code>, <code>JTable</code>, …) and data model objects
+      (<code>TableModel</code>, <code>TreeModel</code>) are confined to the event thread. GUI objects are kept consistent
+      not by synchronization but by confinement: tasks in the event thread need no synchronization to touch presentation
+      objects, and code outside the event thread may not touch them at all.
+    </p>
+
+    <div class="callout">
+      <span class="mark">📏</span>
+      <p><strong>The Swing single-thread rule.</strong> Swing components and models should be created, modified, and
+      queried only from the event-dispatching thread.</p>
+    </div>
+
+    <p>As with all rules there are exceptions, all of them documented as thread-safe in the Javadoc:</p>
+    <ul>
+      <li><code>SwingUtilities.isEventDispatchThread</code> — asks whether the current thread is the event thread;</li>
+      <li><code>SwingUtilities.invokeLater</code> — schedules a <code>Runnable</code> on the event thread; callable from any thread;</li>
+      <li><code>SwingUtilities.invokeAndWait</code> — schedules a task on the event thread and blocks the caller until it completes; callable only from a non-GUI thread;</li>
+      <li>methods that enqueue a repaint or revalidation request on the event queue — callable from any thread;</li>
+      <li>methods that add and remove listeners — callable from any thread, though listeners are always invoked in the event thread.</li>
+    </ul>
+
+    <p>
+      <code>invokeLater</code> and <code>invokeAndWait</code> behave a great deal like <code>Executor.execute</code> and
+      <code>ExecutorService.submit(...).get()</code>. In fact the threading-related methods of <code>SwingUtilities</code>
+      can be implemented with a single-threaded executor, as in Listing 9.1 — not how Swing is implemented, since it
+      predates the Executor framework, but probably how it would be if written today.
+    </p>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 9.1 · Implementing SwingUtilities using an Executor</span>
+        <button class="copy" data-copy="ch9-l91">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch9-l91">public class SwingUtilities {
+    private static final ExecutorService exec =
+        Executors.newSingleThreadExecutor(new SwingThreadFactory());
+    private static volatile Thread swingThread;
+
+    private static class SwingThreadFactory implements ThreadFactory {
+        public Thread newThread(Runnable r) {
+            swingThread = new Thread(r);
+            return swingThread;
+        }
+    }
+
+    public static boolean isEventDispatchThread() {
+        return Thread.currentThread() == swingThread;
+    }
+
+    public static void invokeLater(Runnable task) {
+        exec.execute(task);
+    }
+
+    public static void invokeAndWait(Runnable task)
+            throws InterruptedException, InvocationTargetException {
+        Future f = exec.submit(task);
+        try {
+            f.get();
+        } catch (ExecutionException e) {
+            throw new InvocationTargetException(e);
+        }
+    }
+}</code></pre>
+    </div>
+
+    <p>
+      Two details make this more than a curiosity. The event thread is a <strong>single-threaded Executor</strong> that
+      processes tasks from the event queue — and, like a thread pool, it occasionally loses its worker thread and replaces
+      it, which is invisible to tasks. (<code>swingThread</code> is <code>volatile</code> precisely because the factory
+      writes it from the new thread while any thread may read it in <code>isEventDispatchThread</code>.)
+    </p>
+    <p>
+      Sequential single-threaded execution is the right execution policy when tasks are short-lived, when scheduling
+      predictability does not matter, or when it is imperative that tasks not run concurrently. GUI event handling is all
+      three. <code>GuiExecutor</code> (Listing 9.2) goes the other way and builds an <code>Executor</code> on top of
+      <code>SwingUtilities</code> — one that runs a task inline if it is already on the event thread, and hands it to
+      <code>invokeLater</code> otherwise. That inline case matters: a task that is already on the event thread must not
+      queue itself behind the work it is currently doing.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 9.2 · Executor built atop SwingUtilities</span>
+        <button class="copy" data-copy="ch9-l92">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch9-l92">public class GuiExecutor extends AbstractExecutorService {
+    // Singletons have a private constructor and a public factory
+    private static final GuiExecutor instance = new GuiExecutor();
+
+    private GuiExecutor() { }
+
+    public static GuiExecutor instance() { return instance; }
+
+    public void execute(Runnable r) {
+        if (SwingUtilities.isEventDispatchThread())
+            r.run();
+        else
+            SwingUtilities.invokeLater(r);
+    }
+
+    // Plus trivial implementations of lifecycle methods
+}</code></pre>
+    </div>
+
+    <p>
+      The same idea transfers to other toolkits: SWT offers <code>Display.asyncExec</code>, which is
+      <code>invokeLater</code> under another name. What transfers everywhere is the shape — a single-threaded subsystem
+      plus a hand-off primitive — not the class name.
+    </p>
+  </section>
+
+  <!-- ================= 9.2 ================= -->
+  <section id="ch9-short-tasks">
+    <h2><span class="num">9.2</span>Short-running GUI Tasks</h2>
+    <p class="lede">Most GUI code never has to think about threads. It is worth knowing exactly where that free ride ends.</p>
+
+    <p>
+      Events originate in the event thread and bubble up to application listeners, which usually compute something that
+      affects presentation objects. For simple, short-running tasks the entire action can stay in the event thread.
+    </p>
+    <p>
+      Listing 9.3 is the canonical example: a button that changes colour when pressed. The toolkit delivers an
+      <code>ActionEvent</code> on the event thread to every registered listener; the listener picks a colour and sets the
+      button's background. The event originates in the toolkit and is delivered to the application; the application
+      modifies the GUI in response.
+    </p>
+
+    <figure id="ch9-fig91">
+      <img src="data:image/png;base64,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"
+           alt="Figure 9.1 — Control flow of a simple button click. On the EDT: mouse click, then action event, then action listener, then set color; control never leaves the event thread.">
+      <figcaption><strong>Figure 9.1</strong> — Control Flow of a Simple Button Click. One thread, one direction:
+        mouse click → action event → action listener → set colour. Control never leaves the event thread.</figcaption>
+    </figure>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 9.3 · Simple event listener</span>
+        <button class="copy" data-copy="ch9-l93">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch9-l93">final Random random = new Random();
+final JButton button = new JButton("Change Color");
+...
+button.addActionListener(new ActionListener() {
+    public void actionPerformed(ActionEvent e) {
+        button.setBackground(new Color(random.nextInt()));
+    }
+});</code></pre>
+    </div>
+
+    <p>
+      That trivial example characterizes the majority of interactions between GUI applications and GUI toolkits. So long
+      as tasks are short-lived and touch only GUI objects — or other thread-confined or thread-safe application objects —
+      you can almost totally ignore threading and do everything from the event thread, and the right thing happens.
+    </p>
+
+    <p>
+      A slightly more complicated variant, shown in Figure 9.2, adds a formal data model such as a <code>TableModel</code>
+      or <code>TreeModel</code>. Swing splits most visual components into a <em>model</em> (the data) and a <em>view</em>
+      (the rules for displaying it). Models fire events when their data changes and views subscribe. So a listener that
+      changes a table updates the model and calls one of the <code>fireXxx</code> methods; those invoke the view's table
+      model listeners, which update the view.
+    </p>
+
+    <figure id="ch9-fig92">
+      <img src="data:image/png;base64,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1aJee+21QPXu/+9/RTz11FMiBg4YEBhc2nv79NlKixo7dqyINm3bithjjz0C13XGGWeYEmwmrwx7a/xu6Jj9cHlZWaDR7rvvflvU6SLOOutsEdffcL2I2XNm6/E333xz4FZmN0ICOzcxWTRur8OxBQCpQEQPAAAAAAAAAECawIseAAAAAAAAAIA0gRc9AAAAAAAAAABpAnv0AEDjovsjVFSYfWry8427Ptr9XmgTn++0084i7rB51tXD727AceGERMbZiO05suwnM6ZPFzFq1CgRy5YtFbFo0SI9/rPPPhdRVFQYKKpPnz4ibrnF2PsvveyyZOf1wva10ZTtulvBc889K6LU5qNduHChiKt9mxDdeOONgaLWVp51aG7oVlPZWfmBLuffDEb3knD39GnoNhMRW/MoEVvzhNZKB2OcOwprZB10h0lBfoFdGfMjFq88+63ufaPomNKvysvL9duHHn5IRPdNzR49ut2VHn/BBeeLGGv36Pn8C7Pl3D02m7vnecuWLbd1zgvUYT27eL333nvJht7333/vtozODLo92YsvvSRC9+gZYPf96bnZZiK22GILLcG/6Ac4/fTTROgWQiNHjhRx0EEHmmbp0UOPv+B80w4bbLhhoIkyMvivcQBYx2DaAgAAAAAAAABIE3jRAwAAAAAAAACQJmDdAoDGRV0SbrC34vdNqMNLj2/bto0pymZRTdhAHG+UP3ntogULRNx3v0kBq7YsrVfr1q0DZWZmmomxa9euWpQ6tspt9fKskWTPvfYSMf2NN0SEukWU3NzcwCePPPJw4Kvx400sestWLUX89NNPpsywNMmuLwCgMVBHiTor9RPF71hscGbrvw9GP1pChCVTT+f6LPxOMTdTO+mKYc2sg4lObrtxWVmpiMrKSncQaW+PJxxbSXtrQUGBe0zHjp1EqAtJu/3IESNEXHf99YGipkyZImLwoEGJ8WVXHy0qZgdabq5Zr4uLiwPHhJqeHnzwQRHz55tlerq1UVf52iGwrFdWVNiFu41bph42+513Ao8TH330sYipU6faWmXaFT8xNX319demJYvMVZQUF9F7AWAdhYgeAAAAAAAAAIA0gRc9AAAAAAAAAABpAtYtAGhauA4vTSCiceOuDURjtu+/7z798DKb/erqyVeLWL/d+vYTk7tKo+XjcRNnnm+j3+t9Jikt361eTXVNoHqu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"
+           alt="Figure 9.2 — Control flow with separate model and view objects. On the EDT: mouse click, action event, action listener, update table model, then table changed event, table listener, update table view.">
+      <figcaption><strong>Figure 9.2</strong> — Control Flow with Separate Model and View Objects. Two laps around the
+        event thread, still never leaving it: the listener updates the model, the model fires a change event, the view's
+        listener re-reads the model and repaints.</figcaption>
+    </figure>
+
+    <div class="callout">
+      <span class="mark">⚠️</span>
+      <p>The <code>fireXxx</code> methods of Swing data models call the model's listeners <strong>directly</strong>
+      rather than posting an event to the queue. That is efficient and keeps ordering obvious, but it means
+      <code>fireXxx</code> may only be called from the event thread — calling it from a background thread runs the
+      views' listeners on that background thread, breaking the single-thread rule in the least visible way possible.</p>
+    </div>
+  </section>
+  <!-- ================= 9.3 ================= -->
+  <section id="ch9-long-tasks">
+    <h2><span class="num">9.3</span>Long-running GUI Tasks</h2>
+    <p class="lede">If every task were short, the whole application could live in the event thread and you would never
+    think about threads. Spell checking, background compilation and remote fetches end that idyll.</p>
+
+    <p>
+      Swing makes it easy to have a task run <em>in</em> the event thread but — prior to Java 6 — provided no mechanism
+      for helping GUI tasks execute code in other threads. Swing doesn't need to help: you can create your own
+      <code>Executor</code> for long-running tasks. A <strong>cached thread pool</strong> is a good choice here, because
+      GUI applications rarely launch large numbers of long-running tasks, so there is little risk of the pool growing
+      without bound. (Contrast Chapter 8: the same pool would be a poor choice for a server.)
+    </p>
+
+    <p>
+      Start with the simplest version — a task with no cancellation, no progress, and no completion update — and add the
+      features one at a time. Listing 9.4 binds a long-running task to a button.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 9.4 · Binding a long-running task to a visual component</span>
+        <button class="copy" data-copy="ch9-l94">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch9-l94">ExecutorService backgroundExec = Executors.newCachedThreadPool();
+...
+button.addActionListener(new ActionListener() {
+    public void actionPerformed(ActionEvent e) {
+        backgroundExec.execute(new Runnable() {
+            public void run() { doBigComputation(); }
+        });
+}});</code></pre>
+    </div>
+
+    <p>
+      Regardless of the two layers of inner classes, this is fairly straightforward: the listener is called in the event
+      thread and submits a <code>Runnable</code> to the pool. But it is "fire and forget", which is rarely what a user
+      wants — there is usually visual feedback when a long task completes. And you <em>cannot</em> touch presentation
+      objects from the background thread, so on completion the task must submit another task to run in the event thread.
+    </p>
+
+    <p>
+      Listing 9.5 does that the obvious way, and is starting to get complicated: three layers of inner classes. The
+      listener dims the button and sets a label, then submits the background task; when that finishes it queues a third
+      task on the event thread that re-enables the button and restores the label.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 9.5 · Long-running task with user feedback</span>
+        <button class="copy" data-copy="ch9-l95">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch9-l95">button.addActionListener(new ActionListener() {
+    public void actionPerformed(ActionEvent e) {
+        button.setEnabled(false);
+        label.setText("busy");
+        backgroundExec.execute(new Runnable() {
+            public void run() {
+                try {
+                    doBigComputation();
+                } finally {
+                    GuiExecutor.instance().execute(new Runnable() {
+                        public void run() {
+                            button.setEnabled(true);
+                            label.setText("idle");
+                        }
+                    });
+                }
+            }
+        });
+    }
+});</code></pre>
+    </div>
+
+    <p>
+      The task triggered by the button is really three sequential subtasks whose execution alternates between the event
+      thread and the background thread: update the UI and start the background work; do the work; queue the UI update.
+      This <strong>thread hopping</strong> is typical of GUI code. Note the <code>finally</code> — the interface must be
+      restored even if the computation throws, or the button stays disabled forever.
+    </p>
+
+    <h3><span class="num">9.3.1</span>Cancellation</h3>
+    <p>
+      Any task long enough to need a background thread is long enough that the user may want to cancel it. You could
+      implement cancellation with thread interruption directly, but <code>Future</code> was designed to manage
+      cancellable tasks and is much easier to use.
+    </p>
+    <p>
+      Calling <code>cancel(true)</code> on a <code>Future</code> interrupts the thread executing the task if it is
+      running. If the task is written to be responsive to interruption (Chapter 7), it can return early. Listing 9.6
+      polls the thread's interrupted status and bails out.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 9.6 · Cancelling a long-running task</span>
+        <button class="copy" data-copy="ch9-l96">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch9-l96">Future&lt;?&gt;  runningTask = null;    // thread-confined
+...
+startButton.addActionListener(new ActionListener() {
+    public void actionPerformed(ActionEvent e) {
+        if (runningTask != null) {
+            runningTask = backgroundExec.submit(new Runnable() {
+                public void run() {
+                   while (moreWork()) {
+                       if (Thread.currentThread().isInterrupted()) {
+                           cleanUpPartialWork();
+                           break;
+                       }
+                       doSomeWork();
+                   }
+                }
+            });
+    };
+}});
+
+cancelButton.addActionListener(new ActionListener() {
+    public void actionPerformed(ActionEvent event) {
+        if (runningTask != null)
+            runningTask.cancel(true);
+}});</code></pre>
+    </div>
+
+    <p>
+      Because <code>runningTask</code> is confined to the event thread, no synchronization is needed when setting or
+      checking it, and the start listener ensures only one background task runs at a time. What is still missing is
+      <em>notification</em> of completion — so that, for example, the Cancel button could be disabled again when there is
+      nothing to cancel.
+    </p>
+
+    <h3><span class="num">9.3.2</span>Progress and completion indication</h3>
+    <p>
+      <code>Future</code> simplified cancellation; <code>FutureTask</code> also has a <code>done</code> hook that
+      facilitates completion notification. <code>done</code> is called after the background <code>Callable</code>
+      completes. By having <code>done</code> trigger a completion task in the event thread, we can build a
+      <code>BackgroundTask</code> class with an <code>onCompletion</code> hook that always runs on the event thread
+      (Listing 9.7).
+    </p>
+    <p>
+      <code>BackgroundTask</code> also supports progress: the compute method can call <code>setProgress</code>, which
+      causes <code>onProgress</code> to be invoked in the event thread. To use it you implement <code>compute</code>, which
+      runs in the background thread, and optionally override <code>onCompletion</code> and <code>onProgress</code>, which
+      run in the event thread.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 9.7 · Background task class supporting cancellation, completion notification, and progress notification</span>
+        <button class="copy" data-copy="ch9-l97">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch9-l97">abstract class BackgroundTask&lt;V&gt; implements Runnable, Future&lt;V&gt; {
+    private final FutureTask&lt;V&gt; computation = new Computation();
+
+    private class Computation extends FutureTask&lt;V&gt; {
+        public Computation() {
+            super(new Callable&lt;V&gt;() {
+                public V call() throws Exception {
+                    return BackgroundTask.this.compute() ;
+                }
+            });
+        }
+        protected final void done() {
+            GuiExecutor.instance().execute(new Runnable() {
+                public void run() {
+                    V value = null;
+                    Throwable thrown = null;
+                    boolean cancelled = false;
+                    try {
+                        value = get();
+                    } catch (ExecutionException e) {
+                        thrown = e.getCause();
+                    } catch (CancellationException e) {
+                        cancelled = true;
+                    } catch (InterruptedException consumed) {
+                    } finally {
+                        onCompletion(value, thrown, cancelled);
+                    }
+                };
+            });
+        }
+    }
+    protected void setProgress(final int current, final int max) {
+        GuiExecutor.instance().execute(new Runnable() {
+            public void run() { onProgress(current, max); }
+        });
+    }
+    // Called in the background thread
+    protected abstract V compute()  throws Exception;
+    // Called in the event thread
+    protected void onCompletion(V result, Throwable exception,
+                                     boolean cancelled)  { }
+    protected void  onProgress(int current, int max)  { }
+    // Other Future methods forwarded to computation
+}</code></pre>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🧵</span>
+      <p>The class is a decorator: it <em>implements</em> <code>Future</code> by forwarding every method to the private
+      <code>FutureTask</code>, and owns exactly one extra behaviour — the hop back to the event thread in
+      <code>done</code>. That is why it can be handed to <code>backgroundExec.execute</code> as a
+      <code>Runnable</code> and cancelled as a <code>Future</code> with the same object.</p>
+    </div>
+
+    <p>
+      Because <code>BackgroundTask</code> is a <code>Future</code>, cancellation gets simpler too: the compute method can
+      call <code>isCancelled()</code> instead of polling the interrupted flag. Listing 9.8 recasts Listing 9.6.
+    </p>
+
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">BOOK</span>
+        <span class="name">Listing 9.8 · Initiating a long-running, cancellable task with BackgroundTask</span>
+        <button class="copy" data-copy="ch9-l98">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch9-l98">public void runInBackground(final Runnable task) {
+    startButton.addActionListener(new ActionListener() {
+        public void actionPerformed(ActionEvent e) {
+            class CancelListener implements ActionListener {
+                BackgroundTask&lt;?&gt; task;
+                public void actionPerformed(ActionEvent event) {
+                    if (task != null)
+                        task.cancel(true);
+                }
+            }
+            final CancelListener listener = new CancelListener();
+            listener.task = new BackgroundTask&lt;Void&gt;() {
+                public Void compute() {
+                   while (moreWork() &amp;&amp; !isCancelled())
+                       doSomeWork();
+                   return null;
+                }
+                public void onCompletion(boolean cancelled, String s,
+                                       Throwable exception) {
+                   cancelButton.removeActionListener(listener);
+                   label.setText("done");
+                }
+            };
+            cancelButton.addActionListener(listener);
+            backgroundExec.execute(task);
+        }
+    });
+}</code></pre>
+    </div>
+
+    <h3><span class="num">9.3.3</span>SwingWorker</h3>
+    <p>
+      The framework built above — <code>FutureTask</code> plus an <code>Executor</code> plus an event-thread hand-off —
+      applies to any single-threaded GUI framework, not just Swing. In Swing, most of it ships in
+      <code>SwingWorker</code>, which provides cancellation, completion notification and progress indication. Versions
+      have been published in <em>The Swing Connection</em> and <em>The Java Tutorial</em>, and an updated version is
+      included in Java 6. Prefer it in new code; know how it is built, because you will meet home-grown equivalents in
+      every Swing codebase written before 2007.
+    </p>
+  </section>
+  <!-- ================= 9.4 ================= -->
+  <section id="ch9-shared-models">
+    <h2><span class="num">9.4</span>Shared Data Models</h2>
+    <p class="lede">Everything so far assumed the data lives in the presentation objects. The moment a database, file
+    system or remote service is behind the table, more than one thread touches the data and the single-thread rule starts
+    to cost something.</p>
+
+    <p>
+      Swing presentation objects — including data models such as <code>TableModel</code> and <code>TreeModel</code> — are
+      confined to the event thread. In simple programs all mutable state is in the presentation objects and the only other
+      thread is the main thread, so enforcing the rule is easy: don't touch the model from main. More complicated programs
+      use other threads to move data to and from a persistent store so as not to compromise responsiveness.
+    </p>
+    <p>
+      In the simplest case the model's data is entered by the user or loaded once at startup, and no thread but the event
+      thread ever touches it. But sometimes the presentation model is only a <em>view onto</em> another data source — a
+      database, a file system, a remote service — and then several threads touch the data as it moves in and out of the
+      application.
+    </p>
+
+    <div class="card">
+      <h4>The example that motivates the whole section</h4>
+      <p style="margin:0">
+        A tree control displaying the contents of a remote file system. Enumerating the whole file system before showing
+        the tree would take too much time and memory, so the tree is populated lazily as nodes are expanded. Enumerating
+        even one directory on a remote volume can take a long time, so the enumeration belongs in a background task. When
+        it completes, the data has to get into the tree model somehow: a thread-safe tree model, a
+        <code>invokeLater</code> hand-off from the background task, or the event thread polling for availability.
+      </p>
+    </div>
+
+    <h3><span class="num">9.4.1</span>Thread-safe data models</h3>
+    <p>
+      As long as responsiveness is not unduly hurt by blocking, multiple threads can simply share a thread-safe data
+      model. If the model supports fine-grained concurrency, the event thread and background threads share it without
+      responsiveness problems — <code>DelegatingVehicleTracker</code> (Ch. 4, p. 65) uses a
+      <code>ConcurrentHashMap</code> whose retrieval operations offer a high degree of concurrency.
+    </p>
+    <p>
+      The downside is that such a model does not offer a <strong>consistent snapshot</strong> of the data, which may or
+      may not be a requirement. And a thread-safe model must still generate change events so that views update.
+    </p>
+    <p>
+      Sometimes thread safety, consistency <em>and</em> responsiveness are all achievable with a versioned data model such
+      as <code>CopyOnWriteArrayList</code>. An iterator obtained from a copy-on-write collection traverses the collection
+      as it existed when the iterator was created — a stable snapshot by construction. But copy-on-write performs well
+      only when traversals greatly outnumber modifications, which is probably not true of, say, a vehicle-tracking
+      application where every vehicle moves. More specialised versioned structures avoid the restriction, but building one
+      that is both efficiently concurrent and does not retain old versions longer than needed is not easy; consider it
+      only when other approaches are impractical.
+    </p>
+
+    <h3><span class="num">9.4.2</span>Split data models</h3>
+    <p>
+      From the GUI's point of view, <code>TableModel</code> and <code>TreeModel</code> are the official repository for
+      data to be displayed. But these model objects are often themselves <em>views</em> of objects managed by the
+      application. A program with both a presentation-domain and an application-domain model is said to have a
+      <strong>split-model</strong> design (Fowler, 2005).
+    </p>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">🖥️</div><h5>Presentation model</h5>
+        <p>Confined to the event thread, exactly like any other Swing model. It holds only what is on screen and needs no
+        synchronization at all.</p></div>
+      <div class="tile"><div class="ico">🗄️</div><h5>Shared model</h5>
+        <p>Thread-safe, touched by both the event thread and application threads. It holds the real domain state and
+        publishes change notifications.</p></div>
+      <div class="tile"><div class="ico">🔔</div><h5>The wire between them</h5>
+        <p>The presentation model registers listeners on the shared model; each update either carries a snapshot of the
+        relevant state or tells the presentation model to re-read it.</p></div>
+    </div>
+
+    <p>
+      The <strong>snapshot</strong> approach is simple and works well when the model is small, updates are infrequent, and
+      the two models have a similar shape. When the data is large, updates are frequent, or one side holds information the
+      other cannot see, it is more efficient to send <strong>incremental updates</strong> instead. That has the effect of
+      serialising updates on the shared model and replaying them in the event thread against the presentation model — and
+      finer-grained information about <em>what</em> changed improves perceived quality: if one vehicle moves, repaint the
+      affected region, not the whole display.
+    </p>
+
+    <div class="callout">
+      <span class="mark">🧭</span>
+      <p>Choose a split-model design when a data model must be shared by more than one thread <em>and</em> a thread-safe
+      data model would be inadvisable because of blocking, consistency, or complexity. That is the decision rule the
+      chapter gives, and it is the one to quote in a design review.</p>
+    </div>
+  </section>
+
+  <!-- ================= 9.5 ================= -->
+  <section id="ch9-other-subsystems">
+    <h2><span class="num">9.5</span>Other Forms of Single-threaded Subsystems</h2>
+    <p class="lede">Thread confinement is not a GUI technique. It is the general answer to "this thing is not thread-safe
+    and never will be".</p>
+
+    <p>
+      Thread confinement can be used whenever a facility is implemented as a single-threaded subsystem. Sometimes it is
+      forced on you for reasons that have nothing to do with avoiding synchronization or deadlock: some native libraries
+      require that all access — including <code>System.loadLibrary</code> — be made from the same thread.
+    </p>
+    <p>
+      Borrowing the approach taken by GUI frameworks, you can create a dedicated thread or single-threaded executor for
+      accessing the library, and provide a <strong>proxy</strong> that intercepts calls to the thread-confined object and
+      submits them as tasks to that thread. <code>Future</code> and <code>newSingleThreadExecutor</code> make this easy:
+      the proxy submits the task and immediately calls <code>Future.get</code> to wait for the result. If the confined
+      class implements an interface, dynamic proxies can automate the whole thing — every method becomes "submit a
+      <code>Callable</code>, wait for the result".
+    </p>
+
+    <div class="card">
+      <h4>The general pattern: confine, then hand off</h4>
+      <ol style="margin:0">
+        <li>Pick the one thread that is allowed to touch the object.</li>
+        <li>Give that thread a work queue — an <code>Executor</code> is the queue.</li>
+        <li>Every caller submits a task and, if it needs an answer, waits on the returned <code>Future</code>.</li>
+        <li>Never let the confined object's references escape to another thread; only tasks cross the boundary.</li>
+      </ol>
+      <p style="margin:12px 0 0">The event dispatch thread is exactly this pattern with a toolkit attached. That is why
+      <code>GuiExecutor</code> could be written in nine lines — and why the same nine lines work for a native library, a
+      document model, or any other "must be single-threaded" resource.</p>
+    </div>
+
+    <div class="callout">
+      <span class="mark">📖</span>
+      <p><strong>The chapter's Summary.</strong> GUI frameworks are nearly always implemented as single-threaded subsystems
+      in which all presentation-related code runs as tasks in an event thread. Because there is only a single event
+      thread, long-running tasks can compromise responsiveness and so should be executed in background threads. Helper
+      classes like <code>SwingWorker</code> — or the <code>BackgroundTask</code> class built here — which support
+      cancellation, progress indication and completion indication, can simplify the development of long-running tasks
+      that have both GUI and non-GUI components.</p>
+    </div>
+  </section>
+  <!-- ================= simulator ================= -->
+  <section id="ch9-sim">
+    <h2><span class="num">▶</span>Interactive: one button, four threading mistakes</h2>
+    <p class="lede">A single "Start" button running a six-tick computation, with two more clicks arriving while it runs.
+    The only thing that changes is <em>which thread does the work</em> — and whether the UI is still able to answer.</p>
+
+    <div class="sim">
+      <div class="sim-controls">
+        <button class="btn primary" id="ch9-simStep">Step ▸</button>
+        <button class="btn" id="ch9-simPlay">Play</button>
+        <button class="btn" id="ch9-simReset">Reset</button>
+        <div class="sim-toggle">
+          <button id="ch9-modeLong" class="on">on the EDT</button>
+          <button id="ch9-modeForget">fire &amp; forget</button>
+          <button id="ch9-modeHop">thread hop</button>
+          <button id="ch9-modeCancel">+ cancel</button>
+        </div>
+      </div>
+
+      <div class="lanes">
+        <div class="lane-label">EDT</div>
+        <div class="lane" id="ch9-laneEdt"></div>
+        <div class="lane-label">event queue</div>
+        <div class="lane" id="ch9-laneQueue"></div>
+        <div class="lane-label">background</div>
+        <div class="lane" id="ch9-lanePool"></div>
+      </div>
+
+      <div class="sim-readout">
+        <div class="stat"><span>tick</span><b id="ch9-stTicks">0</b></div>
+        <div class="stat"><span>window</span><b id="ch9-stWindow">responding</b></div>
+        <div class="stat"><span>worst click delay</span><b id="ch9-stLatency">—</b></div>
+        <div class="stat"><span>button state</span><b id="ch9-stButton">enabled</b></div>
+        <div class="stat"><span>verdict</span><b id="ch9-stVerdict">idle</b></div>
+      </div>
+      <div class="sim-msg" id="ch9-simMsg">Press “Step” to run one tick. Events arrive on ticks 1, 2 and 4.</div>
+
+      <div class="tl-wrap" style="margin-top:16px">
+        <div class="tl" id="ch9-timeline"></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="mark">🔍</span>
+      <p><strong>on the EDT</strong>: the click handler does the work itself, so every later click — including the one on
+      Cancel — sits in the event queue until the computation ends. The window does not repaint, and the operating system
+      eventually offers to kill it. <strong>fire &amp; forget</strong>: the work moves to a background thread, the UI stays
+      responsive, but nothing ever runs on completion, so the button stays disabled and the label stays on "busy" — the
+      classic half-migrated Swing handler. <strong>thread hop</strong>: the completion task is handed back to the EDT, so
+      responsiveness and correct state both hold. <strong>+ cancel</strong>: a <code>Future</code> plus a cancellation-aware
+      compute loop stops the work within one tick, and the same completion hook tidies up the UI.</p>
+    </div>
+  </section>
+
+  <!-- ================= patterns ================= -->
+  <section id="ch9-listings">
+    <h2><span class="num">§</span>Patterns worth stealing</h2>
+    <p class="lede">The eight listings above are the book's. These two turn them into the helpers a Swing codebase
+    actually needs: a checked hand-off, and a cancellable task with progress that cannot forget to clean up.</p>
+
+    <h3><span class="num">1</span>Assert the thread, don't hope for it</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">On-EDT assertion, safe hand-off, and a synchronous call that refuses to deadlock</span>
+        <button class="copy" data-copy="ch9-c1">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch9-c1">public final class Edt {
+    private Edt() { }
+
+    /** Fail fast: a violated single-thread rule shows up at the call site. */
+    public static void checkOnEdt() {
+        if (!SwingUtilities.isEventDispatchThread())
+            throw new IllegalStateException(
+                    "must be called on the EDT, but was " +
+                    Thread.currentThread().getName());
+    }
+
+    /** From any thread: run later on the EDT. Never blocks. */
+    public static void later(Runnable task) {
+        if (SwingUtilities.isEventDispatchThread())
+            task.run();                 // already there: queueing would invert order
+        else
+            SwingUtilities.invokeLater(task);
+    }
+
+    /**
+     * From a background thread only: run on the EDT and wait for the result.
+     * Calling it ON the EDT would wait for an event that can never be
+     * dispatched -- an instant, guaranteed deadlock.
+     */
+    public static &lt;T&gt; T call(Callable&lt;T&gt; body)
+            throws Exception {
+        if (SwingUtilities.isEventDispatchThread())
+            throw new IllegalStateException("call() on the EDT deadlocks");
+        FutureTask&lt;T&gt; f = new FutureTask&lt;T&gt;(body);
+        SwingUtilities.invokeLater(f);
+        try {
+            return f.get();
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof Exception) throw (Exception) cause;
+            if (cause instanceof Error) throw (Error) cause;
+            throw e;
+        }
+    }
+}</code></pre>
+    </div>
+
+    <h3><span class="num">2</span>A background task that cannot leak its state</h3>
+    <div class="listing">
+      <div class="head">
+        <span class="tag neutral">PATTERN</span>
+        <span class="name">Cancellable, progress-reporting task whose completion always lands on the EDT</span>
+        <button class="copy" data-copy="ch9-c2">Copy</button>
+      </div>
+      <pre><code class="lang-java" id="ch9-c2">public abstract class GuiJob&lt;V&gt; implements Runnable {
+    private final AtomicInteger progress = new AtomicInteger();
+    private final FutureTask&lt;V&gt; task = new FutureTask&lt;V&gt;(
+            new Callable&lt;V&gt;() {
+                public V call() throws Exception { return compute(); }
+            }) {
+        @Override protected void done() {                 // runs on the pool thread
+            Edt.later(new Runnable() {
+                public void run() { finish(); }           // ... hop to the EDT
+            });
+        }
+    };
+
+    /** Background thread. Poll isCancelled() rather than the interrupt flag. */
+    protected abstract V compute() throws Exception;
+
+    /** EDT. Called exactly once, whatever happened -- success, failure, cancel. */
+    protected abstract void onDone(V value, Throwable failure, boolean cancelled);
+
+    protected void onProgress(int done, int total) { }
+
+    /** Background thread; the UI update is marshalled, not performed here. */
+    protected final void report(int done, int total) {
+        if (progress.getAndSet(done) != done)
+            Edt.later(new Runnable() {
+                public void run() { onProgress(done, total); }
+            });
+    }
+
+    public final boolean isCancelled() { return task.isCancelled(); }
+
+    public final void cancel() { task.cancel(true); }      // interrupts compute()
+
+    public final void run() { task.run(); }                // submit to backgroundExec
+
+    private void finish() {
+        V value = null;
+        Throwable failure = null;
+        boolean cancelled = false;
+        try {
+            value = task.get();
+        } catch (ExecutionException e) {
+            failure = e.getCause();
+        } catch (CancellationException e) {
+            cancelled = true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();            // must be on the EDT: never expected
+            return;
+        } finally {
+            onDone(value, failure, cancelled);             // ordering preserved: onDone runs last
+        }
+    }
+}</code></pre>
+    </div>
+
+    <div class="callout">
+      <span class="mark">💡</span>
+      <p>The two patterns answer the two questions every Swing codebase eventually asks: "am I allowed to touch this
+      here?" (<code>checkOnEdt</code>) and "did I remember to put the UI back?" (a single <code>onDone</code> that is
+      called on success, failure <em>and</em> cancellation). Both failures are invisible in manual testing and obvious in
+      a stack trace or a stuck button.</p>
+    </div>
+  </section>
+  <!-- ================= glossary ================= -->
+  <section id="ch9-terms">
+    <h2><span class="num">§</span>Vocabulary introduced in Chapter 9</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Term</th><th>Meaning as used here</th><th>Where it goes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Single-threaded subsystem</strong></td><td>A facility whose state is touched by exactly one thread, so that no synchronization is needed at all.</td><td>Ch. 9.1</td></tr>
+          <tr><td><strong>Event dispatch thread (EDT)</strong></td><td>The one thread that runs GUI code and dispatches events from the event queue.</td><td>Ch. 9.1</td></tr>
+          <tr><td><strong>Single-thread rule</strong></td><td>Swing components and models are created, modified, and queried only on the EDT.</td><td>Ch. 9.1.2</td></tr>
+          <tr><td><strong>Event queue</strong></td><td>The work queue of the single-threaded executor that is the GUI toolkit. Unbounded, FIFO, and the reason one slow task freezes everything.</td><td>Ch. 9.1.1</td></tr>
+          <tr><td><strong><code>invokeLater</code></strong></td><td>Schedule a task on the EDT and return immediately — <code>Executor.execute</code> by another name.</td><td>Ch. 9.1.2</td></tr>
+          <tr><td><strong><code>invokeAndWait</code></strong></td><td>Schedule a task on the EDT and block for it — <code>submit().get()</code>. Illegal from the EDT: it would wait for itself.</td><td>Ch. 9.1.2</td></tr>
+          <tr><td><strong>Thread hopping</strong></td><td>One logical user action split into subtasks that alternate between the EDT and a background thread.</td><td>Ch. 9.3</td></tr>
+          <tr><td><strong>Fire and forget</strong></td><td>Submitting a task and ignoring the result — what Listing 9.4 does, and why it is only a first step.</td><td>Ch. 9.3</td></tr>
+          <tr><td><strong><code>BackgroundTask</code></strong></td><td>The chapter's <code>FutureTask</code> subclass with <code>onCompletion</code> and <code>onProgress</code> hooks that run on the EDT.</td><td>Ch. 9.3.2</td></tr>
+          <tr><td><strong><code>done</code> hook</strong></td><td><code>FutureTask.done</code>, called when the computation finishes — the single point from which completion notification is posted to the EDT.</td><td>Ch. 9.3.2</td></tr>
+          <tr><td><strong><code>SwingWorker</code></strong></td><td>The library version of that framework: cancellation, progress, and completion notification (Java 6).</td><td>Ch. 9.3.3</td></tr>
+          <tr><td><strong>Thread-safe data model</strong></td><td>A model shared directly by the EDT and background threads; fine-grained concurrency, but no consistent snapshot.</td><td>Ch. 9.4.1</td></tr>
+          <tr><td><strong>Versioned data model</strong></td><td>A model whose iterators see a stable snapshot, e.g. <code>CopyOnWriteArrayList</code>; good only when traversals dominate modifications.</td><td>Ch. 9.4.1</td></tr>
+          <tr><td><strong>Split model</strong></td><td>Presentation model confined to the EDT plus a thread-safe shared model, connected by notifications (Fowler).</td><td>Ch. 9.4.2</td></tr>
+          <tr><td><strong>Snapshot vs. incremental update</strong></td><td>Push the whole relevant state across the boundary, or just the delta — the trade-off that decides how the split models talk.</td><td>Ch. 9.4.2</td></tr>
+          <tr><td><strong>Confined-object proxy</strong></td><td>A wrapper that turns every method call into a task on the confined object's thread and waits on the <code>Future</code>.</td><td>Ch. 9.5</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= cheat sheet ================= -->
+  <section id="ch9-cheatsheet">
+    <h2><span class="num">✓</span>Cheat sheet &amp; self-check</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>Window goes grey / "not responding"</td><td>A long task or a blocking call on the EDT</td><td>Move it to a background executor; leave only the UI updates on the EDT</td></tr>
+          <tr><td>Cancel button does nothing</td><td>Its listener is queued behind the task it should cancel</td><td>The task must not run on the EDT; cancel the <code>Future</code>, don't poll a flag</td></tr>
+          <tr><td>Progress bar never moves</td><td>Updates posted from the background thread, or posted too often</td><td><code>invokeLater</code> (or <code>setProgress</code>) and coalesce updates</td></tr>
+          <tr><td>Button stays disabled after the job ends</td><td>Completion update never hopped back to the EDT — the Listing 9.4 mistake</td><td>Restore UI state in the <code>done</code>/<code>onCompletion</code> hook, in a <code>finally</code></td></tr>
+          <tr><td>Occasional flicker, wrong rows, broken selection</td><td>A model touched from a background thread</td><td>Violation of the single-thread rule: assert with <code>checkOnEdt()</code></td></tr>
+          <tr><td>Deadlock the moment you call <code>invokeAndWait</code></td><td>Called from the EDT</td><td>Guard it; use <code>invokeLater</code> when already on the EDT</td></tr>
+          <tr><td>Table shows stale data after a background reload</td><td>Model updated without firing change events, or events fired off-EDT</td><td><code>fireXxx</code> on the EDT after the model data is swapped</td></tr>
+          <tr><td>Unexplained hangs in a complex dialog</td><td>Two threads acquiring component/model locks in opposite directions</td><td>Don't lock GUI objects at all — confine them, and hop threads instead</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="tile"><div class="ico">✅</div><h5>Do</h5>
+        <p>Keep every EDT task short. Hand off with <code>invokeLater</code> (or <code>GuiExecutor</code>). Put cancellation,
+        progress and completion in one helper. Confine presentation models and share only thread-safe ones. Assert the
+        thread you think you are on.</p></div>
+      <div class="tile"><div class="ico">🚫</div><h5>Avoid</h5>
+        <p>Blocking I/O, sleeps or <code>Future.get</code> on the EDT. Calling <code>invokeAndWait</code> from the EDT.
+        Touching components from a background thread. Firing model events off the EDT. Doing the UI cleanup in three
+        different places.</p></div>
+      <div class="tile"><div class="ico">🧠</div><h5>The one habit</h5>
+        <p>For every listener, ask two questions: <em>how long can this run?</em> and <em>which thread am I on when I touch
+        the UI?</em> A handler that answers "long" and "the EDT" is a bug report waiting for a user to file it.</p></div>
+    </div>
+
+    <div class="card">
+      <h4>Five questions the chapter leaves you with</h4>
+      <ol>
+        <li>Which of my listeners can block — and what is the worst-case duration of each?</li>
+        <li>When a background task ends, what exactly puts the UI back into a consistent state, on which thread?</li>
+        <li>Can the user cancel the long operation, and does the code notice within a reasonable time?</li>
+        <li>Is my table/tree model shared with any other thread, and if so, which of the three strategies (thread-safe, versioned, split) did I choose on purpose?</li>
+        <li>If the EDT were frozen for ten seconds right now, would any of my logs tell me which handler did it?</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ================= chapter 9 footnotes ================= -->
+  <div class="footnotes">
+    <h4 style="margin:0 0 10px;font-size:.8rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)">Notes carried over from the chapter</h4>
+    <ol>
+      <li>The weblog cited by the book is Graham Hamilton's, at <code>weblogs.java.net/blog/kgh/archive/2004/10</code> — a Sun VP explaining why multithreaded GUI toolkits became one of computer science's recurring failed dreams.</li>
+      <li>AWT originally tried to support a greater degree of multithreaded access; the decision to make Swing single-threaded was based largely on that experience.</li>
+      <li>Swing predates the Executor framework, which is why <code>SwingUtilities</code> is not implemented with one — but the analogy is exact enough that the book uses it to explain both.</li>
+      <li><code>invokeAndWait</code> must never be called from the event thread: it would wait for a task that cannot be dispatched until the current one returns.</li>
+      <li>Prior to Java 6, Swing offered no mechanism for helping GUI tasks execute code in other threads; the background executor in §9.3 is the workaround, and <code>SwingWorker</code> in Java 6 is the fix.</li>
+      <li><code>DelegatingVehicleTracker</code> is the thread-safe-model example from Chapter 4 (p. 65); its <code>ConcurrentHashMap</code> gives concurrent reads but no consistent snapshot.</li>
+      <li>The split-model design is from Martin Fowler's <em>Presentation Model</em> material (2005), cited by the book for the presentation-domain vs. application-domain distinction.</li>
+      <li>Versioned collections such as <code>CopyOnWriteArrayList</code> are referenced in the book via <em>CPJ</em> §2.2.3.3 (Lea, <em>Concurrent Programming in Java</em>).</li>
+    </ol>
+    <p style="margin-top:14px">
+      Summary of <em>Java Concurrency in Practice</em>, Chapter 9 (GUI Applications), pp. 117–126.
+      All code listings are the book's, with annotations added; figures 9.1 and 9.2 are reproduced from the book PDF for
+      study purposes.
+    </p>
+  </div>
+
 <footer>
-  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–8 ·
+  Study notes · <em>Java Concurrency in Practice</em> · Chapters 1–9 ·
   self-contained HTML (no external requests)
 </footer>
 </main>
@@ -11296,6 +12276,309 @@ function initChapter8Sim() {
 }
 
 /* ------------------------------------------------------------------ *
+ * Chapter 9 simulator
+ * ------------------------------------------------------------------ */
+/* ---- Chapter 9: which thread does the work, and what the user sees ---- */
+function initChapter9Sim() {
+  const laneEdt = document.getElementById('ch9-laneEdt');
+  const laneQueue = document.getElementById('ch9-laneQueue');
+  const lanePool = document.getElementById('ch9-lanePool');
+  const btnStep = document.getElementById('ch9-simStep');
+  const btnPlay = document.getElementById('ch9-simPlay');
+  const btnReset = document.getElementById('ch9-simReset');
+  const modeLong = document.getElementById('ch9-modeLong');
+  const modeForget = document.getElementById('ch9-modeForget');
+  const modeHop = document.getElementById('ch9-modeHop');
+  const modeCancel = document.getElementById('ch9-modeCancel');
+  const stTicks = document.getElementById('ch9-stTicks');
+  const stWindow = document.getElementById('ch9-stWindow');
+  const stLatency = document.getElementById('ch9-stLatency');
+  const stButton = document.getElementById('ch9-stButton');
+  const stVerdict = document.getElementById('ch9-stVerdict');
+  const simMsg = document.getElementById('ch9-simMsg');
+  const timeline = document.getElementById('ch9-timeline');
+
+  /*
+   * One six-tick computation started at tick 1; two more clicks arrive while
+   * it runs (a plain UI click at tick 3, Cancel at tick 5). Only the thread
+   * that runs the computation differs between the four modes.
+   */
+  const LAST_TICK = 12;
+  const JOB_TICKS = 6;
+  const ARRIVALS = [
+    { at: 1, label: 'Start', kind: 'start' },
+    { at: 3, label: 'Click', kind: 'ui' },
+    { at: 5, label: 'Cancel', kind: 'cancel' }
+  ];
+
+  const MODES = {
+    long: {
+      note: 'The click handler does the whole computation itself. Clicks at ticks 3 and 5 -- including Cancel -- sit in the event queue behind it, the window never repaints, and the OS eventually offers to kill a program that is "not responding". Cancellation cannot work here: the listener that would call cancel() is itself waiting in the queue behind the task it wants to stop.',
+      verdict: 'freezes the window \u2717'
+    },
+    forget: {
+      note: 'The work moves to a background thread and the window stays responsive -- clicks are handled the moment they arrive. But nothing runs on completion, so the button stays disabled and the label stays on "busy" forever. Half-migrated: the responsiveness problem is fixed, the state-restoration problem is not, and users report it as "the app got stuck after I ran the check".',
+      verdict: 'lost the UI update \u2717'
+    },
+    hop: {
+      note: 'The completion update is handed back to the event thread: the background thread works, then posts a task with invokeLater (or GuiExecutor) that re-enables the button and resets the label. Responsive and consistent. The one thing still missing is cancellation -- pressing Cancel queues a click that the running job never looks at.',
+      verdict: 'responsive + consistent \u2713'
+    },
+    cancel: {
+      note: 'A Future plus a compute loop that checks isCancelled(): Cancel arrives at tick 5, the job notices within a tick and stops, and the completion hook -- already running on the event thread -- restores the UI and reports "cancelled". One hook covers success, failure and cancellation, so no path leaves the button disabled.',
+      verdict: 'cancels within a tick \u2713'
+    }
+  };
+
+  let mode = 'long';
+  let tick = 0;
+  let edtJob = null;          // {remaining, kind}
+  let bgJob = null;           // {remaining, cancelled}
+  let pendingCompletion = false;
+  let queue = [];             // pending clicks: {label, kind, arrived}
+  let button = 'enabled';
+  let label = 'idle';
+  let worstDelay = 0;
+  let frozenTicks = 0;
+  let cancelledAt = 0;
+  let done = false;
+  let timer = null;
+  let cells = { edt: [], pool: [] };
+
+  function buildTimeline() {
+    timeline.innerHTML = '';
+    ['EDT', 'pool'].forEach(function (name) {
+      const row = document.createElement('div');
+      row.className = 'tl-row';
+      const lbl = document.createElement('span');
+      lbl.className = 'tl-lbl';
+      lbl.textContent = name;
+      const grid = document.createElement('div');
+      grid.className = 'tl-cells';
+      grid.style.gridTemplateColumns = 'repeat(' + LAST_TICK + ',1fr)';
+      const list = [];
+      for (let i = 0; i < LAST_TICK; i++) {
+        const c = document.createElement('div');
+        c.className = 'tl-cell future';
+        c.textContent = '\u00b7';
+        grid.appendChild(c);
+        list.push(c);
+      }
+      row.appendChild(lbl);
+      row.appendChild(grid);
+      timeline.appendChild(row);
+      if (name === 'EDT') cells.edt = list; else cells.pool = list;
+    });
+  }
+
+  function markTimeline() {
+    const i = tick - 1;
+    if (i < 0 || i >= LAST_TICK) return;
+    const edt = cells.edt[i];
+    if (edtJob) {
+      edt.className = 'tl-cell run now';
+      edt.textContent = edtJob.kind === 'start' ? 'work' : 'click';
+    } else if (queue.length) {
+      edt.className = 'tl-cell wait now';
+      edt.textContent = 'wait';
+    } else {
+      edt.className = 'tl-cell done now';
+      edt.textContent = '\u00b7';
+    }
+    const pool = cells.pool[i];
+    if (bgJob && bgJob.cancelled) {
+      pool.className = 'tl-cell wait now';
+      pool.textContent = 'stop';
+    } else if (bgJob) {
+      pool.className = 'tl-cell run now';
+      pool.textContent = 'work';
+    } else {
+      pool.className = 'tl-cell done now';
+      pool.textContent = '\u00b7';
+    }
+  }
+
+  function slot(text, cls) {
+    const d = document.createElement('div');
+    d.className = 'op' + (cls ? ' ' + cls : '');
+    d.textContent = text;
+    return d;
+  }
+
+  function paint() {
+    laneEdt.innerHTML = '';
+    laneEdt.appendChild(slot(edtJob ? (edtJob.kind === 'start' ? 'compute' : 'handle click') : 'idle',
+                             edtJob ? 'active' : ''));
+    laneQueue.innerHTML = '';
+    if (queue.length === 0) laneQueue.appendChild(slot('\u00b7', ''));
+    else queue.forEach(function (q) { laneQueue.appendChild(slot(q.label, 'done')); });
+    lanePool.innerHTML = '';
+    lanePool.appendChild(slot(bgJob ? (bgJob.cancelled ? 'stopping' : 'compute') : 'idle',
+                              bgJob ? 'active' : ''));
+
+    const frozen = !!(edtJob && edtJob.kind === 'start');
+    stTicks.textContent = tick + ' / ' + LAST_TICK;
+    if (done) {
+      stWindow.textContent = frozenTicks ? 'froze ' + frozenTicks + ' ticks' : 'never froze';
+      stWindow.className = frozenTicks ? 'bad' : 'good';
+    } else {
+      stWindow.textContent = frozen ? 'frozen' : 'responding';
+      stWindow.className = frozen ? 'bad' : 'good';
+    }
+    stLatency.textContent = worstDelay === 0 ? 'none' : worstDelay + ' ticks';
+    stLatency.className = worstDelay >= 3 ? 'bad' : (worstDelay === 0 ? 'good' : '');
+    stButton.textContent = button + (button === 'disabled' ? ' (' + label + ')' : '');
+    stButton.className = button === 'enabled' ? 'good' : 'bad';
+    stVerdict.textContent = done ? MODES[mode].verdict : 'running';
+    stVerdict.className = done ? ((mode === 'long' || mode === 'forget') ? 'bad' : 'good') : '';
+  }
+
+  function restoreUi() {
+    button = 'enabled';
+    label = 'idle';
+  }
+
+  /* one EDT slice: run the current task, else dispatch one event, else complete a job */
+  function edtSlice() {
+    if (edtJob) {
+      if (edtJob.kind === 'start') frozenTicks += 1;
+      edtJob.remaining -= 1;
+      if (edtJob.remaining <= 0) {
+        edtJob = null;
+        if (mode === 'long') restoreUi();
+      }
+      return;
+    }
+    if (queue.length) {
+      const ev = queue.shift();
+      const delay = tick - ev.arrived;
+      if (delay > worstDelay) worstDelay = delay;
+      if (ev.kind === 'start') {
+        button = 'disabled';
+        label = 'busy';
+        if (mode === 'long') {
+          edtJob = { remaining: JOB_TICKS, kind: 'start' };
+        } else {
+          bgJob = { remaining: JOB_TICKS, cancelled: false };
+        }
+      } else if (ev.kind === 'cancel') {
+        if (bgJob && mode === 'cancel' && !bgJob.cancelled) {
+          bgJob.cancelled = true;
+          cancelledAt = tick;
+        }
+      }
+      return;
+    }
+    if (pendingCompletion) {
+      pendingCompletion = false;
+      if (mode !== 'forget') restoreUi();
+    }
+  }
+
+  function step() {
+    if (done) return false;
+    tick += 1;
+
+    ARRIVALS.forEach(function (a) {
+      if (a.at === tick) queue.push({ label: a.label, kind: a.kind, arrived: tick });
+    });
+
+    /* the background thread works; a cancelled job stops within a tick */
+    if (bgJob) {
+      bgJob.remaining -= 1;
+      if (bgJob.cancelled) bgJob.remaining = 0;
+      if (bgJob.remaining <= 0) {
+        bgJob = null;
+        if (mode === 'forget') {
+          /* nothing posted: button and label stay exactly as they are */
+        } else {
+          pendingCompletion = true;      /* done() posts a task back to the EDT */
+        }
+      }
+    }
+
+    edtSlice();
+    markTimeline();
+    paint();
+
+    if (tick >= LAST_TICK) {
+      done = true;
+      stop();
+      btnStep.disabled = true;
+      btnPlay.disabled = true;
+      let extra = '';
+      if (mode === 'long') extra = ' Clicks waited up to ' + worstDelay + ' ticks for the event thread.';
+      if (mode === 'forget') extra = ' The button is still ' + button + ' and the label still says "' + label + '".';
+      if (mode === 'hop') extra = ' Completion restored the UI on the event thread; no click was ever delayed.';
+      if (mode === 'cancel' && cancelledAt) extra = ' Cancelled at tick ' + cancelledAt + '; the UI was restored one tick later.';
+      paint();
+      simMsg.textContent = MODES[mode].note + extra;
+      return false;
+    }
+    return true;
+  }
+
+  function play() {
+    if (timer) return;
+    btnPlay.textContent = 'Pause';
+    timer = setInterval(function () {
+      if (!step()) { timer = null; btnPlay.textContent = 'Play'; }
+    }, 420);
+  }
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null; }
+    btnPlay.textContent = 'Play';
+  }
+
+  function reset(newMode) {
+    stop();
+    if (newMode) mode = newMode;
+    tick = 0;
+    edtJob = null;
+    bgJob = null;
+    pendingCompletion = false;
+    queue = [];
+    button = 'enabled';
+    label = 'idle';
+    worstDelay = 0;
+    frozenTicks = 0;
+    cancelledAt = 0;
+    done = false;
+    btnStep.disabled = false;
+    btnPlay.disabled = false;
+    btnPlay.textContent = 'Play';
+    modeLong.classList.toggle('on', mode === 'long');
+    modeForget.classList.toggle('on', mode === 'forget');
+    modeHop.classList.toggle('on', mode === 'hop');
+    modeCancel.classList.toggle('on', mode === 'cancel');
+    buildTimeline();
+    paint();
+    const hints = {
+      long: 'Start is clicked at tick 1: the six-tick computation runs on the event thread itself.',
+      forget: 'Start hands six ticks of work to a background thread. Nothing runs when it ends.',
+      hop: 'The background job posts its completion task back to the event thread.',
+      cancel: 'Cancel arrives at tick 5 and the compute loop is allowed to notice it.'
+    };
+    simMsg.textContent = hints[mode];
+  }
+
+  btnStep.addEventListener('click', function () { step(); });
+  btnPlay.addEventListener('click', function () {
+    if (timer) { stop(); return; }
+    if (done) reset();
+    play();
+  });
+  btnReset.addEventListener('click', function () { reset(); });
+  modeLong.addEventListener('click', function () { reset('long'); });
+  modeForget.addEventListener('click', function () { reset('forget'); });
+  modeHop.addEventListener('click', function () { reset('hop'); });
+  modeCancel.addEventListener('click', function () { reset('cancel'); });
+
+  reset('long');
+}
+
+/* ------------------------------------------------------------------ *
  * Boot
  * ------------------------------------------------------------------ */
 document.addEventListener('DOMContentLoaded', function () {
@@ -11306,6 +12589,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initChapter6Sim();
   initChapter7Sim();
   initChapter8Sim();
+  initChapter9Sim();
 
   /* nav dropdowns */
   const btns = document.querySelectorAll('.navbtn');
