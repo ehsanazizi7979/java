@@ -6,31 +6,35 @@ Joseph Bowbeer, David Holmes and Doug Lea.
 
 ## Chapters
 
-| Chapter | File | Covers |
+Everything lives in one page: **[`index.html`](index.html)**.
+
+| Chapter | Section | Covers |
 | --- | --- | --- |
-| 1 — Introduction | [`chapter-01-introduction.html`](chapter-01-introduction.html) | pp. 1–9: history of concurrency, benefits of threads, safety/liveness/performance hazards, threads are everywhere |
+| 1 — Introduction | `#ch1` | pp. 1–9: history of concurrency, benefits of threads, safety/liveness/performance hazards, threads are everywhere |
+| 2 — Thread Safety | `#ch2` | pp. 11–22: state, correctness, atomicity, race conditions, compound actions, intrinsic locks, reentrancy, guarding state, liveness vs. performance |
 
 ## Notes on the chapter files
 
 * **Single file, zero external requests.** CSS, JavaScript, SVG diagrams and images are all inlined, so a
   chapter file works offline, from `file://`, or attached to an email. The scanned figure is embedded as a
   base64 `data:` URI.
-* **Original figure.** `Figure 1.1` is cropped from the book PDF in this repository (page 5) and stored,
-  unmodified apart from cropping, in [`assets/figure-1.1.png`](assets/figure-1.1.png); the HTML embeds its
-  base64 form.
-* **Code listings.** Listings 1.1 and 1.2 are reproduced verbatim; the additional listings are the same
-  ideas written out as runnable fragments, plus a small syntax highlighter and copy-to-clipboard buttons.
-* **Interactive simulator.** Section "Interactive: watch the lost update happen" steps through the
-  Figure 1.1 interleaving and then re-runs the same two threads with `synchronized`, showing the difference
-  between a duplicate result and a unique one.
+* **Original figures.** `Figure 1.1` (p. 5) and `Figure 2.1` (p. 21) are cropped from the book PDF in this
+  repository and stored, unmodified apart from cropping, in [`assets/`](assets); the HTML embeds their base64
+  forms.
+* **Code listings.** All ten book listings (1.1–1.2, 2.1–2.8) are reproduced verbatim; additional listings
+  are the same ideas written out as runnable fragments. A dependency-free Java highlighter styles them and
+  every block has a copy button.
+* **Interactive simulators.** Chapter 1: step through the Figure 1.1 interleaving, then re-run it with
+  `synchronized`. Chapter 2: step through the two-`AtomicReference` cache breaking its invariant, then watch
+  a single lock keep the pair consistent.
 
 ## Viewing
 
 Open the HTML file directly in a browser:
 
 ```bash
-xdg-open chapter-01-introduction.html   # Linux
-open chapter-01-introduction.html       # macOS
+xdg-open index.html   # Linux
+open index.html       # macOS
 ```
 
 The pages are also printable — a print stylesheet drops the navigation and the simulator controls.
