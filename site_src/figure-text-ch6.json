@@ -1,0 +1,240 @@
+{
+ "opener": [
+  "Title: “Encapsulating Invocation”.",
+  "Chapter 6, the Command Pattern.",
+  "Spy at the drop box: “These top secret drop boxes have revolutionized the spy industry. I just drop in my request and people disappear, governments change overnight, and my dry cleaning gets done. I don’t have to worry about when, where, or how; it just happens!”",
+  "Intro: “In this chapter, we take encapsulation to a whole new level: we’re going to encapsulate method invocation. That’s right—by encapsulating method invocation, we can crystallize pieces of computation so that the object invoking the computation doesn’t need to worry about how to do things, it just uses our crystallized method to get it done. We can also do some wickedly smart things with these encapsulated method invocations, like save them away for logging or reuse them to implement undo functionality in our code.”"
+ ],
+ "letter": [
+  "File label: “home automation or bust”.",
+  "Letterhead: Home Automation or Bust, Inc. · 1221 Industrial Avenue, Suite 2000 · Future City, IL 62914.",
+  "“Greetings! I recently received a demo and briefing from Johnny Hurricane, CEO of Weather-O-Rama, on their new expandable weather station. I have to say, I was so impressed with the software architecture that I’d like to ask you to design the API for our new Home Automation Remote Control.”",
+  "“The remote control features seven programmable slots (each can be assigned to a different household device) along with corresponding on/off buttons for each. The remote also has a global undo button.”",
+  "“I’m also attaching to this email a set of Java classes that were created by various vendors to control home automation devices such as lights, fans, hot tubs, audio equipment…”",
+  "“We’d like you to create an API for programming the remote so that each slot can be assigned to control a device or set of devices. Note that it is important that we be able to control all the current devices, and also any future devices that the vendors may supply.”",
+  "Signed: Bill Thompson, CEO."
+ ],
+ "remote": [
+  "“Free hardware! Let’s check out the Remote Control…”",
+  "“We’ve got seven slots to program. We can put a different device in each slot and control it via the buttons.”",
+  "“There are on and off buttons for each of the seven slots.”",
+  "“These two buttons are used to control the household device stored in slot one… …and these two control the household device stored in slot two… …and so on.”",
+  "“Here’s the global undo button that undoes the operation of the last button pressed.”",
+  "“Get your Sharpie out and write your device names here.”"
+ ],
+ "vendors": [
+  "“Taking a look at the vendor classes”.",
+  "“It looks like we have quite a set of classes here, and not a lot of industry effort to come up with a set of common interfaces. Not only that, it sounds like we can expect more of these classes in the future. Designing a remote control API is going to be interesting. Let’s get on to the design.”",
+  "“Wow, lots of different kinds of devices that we’re going to need to be able to control.”",
+  "“And some very different kinds of interfaces across these devices.”",
+  "Classes on the page: CeilingLight (on, off, dim), OutdoorLight (on, off), CeilingFan (high, medium, low, off, getSpeed), Hottub (circulate, jetsOn, jetsOff, setTemperature), TV (on, off, setInputChannel, setVolume), GarageDoor (up, down, stop, lightOn, lightOff), Stereo (on, off, setCd, setDvd, setRadio, setVolume), FaucetControl (openValve, closeValve), Thermostat (setTemperature), GardenLight (setDuskTime, setDawnTime, manualOn, manualOff), ApplianceControl (on, off), SecurityControl (arm, disarm), Sprinkler (waterOn, waterOff), Light (on, off)."
+ ],
+ "cubicle": [
+  "“Cubicle Conversation — Your teammates are already discussing how to design the remote control API…”",
+  "Sue: “Well, we’ve got another design to do. My first observation is that we’ve got a simple remote with on and off buttons but a set of vendor classes that are quite diverse.”",
+  "Mary: “Yes, I thought we’d see a bunch of classes with on() and off() methods, but here we’ve got methods like dim(), setTemperature(), setVolume(), and setInputChannel(), and waterOn().”",
+  "Sue: “Not only that, it sounds like we can expect more vendor classes in the future with methods just as diverse.”",
+  "Mary: “I think it’s important we view this as a separation of concerns… the remote should know how to interpret button presses and make requests, but it shouldn’t know a lot about home automation or how to turn on a hot tub.”",
+  "Mary: “We don’t want the remote to consist of a set of if statements, like ‘if slot1 == Light, then light.on(), else if slot1 == Hottub then hottub.jetsOn()’. We know that is a bad design.”",
+  "Sue: “I agree. Whenever a new vendor class comes out, we’d have to go in and modify the code, potentially creating bugs and more work for ourselves!”"
+ ],
+ "joe": [
+  "Joe: “Hey, I couldn’t help overhearing. Since Chapter 1 I’ve been boning up on Design Patterns. There’s a pattern called ‘Command Pattern’ I think might help.”",
+  "Joe: “The Command Pattern allows you to decouple the requester of an action from the object that actually performs the action. So, here the requester would be the remote control and the object that performs the action would be an instance of one of your vendor classes.”",
+  "Joe: “A command object encapsulates a request to do something (like turn on a light) on a specific object (say, the living room light object). So, if we store a command object for each button, when the button is pressed we ask the command object to do some work. The remote doesn’t have any idea what the work is… So, you see, the remote is decoupled from the light object!”",
+  "Mary: “Using this pattern, we could create an API in which these command objects can be loaded into button slots, allowing the remote code to stay very simple. And the command objects encapsulate how to do a home automation task along with the object that needs to do it.”",
+  "Joe: “Yes, I think so. I also think this pattern can help you with that undo button, but I haven’t studied that part yet.”"
+ ],
+ "diner": [
+  "“Meanwhile, back at the Diner…, or, A brief introduction to the Command Pattern.”",
+  "“Okay, we all know how the Diner operates:”",
+  "1 · “You, the Customer, give the Waitress your Order.”",
+  "2 · “The Waitress takes the Order, places it on the order counter, and says ‘Order up!’”",
+  "3 · “The Short-Order Cook prepares your meal from the Order.”",
+  "Objectville Diner · “Wish you were here…” · order slip: “Burger with Cheese / Malt Shake”."
+ ],
+ "diner-diagram": [
+  "“Let’s study the interaction in a little more detail… …and given this Diner is in Objectville, let’s think about the object and method calls involved, too!”",
+  "Customer: “I’ll have a Burger with Cheese and a Malt Shake.” → createOrder().",
+  "“The Order consists of an Order Slip and the Customer’s menu items that are written on it. The Customer knows what he wants and creates an Order.”",
+  "Waitress → takeOrder(). “The Waitress takes the Order, and when she gets around to it, she calls its orderUp() method to begin the Order’s preparation.”",
+  "Order → orderUp(). “The Order has all the instructions needed to prepare the meal. The Order directs the Short-Order Cook with methods like makeBurger(), makeShake().”",
+  "“The Short-Order Cook follows the instructions of the Order and produces the meal.” — output."
+ ],
+ "diner-roles": [
+  "“The Objectville Diner roles and responsibilities.”",
+  "“An Order Slip encapsulates a request to prepare a meal.”",
+  "Code on the order slip: public void orderUp() { cook.makeBurger(); cook.makeShake(); }",
+  "“The Waitress’s job is to take Order Slips and invoke the orderUp() method on them.”",
+  "“The Short-Order Cook has the knowledge required to prepare the meal.”",
+  "Waitress: “Don’t ask me to cook, I just take orders and yell ‘Order up!’”",
+  "Cook: “You can definitely say the Waitress and I are decoupled. She’s not even my type!”",
+  "Sidebar: “Okay, in real life a waitress would probably care what is on the order slip and who cooks it, but this is Objectville… work with us here!”"
+ ],
+ "diner-to-command": [
+  "“From the Diner to the Command Pattern.”",
+  "“The Client is responsible for creating the Command object. The command object consists of a set of actions on a Receiver.” → createCommandObject().",
+  "“The Client calls setCommand() on an Invoker object and passes it the Command object, where it gets stored until it is needed.”",
+  "“At some point in the future the Invoker calls the Command object’s execute() method… …which results in the actions being invoked on the Receiver.”",
+  "“The Command object provides one method, execute(), that encapsulates the actions and can be called to invoke the actions on the Receiver.”",
+  "“The actions and the Receiver are bound together in the command object.” — public void execute { receiver.action1(); receiver.action2(); }",
+  "“Loading the Invoker: 1 The client creates a command object. 2 The client does a setCommand() to store the command object in the invoker. 3 Later… the client asks the invoker to execute the command.”"
+ ],
+ "match-exercise": [
+  "Exercise header: “WHO DOES WHAT?”",
+  "“Match the diner objects and methods with the corresponding names from the Command Pattern.”",
+  "Diner column: Waitress · Short-Order Cook · orderUp() · Order · Customer · takeOrder().",
+  "Command Pattern column: Command · execute() · Client · Invoker · Receiver · setCommand()."
+ ],
+ "first-command": [
+  "“Our first command object.”",
+  "“Implementing the Command interface — First things first: all command objects implement the same interface, which consists of one method. In the Diner we called this method orderUp(); however, we typically just use the name execute().”",
+  "public interface Command { public void execute(); } — “Simple. All we need is one method called execute().”",
+  "public class LightOnCommand implements Command { Light light; public LightOnCommand(Light light) { this.light = light; } public void execute() { light.on(); } }",
+  "“This is a command, so we need to implement the Command interface.”",
+  "“The constructor is passed the specific light that this command is going to control—say the living room light—and stashes it in the light instance variable. When execute gets called, this is the light object that is going to be the receiver of the request.”",
+  "“The execute() method calls the on() method on the receiving object, which is the light we are controlling.”",
+  "Light class diagram: on(), off()."
+ ],
+ "simple-remote": [
+  "“Using the command object” / “Creating a simple test to use the Remote Control”.",
+  "public class SimpleRemoteControl { Command slot; public SimpleRemoteControl() {} public void setCommand(Command command) { slot = command; } public void buttonWasPressed() { slot.execute(); } }",
+  "“We have one slot to hold our command, which will control one device.”",
+  "“We have a method for setting the command the slot is going to control. This could be called multiple times if the client of this code wanted to change the behavior of the remote button.”",
+  "“This method is called when the button is pressed. All we do is take the current command bound to the slot and call its execute() method.”",
+  "RemoteControlTest.main(): “This is our Client in Command Pattern-speak… The remote is our Invoker… Now we create a Light object. This will be the Receiver of the request… Here, create a command and pass the Receiver to it… Here, pass the command to the Invoker… And then we simulate the button being pressed.”",
+  "Console: %java RemoteControlTest → Light is On."
+ ],
+ "garage-exercise": [
+  "“Sharpen your pencil — Okay, it’s time for you to implement the GarageDoorOpenCommand class. First, supply the code for the class below. You’ll need the GarageDoor class diagram.”",
+  "GarageDoor: up(), down(), stop(), lightOn(), lightOff().",
+  "public class GarageDoorOpenCommand implements Command { } — “Your code here”.",
+  "“Now that you’ve got your class, what is the output of the following code? (Hint: the GarageDoor up() method prints out ‘Garage Door is Open’ when it is complete.)”",
+  "Test main() creates a Light, a GarageDoor, a LightOnCommand and a GarageDoorOpenCommand, sets each in turn and presses the button twice.",
+  "Console waiting for the answer: %java RemoteControlTest."
+ ],
+ "pattern-defined": [
+  "“The Command Pattern defined.”",
+  "Definition box: “The Command Pattern encapsulates a request as an object, thereby letting you parameterize other objects with different requests, queue or log requests, and support undoable operations.”",
+  "“An encapsulated request.” — Command.execute() { receiver.action(); } → Receiver.action().",
+  "“An invoker — for instance, one slot of the remote — can be parameterized with different requests.”",
+  "Slots shown holding LightOnCommand, GarageDoorOpenCommand, CeilingFanHighCommand, StereoOffCommand, each with execute()."
+ ],
+ "class-diagram": [
+  "“The Command Pattern defined: the class diagram.”",
+  "Client — “The Client is responsible for creating a ConcreteCommand and setting its Receiver.”",
+  "«interface» Command — execute(), undo(). “Command declares an interface for all commands… You’ll also notice this interface has an undo() method, which we’ll cover a bit later in the chapter.”",
+  "Invoker — setCommand(). “The Invoker holds a command and at some point asks the command to carry out a request by calling its execute() method.”",
+  "ConcreteCommand — execute(), undo() — public void execute() { receiver.action() }. “The ConcreteCommand defines a binding between an action and a Receiver.”",
+  "Receiver — action(). “The Receiver knows how to perform the work needed to carry out the request. Any class can act as a Receiver.”",
+  "Brain Power: “How does the design of the Command Pattern support the decoupling of the invoker of a request and the receiver of the request?”"
+ ],
+ "slots": [
+  "“Assigning Commands to slots.”",
+  "“(1) Each slot gets a command. (2) When the button is pressed, the execute() method is called on the corresponding command. (3) In the execute() method, actions are invoked on the receiver.”",
+  "“So we have a plan: we’re going to assign a command to each slot in the remote control. This makes the remote control our invoker.”",
+  "Slot contents drawn on the remote: LightOnCommand / LightOffCommand, GarageDoorOpenCommand / GarageDoorCloseCommand, CeilingFanHighCommand / CeilingFanOffCommand, StereoOnForCDCommand / StereoOffCommand.",
+  "“The Invoker — We’ll worry about the remaining slots in a bit.”",
+  "“In our code you’ll find that each command name has ‘Command’ appended to it, but in print, we’ve unfortunately run out of space for a few of them.”"
+ ],
+ "null-object": [
+  "“Wait a second, what’s with that NoCommand that’s loaded in slots 4 through 6? Trying to pull a fast one?”",
+  "“Good catch. We did sneak a little something in there. In the remote control, we didn’t want to check to see if a command was loaded every time we referenced a slot.”",
+  "public void onButtonWasPushed(int slot) { if (onCommands[slot] != null) { onCommands[slot].execute(); } }",
+  "“So, how do we get around that? Implement a command that does nothing!” — public class NoCommand implements Command { public void execute() { } }",
+  "“Then, in our RemoteControl constructor, we assign every slot a NoCommand object by default and we know we’ll always have some command to call in each slot.”",
+  "Honorable Mention box: “The NoCommand object is an example of a null object. A null object is useful when you don’t have a meaningful object to return, and yet you want to remove the responsibility for handling null from the client.”"
+ ],
+ "lambda": [
+  "“Serious Coding — The updated code, using lambda expressions.”",
+  "“You can use Java’s lambda expressions to skip the step of creating all those concrete command objects… we can use a function object as a command… we can delete all those concrete Command classes, too.”",
+  "remoteControl.setCommand(0, () -> livingRoomLight.on(), () -> livingRoomLight.off());",
+  "“We create the Light object like normal…” / “But we can remove the concrete LightOnCommand and LightOffCommand objects.” / “Instead we’ll write the concrete commands as lambda expressions that do the same work as the concrete command’s execute() method was doing: that is, turning the light on or turning the light off.”",
+  "“Later, when you click one of the remote’s buttons, the remote calls the execute() method of the command object in the slot for that button, which is represented by this lambda expression.”",
+  "“If you do this for every concrete command, you’ll reduce the total number of classes in the remote control application from 22 to 9.”",
+  "“Note that you can only do this if your Command interface has one abstract method. As soon as we add a second abstract method, the lambda shorthand no longer works.”"
+ ],
+ "undo-intro": [
+  "“Whoops! We almost forgot… luckily, once we have our basic Command classes, undo is easy to add.”",
+  "“LIKE THE UNDO BUTTON?!”",
+  "“What are we doing? Okay, we need to add functionality to support the undo button on the remote. It works like this: say the Living Room Light is off and you press the on button on the remote. Obviously the light turns on. Now if you press the undo button, then the last action will be reversed—in this case, the light will turn off.”",
+  "1 · “When commands support undo, they have an undo() method that mirrors the execute() method. Whatever execute() last did, undo() reverses.”",
+  "public interface Command { public void execute(); public void undo(); }",
+  "2 · “Now, let’s dive into the Light commands and implement the undo() method.”"
+ ],
+ "remote-undo": [
+  "3 · “To add support for the undo button, we only have to make a few small changes to the Remote Control class… we’ll add a new instance variable to track the last command invoked; then, whenever the undo button is pressed, we retrieve that command and invoke its undo() method.”",
+  "public class RemoteControlWithUndo { Command[] onCommands; Command[] offCommands; Command undoCommand; … }",
+  "“This is where we’ll stash the last command executed for the undo button.”",
+  "“Just like the other slots, undo starts off with a noCommand, so pressing undo before any other button won’t do anything at all.”",
+  "“When a button is pressed, we take the command and first execute it; then we save a reference to it in the undoCommand instance variable.”",
+  "“When the undo button is pressed, we invoke the undo() method of the command stored in undoCommand. This undoes the operation of the last command executed.”"
+ ],
+ "ceiling-fan": [
+  "“Using state to implement Undo.”",
+  "“Implementing undo on the Light was instructive but a little too easy. Typically, we need to manage a bit of state to implement undo. Let’s try something a little more interesting, like the CeilingFan from the vendor classes.”",
+  "public class CeilingFan { public static final int HIGH = 3; public static final int MEDIUM = 2; public static final int LOW = 1; public static final int OFF = 0; String location; int speed; … public int getSpeed() { return speed; } }",
+  "“Notice that the CeilingFan class holds local state representing the speed of the ceiling fan.” / “These methods set the speed of the ceiling fan.” / “We can get the current speed of the ceiling fan using getSpeed().”",
+  "Thought bubble: “Hmm, so to properly implement undo, I’d have to take the previous speed of the ceiling fan into account…”"
+ ],
+ "macro": [
+  "“Every remote needs a Party Mode!”",
+  "“What’s the point of having a remote if you can’t push one button and have the lights dimmed, the stereo and TV turned on, and the hot tub fired up?”",
+  "“Mary’s idea is to make a new kind of Command that can execute other Commands… and more than one of them!”",
+  "“Hmm, our remote control would need a button for each device, so I don’t think we can do this.” / “Hold on, Sue, don’t be so sure. I think we can do this without changing the remote at all!”",
+  "public class MacroCommand implements Command { Command[] commands; public MacroCommand(Command[] commands) { this.commands = commands; } public void execute() { for (int i = 0; i < commands.length; i++) { commands[i].execute(); } } }",
+  "“Take an array of Commands and store them in the MacroCommand.” / “When the macro gets executed by the remote, execute those commands one at a time.”",
+  "Vendor classes drawn: Hottub (on, off, circulate, jetsOn, jetsOff, setTemperature), Stereo (on, off, setCd, setDvd, setRadio, setVolume), Light (on, off, dim), TV (on, off, setInputChannel, setVolume)."
+ ],
+ "queuing": [
+  "“More uses of the Command Pattern: queuing requests.”",
+  "“Commands give us a way to package a piece of computation (a receiver and a set of actions) and pass it around as a first-class object. Now, the computation itself may be invoked long after some client application creates the command object. In fact, it may even be invoked by a different thread.”",
+  "“Imagine a job queue: you add commands to the queue on one end, and on the other end sits a group of threads. Threads run the following script: they remove a command from the queue, call its execute() method, wait for the call to finish, and then discard the command object and retrieve a new one.”",
+  "Labels: Job queue · Commands execute() · “Objects implementing the command interface are added to the queue.” · “Threads remove commands from the queue one by one and call their execute() method. Once complete, they go back for a new command object.” · Threads computing jobs · “This gives us an effective way to limit computation to a fixed number of threads.”",
+  "“Note that the job queue classes are totally decoupled from the objects that are doing the computation… The job queue objects don’t care; they just retrieve commands and call execute().”",
+  "Command objects drawn: CompilerTask, DownloadRequest, NetworkFetch, FinancialComputation, RayTrace, DistributedComputation.",
+  "Brain Power: “How might a web server make use of such a queue? What other applications can you think of?”"
+ ],
+ "logging": [
+  "“More uses of the Command Pattern: logging requests.”",
+  "“The semantics of some applications require that we log all actions and be able to recover after a crash by reinvoking those actions. The Command Pattern can support these semantics with the addition of two methods: store() and load().”",
+  "«interface» Command — execute(), undo(), store(), load(). “We add two methods for logging.”",
+  "“As we execute commands, we store a history of them on disk. When a crash occurs, we reload the command objects and invoke their execute() methods in batch and in order.”",
+  "Diagram labels: Invoker · 1. execute() · 2. execute() · 3. execute() · “As each command is executed, it is stored on disk.” · Crash! · Restore · “After a system failure, the objects are reloaded and executed in the correct order.”",
+  "“Take, for example, a spreadsheet application: we might want to implement our failure recovery by logging the actions on the spreadsheet rather than writing a copy of the spreadsheet to disk every time a change occurs.”"
+ ],
+ "swing": [
+  "“Command Pattern in the Real World.”",
+  "“Remember the little life-changing application from Chapter 2? … it turns out that ActionListener is not just an Observer interface, it’s also a Command interface, and our AngelListener and DevilListener classes are not just Observers, but also concrete Commands. That’s right, we have two patterns in one example!”",
+  "public class SwingObserverExample { … JButton button = new JButton(\"Should I do it?\"); button.addActionListener(new AngelListener()); button.addActionListener(new DevilListener()); … }",
+  "“Sharpen your pencil — See if you can identify who is the Client, who are the Commands, who is the Invoker, and who is the Receiver.”",
+  "“Here’s our solution. The Client is the class that sets up the Swing components and sets the commands (AngelListener and DevilListener) in the Invoker (the Button). The button is our Invoker… ActionListener is the Command Interface… AngelListener and DevilListener are our concrete Commands… The Receiver in this example is the System object.”",
+  "Console: %java SwingObserverExample → “Don’t do it, you might regret it!” / “Come on, do it!”"
+ ],
+ "toolbox6": [
+  "“Tools for your Design Toolbox — Your toolbox is starting to get heavy! In this chapter we’ve added a pattern that allows us to encapsulate methods into Command objects: store them, pass them around, and invoke them when you need them.”",
+  "OO Principles listed: Encapsulate what varies · Favor composition over inheritance · Program to interfaces, not implementations · Strive for loosely coupled designs between objects that interact · Classes should be open for extension but closed for modification · Depend on abstractions. Do not depend on concrete classes.",
+  "OO Patterns listed: Strategy · Observer · Decorator · Abstract Factory · Factory Method · Singleton · Command.",
+  "Command — “Encapsulates a request as an object, thereby letting you parameterize clients with different requests, queue or log requests, and support undoable operations.”",
+  "Sidebar: “When you need to decouple an object making requests from the objects that know how to perform the requests, use the Command Pattern.”",
+  "Bullet points: The Command Pattern decouples an object making a request from the one that knows how to perform it · A Command object is at the center of this decoupling and encapsulates a receiver with an action (or set of actions) · An invoker makes a request of a Command object by calling its execute() method, which invokes those actions on the receiver · Invokers can be parameterized with Commands, even dynamically at runtime · Commands may support undo by implementing an undo() method that restores the object to its previous state · MacroCommands are a simple extension of the Command Pattern that allow multiple commands to be invoked. Likewise, MacroCommands can easily support undo() · In practice, it’s not uncommon for “smart” Command objects to implement the request themselves rather than delegating to a receiver · Commands may also be used to implement logging and transactional systems."
+ ],
+ "crossword6": [
+  "“Design Patterns Crossword — Time to take a breather and let it all sink in. It’s another crossword; all of the solution words are from this chapter.”",
+  "ACROSS: 5. Our favorite city. · 6. Company that got us word-of-mouth business. · 7. Role of customer in the Command Pattern. · 9. Object that knows the actions and the receiver. · 12. Invoker and receiver are _________. · 15. The Waitress was one. · 16. Dr. Seuss diner food (four words). · 17. Another thing Command can do.",
+  "DOWN: 1. The Cook and this person were definitely decoupled. · 2. The Waitress didn’t do this. · 3. A command encapsulates this. · 4. Act as the receivers in the remote control (two words). · 8. Object that knows how to get things done. · 10. Carries out a request. · 11. All commands provide this. · 13. Our first command object controlled this. · 14. A command __________ a set of actions and a receiver."
+ ],
+ "solutions6": [
+  "“Exercise Solution — Here’s the code to create commands for the off button.”",
+  "LightOffCommand lightOff = new LightOffCommand(light);",
+  "StereoOffCommand stereoOff = new StereoOffCommand(stereo);",
+  "TVOffCommand tvOff = new TVOffCommand(tv);",
+  "HottubOffCommand hottubOff = new HottubOffCommand(hottub);",
+  "“Here is the undo() method for the MacroCommand.” — public void undo() { for (int i = commands.length - 1; i >= 0; i--) { commands[i].undo(); } }",
+  "“Sharpen your pencil Solution” — the off commands for the party macro."
+ ],
+ "crossword-solution6": [
+  "The completed grid. ACROSS: 5 OBJECTVILLE · 6 WEATHER-O-RAMA · 7 CLIENT · 9 COMMAND · 12 DECOUPLED · 15 INVOKER · 16 GREENEGGSANDHAM · 17 UNDO.",
+  "DOWN: 1 WAITRESS · 2 COOK · 3 REQUEST · 4 VENDORCLASSES · 8 RECEIVER · 10 RECEIVER · 11 EXECUTE · 13 LIGHT · 14 BINDS."
+ ]
+}

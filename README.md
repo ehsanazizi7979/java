@@ -1,9 +1,9 @@
 # java
 
-## Head First Design Patterns (2nd ed.) — study pages, chapters 1–5
+## Head First Design Patterns (2nd ed.) — study pages, chapters 1–6
 
 `head-first-ch1-design-patterns.html` is one self-contained page (no external assets,
-works offline) that summarizes the first five chapters of *Head First Design Patterns*:
+works offline) that summarizes the first six chapters of *Head First Design Patterns*:
 
 **Chapter 1 — Welcome to Design Patterns / Strategy** (book pages 1–36)
 the SimUDuck story, the three OO design principles, the Strategy Pattern, the diner-talk
@@ -65,6 +65,22 @@ solution, and a live **Choc-O-Holic boiler plant**: pick one of the five impleme
 run the two threads and watch `uniqueInstance` at every step of the trace, then fill/boil/drain
 the boiler and see which plant ends up with two of them.
 
+**Chapter 6 — Encapsulating Invocation / Command** (book pages 191–236)
+the Home Automation or Bust commission (seven slots, on/off per slot, a global undo button, "any
+future devices the vendors may supply"), the fourteen vendor classes with their incompatible method
+names, the cubicle conversation about separation of concerns, and Joe's definition of a command
+object. Then the Objectville Diner as the pattern's mental model (customer → client, waitress →
+invoker, order slip → command, cook → receiver, `orderUp()` → `execute()`), the matching exercise,
+the first `Command`/`LightOnCommand` pair, the one-slot `SimpleRemoteControl`, the garage-door
+exercise and its solution, the Command Pattern definition and class diagram, the seven-slot
+`RemoteControl`, the `NoCommand` null object, the lambda-expresssion rewrite (22 classes → 9), the
+undo button (`undo()` in the interface, `RemoteControlWithUndo`, the stateful `CeilingFanHighCommand`
+and its `prevSpeed`), party mode as a `MacroCommand` with reverse-order undo, queuing and logging
+requests, the two-patterns-in-one Swing example, the toolbox, the chapter 6 crossword with its
+verified solution, and a live **Objectville Remote Control**: seven programmable slots, eight
+vendor programmes, on/off buttons, a real `undo()` and a party macro — with the book's exact console
+output from pages 213, 220, 224 and 227.
+
 ### Build
 
 ```bash
@@ -73,6 +89,7 @@ python tools/crop_ch2.py     # chapter 2 figures  -> assets/ch2/*.jpg
 python tools/crop_ch3.py     # chapter 3 figures  -> assets/ch3/*.jpg
 python tools/crop_ch4.py     # chapter 4 figures  -> assets/ch4/*.jpg
 python tools/crop_ch5.py     # chapter 5 figures  -> assets/ch5/*.jpg
+python tools/crop_ch6.py     # chapter 6 figures  -> assets/ch6/*.jpg
 python tools/build_page.py   # inlines all chapters + base64 images -> head-first-ch1-design-patterns.html
 ```
 
@@ -87,19 +104,21 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   (`{{IMG4:name}}`, plus its own `<script>` block for the pizza kitchen and quiz)
 * `site_src/chapter5.template.html` — chapter 5, spliced in at the `{{CHAPTER5}}` marker
   (`{{IMG5:name}}`, plus its own `<script>` block for the boiler plant and quiz)
-* `site_src/figure-text-ch1.json`, `-ch2.json`, `-ch3.json`, `-ch4.json`, `-ch5.json` — curated
+* `site_src/chapter6.template.html` — chapter 6, spliced in at the `{{CHAPTER6}}` marker
+  (`{{IMG6:name}}`, plus its own `<script>` block for the remote control and quiz)
+* `site_src/figure-text-ch1.json` … `-ch6.json` — curated
   transcripts of the text printed inside each figure; `tools/figure_text.py` dumps the raw
   PDF text layer per crop to help edit them. Each chapter's markers are resolved against its
   own table, so a repeated figure name (`opener`, `crossword`, `toolbox`) never picks up
   another chapter's text.
-* `tools/crop_ch1.py` … `tools/crop_ch5.py` — crop
+* `tools/crop_ch1.py` … `tools/crop_ch6.py` — crop
   boxes in PDF points (the page is 576 × 666 pt)
 * `index.html` — meta-refresh to the page (handy when serving the folder)
 
 ### Notes
 
 * The figures are book excerpts, © O'Reilly Media — study material, not for redistribution.
-  The Java listings are the book's code; the JavaScript ports and the five interactive
+  The Java listings are the book's code; the JavaScript ports and the six interactive
   simulators are written for this page.
 * The heat index demo uses the formula exactly as printed in the book; it computes in
   doubles where the book uses `float`, so one value differs in the fifth decimal
@@ -113,3 +132,8 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   interleavings it shows are the ones on pages 182–183 and 188, and the `synchronized` /
   `volatile` / enum panels state the same guarantees the book states rather than simulating
   a memory model. The double-checked-locking verdict repeats the book's Java-5 caveat.
+* The remote control is a JavaScript port of the book's `RemoteControl` / `RemoteControlWithUndo` /
+  `MacroCommand` classes: command objects capture their receiver at "load" time, the invoker only
+  stores `Command` references, every slot starts with `NoCommand`, and the undo button holds the
+  last command executed. The ceiling-fan commands keep their own `prevSpeed`, which is why undoing
+  "off" restores "high" rather than "medium".
