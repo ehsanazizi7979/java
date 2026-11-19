@@ -1,0 +1,135 @@
+{
+ "statement": [
+  "Congratulations on being selected to build our next-generation, internet-based Weather Monitoring Station!",
+  "The weather station will be based on our patent pending WeatherData object, which tracks current weather conditions (temperature, humidity, and barometric pressure).",
+  "…an application that initially provides three display elements: current conditions, weather statistics, and a simple forecast, all updated in real time as the WeatherData object acquires the most recent measurements.",
+  "Further, this is an expandable weather station. Weather-O-Rama wants to allow other developers to write their own weather displays and plug them right in.",
+  "Weather-O-Rama thinks we have a great business model: once the customers are hooked, we intend to charge them for each display they use. Now for the best part: we are going to pay you in stock options.",
+  "Sincerely, Johnny Hurricane, CEO — P.S. See the attached WeatherData source files!"
+ ],
+ "overview": [
+  "Weather Station: Temperature sensor device, Humidity sensor device, Pressure sensor device",
+  "pulls data → WeatherData object → displays → Display device (Current Conditions: Temp: 72°, Humidity: 60, Pressure:)",
+  "“What Weather-O-Rama is providing” (the station and the WeatherData object)",
+  "“We’ll also need to integrate the WeatherData object with the display.”",
+  "“What we need to implement.”",
+  "The user can view one of three different displays: the current conditions, weather stats, or a forecast."
+ ],
+ "our-goal": [
+  "Display One — Current Conditions: Temp: 72°, Humidity: 60, Pressure:",
+  "Display Two — Weather Stats: Avg. temp: 62°, Min. temp: 50°, Max. temp: 78°",
+  "Display Three — Forecast",
+  "Future displays — “?”",
+  "Stretch Goal: allow users at add (or remove) as many display elements as they want"
+ ],
+ "newspaper": [
+  "“No way we want to miss what’s going on in Objectville. Of course we subscribe.”"
+ ],
+ "subject-observers": [
+  "The Subject object manages some important data.",
+  "Observer Objects: “The observers have subscribed to (registered with) the Subject to receive updates when the Subject’s data changes.”",
+  "“When data in the Subject changes, the observers are notified.”",
+  "“New data values are communicated to the observers in some form when they change.”",
+  "Duck Object: “This object isn’t an observer, so it doesn’t get notified when the Subject’s data changes.”",
+  "Dog Object, Mouse Object and Cat Object are all observers; the Subject is sending them the int 2.",
+  "Publishers + Subscribers = Observer Pattern"
+ ],
+ "day-in-life": [
+  "“A Duck object comes along and tells the Subject that he wants to become an observer.” — the arrow is labelled “register/subscribe me”.",
+  "“The Duck object is now an official observer. Duck is psyched… he’s on the list and is waiting with great anticipation for the next notification so he can get an int.”",
+  "“The Subject gets a new data value! Now Duck and all the rest of the observers get a notification that the Subject has changed.” (the int 8 goes to every observer)",
+  "Observer Objects: Dog Object, Mouse Object, Cat Object, Duck Object — Subject Object keeps the list."
+ ],
+ "drama": [
+  "1 Software Developer #1 — Lori: “This is Lori. I’m looking for a Java development position. I’ve got five years of experience and…”",
+  "2 Headhunter/Subject: “Uh, yeah, you and everybody else, baby. I’m putting you on my list of Java developers. Don’t call me, I’ll call you!”",
+  "3 Software Developer #2 — Jill: “Hi, I’m Jill. I’ve written a lot of enterprise systems. I’m interested in any job you’ve got with Java development.”",
+  "4 Subject: “I’ll add you to the list—you’ll know along with everyone else.”"
+ ],
+ "defined-diagram": [
+  "ONE-TO-MANY RELATIONSHIP",
+  "Subject Object = “Object that holds state”",
+  "Observer Objects = “Dependent Objects”",
+  "“Automatic update/notification”: the int 8 is delivered to every dependent object"
+ ],
+ "class-diagram": [
+  "<<interface>> Subject: registerObserver(), removeObserver(), notifyObservers()",
+  "<<interface>> Observer: update()",
+  "ConcreteSubject: registerObserver() {…}, removeObserver() {…}, notifyObservers() {…}, getState(), setState(), observers",
+  "ConcreteObserver: update()",
+  "“Here’s the Subject interface. Objects use this interface to register as observers and also to remove themselves from being observers.”",
+  "“All potential observers need to implement the Observer interface. This interface has just one method, update(), that is called when the Subject’s state changes.”",
+  "“A concrete subject always implements the Subject interface. In addition to the register and remove methods, the concrete subject implements a notifyObservers() method…”",
+  "“Concrete observers can be any class that implements the Observer interface. Each observer registers with a concrete subject to receive updates.”",
+  "“Each subject can have many observers.” — “The concrete subject may also have methods for setting and getting its state.”"
+ ],
+ "guru": [
+  "Guru: Is a tightly woven basket stiff or flexible? — Student: Stiff, Guru.",
+  "Guru: And do stiff or flexible baskets tear or break less easily? — Student: A flexible basket tends to break less easily.",
+  "Guru: And in our software, might our designs break less easily if our objects are less tightly bound together?",
+  "Guru: We say an object is tightly coupled to another object when it is too dependent on that object.",
+  "Guru: …a loosely coupled object doesn’t know or care too much about the details of another object.",
+  "Guru: By not knowing too much about other objects, we can create designs that can handle change better. Designs that have more flexibility, like the less tightly woven basket.",
+  "Student: Could you give me an example? — Guru: That is enough for today."
+ ],
+ "loose-principle": [
+  "Design Principle: Strive for loosely coupled designs between objects that interact.",
+  "Handwritten arrow: “Look! We have a new Design Principle!”"
+ ],
+ "weather-design": [
+  "“Here’s our Subject interface. This should look familiar.”",
+  "“All our weather components implement the Observer interface. This gives the Subject a common interface to talk to when it comes time to update the observers.”",
+  "“Let’s also create an interface for all display elements to implement. The display elements just need to implement a display() method.”",
+  "“WeatherData now implements the Subject interface.”",
+  "“This display element shows the current measurements from the WeatherData object.” (CurrentConditionsDisplay)",
+  "“This one keeps track of the min/avg/max measurements and displays them.” (StatisticsDisplay)",
+  "“This display shows the weather forecast based on the barometer.” (ForecastDisplay)",
+  "“Developers can implement the Observer and DisplayElement interfaces to create their own display element.” (ThirdPartyDisplay)",
+  "“These three display elements should have a pointer to WeatherData labeled ‘subject’ too, but boy would this diagram start to look like spaghetti if they did.”"
+ ],
+ "heat-console": [
+  "%java WeatherStation",
+  "Current conditions: 80.0F degrees and 65.0% humidity — Avg/Max/Min temperature = 80.0/80.0/80.0 — Forecast: Improving weather on the way! — Heat index is 82.95535",
+  "Current conditions: 82.0F degrees and 70.0% humidity — Avg/Max/Min temperature = 81.0/82.0/80.0 — Forecast: Watch out for cooler, rainy weather — Heat index is 86.90124",
+  "Current conditions: 78.0F degrees and 90.0% humidity — Avg/Max/Min temperature = 80.0/82.0/78.0 — Forecast: More of the same — Heat index is 83.64967",
+  "Handwritten arrow: “Here’s what changed in this output.”"
+ ],
+ "swing": [
+  "The frame title is “HeMadeMeDoIt”; the button says “Should I do it?”",
+  "“Here’s our fancy interface.”",
+  "Devil answer: Come on, do it! — Angel answer: Don’t do it, you might regret it!",
+  "“And here’s the output when we click on the button.” (console: SwingObserverExample, then both answers)"
+ ],
+ "code-magnets": [
+  "The magnets on the fridge, scrambled: public ForecastDisplay(WeatherData weatherData) {  ·  weatherData.registerObserver(this);  ·  this.weatherData = weatherData;",
+  "public class ForecastDisplay implements Observer, DisplayElement {  ·  private WeatherData weatherData;",
+  "private float currentPressure = 29.92f;  ·  private float lastPressure;",
+  "public void update() {  ·  lastPressure = currentPressure;  ·  currentPressure = weatherData.getPressure();  ·  display();",
+  "public void display() { // display code here }",
+  "“Some of the curly braces fell on the floor and they were too small to pick up, so feel free to add as many of those as you need!”"
+ ],
+ "testdrive": [
+  "%java WeatherStation",
+  "Current conditions: 80.0F degrees and 65.0% humidity — Avg/Max/Min temperature = 80.0/80.0/80.0 — Forecast: Improving weather on the way!",
+  "Current conditions: 82.0F degrees and 70.0% humidity — Avg/Max/Min temperature = 81.0/82.0/80.0 — Forecast: Watch out for cooler, rainy weather",
+  "Current conditions: 78.0F degrees and 90.0% humidity — Avg/Max/Min temperature = 80.0/82.0/78.0 — Forecast: More of the same",
+  "Handwritten: “Here’s what we got.” — “Look! This just arrived!”"
+ ],
+ "fan-mail": [
+  "“Wow! Your design is fantastic. Not only did you quickly create all three displays that we asked for, you’ve created a general design that allows anyone to create new display, and even allows users to add and remove displays at runtime!”",
+  "“Ingenious! Until our next engagement,” — Johnny Hurricane, Weather-O-Rama, Inc., 100 Main Street, Tornado Alley, OK 45021"
+ ],
+ "toolbox": [
+  "OO Basics: Abstraction, Encapsulation, Polymorphism, Inheritance",
+  "OO Principles: Encapsulate what varies. — Favor composition over inheritance. — Program to interfaces, not implementations. — Strive for loosely coupled designs between objects that interact.",
+  "OO Patterns: Strategy (defines a family of algorithms…) and Observer (defines a one-to-many dependency…)",
+  "Handwritten: “Here’s your newest principle. Remember, loosely coupled designs are much more flexible and resilient to change.”",
+  "Handwritten: “A new pattern for communicating state to a set of objects in a loosely coupled manner. We haven’t seen the last of the Observer Pattern—just wait until we talk about MVC!”"
+ ],
+ "crossword": [
+  "“It’s your standard crossword; all of the solution words are from Chapters 1 & 2.”"
+ ],
+ "crossword-solution": [
+  "The printed solution grid: MANY, PUSH, HEAT, OBSERVER, SWING, PUBLISHER, NOTIFIED, REMOVE, SUBJECT, INTERFACE, LOOSE, INTERFACE, LISTENING across; MOUSE, PRESSURE, HURRICANE, DEVIL, OBSERVERS, IMPLEMENTS, ORDER, DEPENDENT, UPDATE, JOB down."
+ ]
+}

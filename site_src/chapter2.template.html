@@ -1,0 +1,1298 @@
+<!-- ==================================================== CHAPTER 2 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 2</b> the Observer Pattern</div>
+  <h2>Keeping your Objects in the <span style="color:var(--purple)">Know</span></h2>
+  <p>One object changes state, and an unknown number of other objects need to know about it — right now, and without being welded together. That is the whole idea behind the pattern that runs through Swing, JavaBeans and most GUIs you have ever clicked.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Weather-O-Rama</span>
+    <span class="chip">1 new principle</span>
+    <span class="chip">1 pattern</span>
+    <span class="chip">9 Java files</span>
+    <span class="chip">1 live weather station</span>
+  </div>
+</div>
+
+<!-- ========================================================== 2. STORY -->
+<section id="o-story">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>the contract</span></div>
+    <h2>You won the Weather-O-Rama contract</h2>
+    <p class="sub">Chapter 1 taught you to encapsulate what varies. Chapter 2 hands you a real client with a real deadline. Your team has just won the contract to build Weather-O-Rama, Inc.’s next-generation, internet-based Weather Monitoring Station. The good news: they are paying you in stock options. The other news: they want three displays, real-time updates, and a marketplace for displays that other developers will write later.</p>
+
+    <div class="figure-grid" style="margin-top:26px">
+      <figure class="pic">
+        <img src="{{IMG2:statement}}" alt="Weather-O-Rama's statement of work: a typed letter commissioning the next-generation internet-based Weather Monitoring Station.">
+        <figcaption>The statement of work. Read the last paragraph twice: the station must be <em>expandable</em>, and other developers must be able to plug their own displays in.</figcaption>
+        {{SAYS:statement}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">What the client is giving you</h3>
+        <p>Weather-O-Rama supplies the physical weather station (temperature, humidity and pressure sensors) and the <code>WeatherData</code> object that talks to it. Your job is the part they did not write: the displays, and the glue between the data and the displays.</p>
+        <ul class="bullets">
+          <li><strong>Three displays, to start:</strong> current conditions, weather statistics, and a simple forecast.</li>
+          <li><strong>Real time:</strong> every display updates as soon as new measurements arrive.</li>
+          <li><strong>Expandable:</strong> new displays — written by anyone — should plug in without touching the existing code.</li>
+          <li><strong>Add and remove at runtime:</strong> the customer should be able to switch displays on and off.</li>
+        </ul>
+        <div class="note">
+          <strong>Remember the constant:</strong> change. Chapter 1’s lesson applies directly — the number and type of displays is the thing that varies, so that is the thing to encapsulate.
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">The application overview</h3>
+    <p class="sub">Three components: the weather station (hardware that acquires the data), the <code>WeatherData</code> object (tracks the data and updates the displays) and the display device (shows the user what is going on).</p>
+
+    <figure class="pic">
+      <img src="{{IMG2:overview}}" alt="Diagram of the weather station feeding the WeatherData object, which updates the display device.">
+      <figcaption>Weather station → <code>WeatherData</code> object → display. Weather-O-Rama provides the left two; your team builds the right-hand side and the wiring in the middle.</figcaption>
+      {{SAYS:overview}}
+    </figure>
+
+    <div class="grid2" style="margin-top:30px">
+      <div>
+        <h3 style="margin-top:0">Unpacking the <code>WeatherData</code> class</h3>
+        <p>The source files Johnny Hurricane attached are short. <code>WeatherData</code> has three getters for the latest measurements, and one method that matters:</p>
+        <div class="code">
+          <header><span class="fname">WeatherData.java</span><span class="tagline">the part you must fill in</span></header>
+<pre><span class="kw">public class</span> <span class="type">WeatherData</span> {
+    <span class="cmt">// instance variable declarations</span>
+
+    <span class="kw">public float</span> <span class="fn">getTemperature</span>() { <span class="cmt">/* most recent temp */</span> }
+    <span class="kw">public float</span> <span class="fn">getHumidity</span>()    { <span class="cmt">/* most recent humidity */</span> }
+    <span class="kw">public float</span> <span class="fn">getPressure</span>()    { <span class="cmt">/* most recent pressure */</span> }
+
+    <span class="cmt">/*
+     * This method gets called
+     * whenever the weather measurements
+     * have been updated
+     */</span>
+    <span class="kw">public void</span> <span class="fn">measurementsChanged</span>() {
+        <span class="cmt">// Your code goes here</span>
+    }
+
+    <span class="cmt">// other methods</span>
+}</pre>
+        </div>
+        <p style="font-size:.92rem;color:var(--ink-soft)">You never call <code>measurementsChanged()</code> yourself — the station calls it whenever fresh values arrive. Your only job is to make that method tell the displays.</p>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Our goal</h3>
+        <p>Update every display whenever <code>measurementsChanged()</code> fires. Sounds like three lines of code. It is — and they are the wrong three lines, which is exactly why this chapter exists.</p>
+        <figure class="pic">
+          <img src="{{IMG2:our-goal}}" alt="The three displays the client ordered — Current Conditions, Weather Stats and Forecast — plus a fourth, unknown future display.">
+          <figcaption>Three displays today, a marketplace of them tomorrow. The fourth box with the question mark is the real requirement.</figcaption>
+          {{SAYS:our-goal}}
+        </figure>
+      </div>
+    </div>
+
+    <div class="note warn" style="margin-top:8px">
+      <strong>Stretch goal:</strong> let users add (or remove) as many display elements as they want. We know about the first three display types, but Weather-O-Rama expects “a vibrant marketplace for new displays in the future.” Any design where the set of displays is baked into <code>WeatherData</code> fails this before it ships.
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================== 3. THE FIRST TRY -->
+<section id="o-misguided">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>the first, misguided implementation</span></div>
+    <h2>Three lines that look fine (they aren’t)</h2>
+    <p class="sub">Here is the implementation everyone writes first. Grab the latest measurements, then call <code>update()</code> on each display you know about.</p>
+
+    <div class="grid2" style="margin-top:24px">
+      <div class="code">
+        <header><span class="fname">WeatherData.java</span><span class="tagline">first attempt</span></header>
+<pre><span class="kw">public class</span> <span class="type">WeatherData</span> {
+    <span class="cmt">// instance variable declarations</span>
+
+    <span class="kw">public void</span> <span class="fn">measurementsChanged</span>() {
+        <span class="kw">float</span> temp = <span class="fn">getTemperature</span>();
+        <span class="kw">float</span> humidity = <span class="fn">getHumidity</span>();
+        <span class="kw">float</span> pressure = <span class="fn">getPressure</span>();
+
+        currentConditionsDisplay.<span class="fn">update</span>(temp, humidity, pressure);
+        statisticsDisplay.<span class="fn">update</span>(temp, humidity, pressure);
+        forecastDisplay.<span class="fn">update</span>(temp, humidity, pressure);
+    }
+
+    <span class="cmt">// other WeatherData methods here</span>
+}</pre>
+      </div>
+      <div>
+        <h3 style="margin-top:0">What’s wrong with it?</h3>
+        <p>Look at it through Chapter 1’s glasses. Almost every line is a principle violation:</p>
+        <ul class="bullets">
+          <li><strong>We code to concrete implementations.</strong> <code>WeatherData</code> now names three specific display classes. A fourth display means editing this method.</li>
+          <li><strong>Every new display changes this code.</strong> The class that holds the data is the class that keeps growing.</li>
+          <li><strong>No adding or removing at runtime.</strong> The list of displays is hardcoded in a method body.</li>
+          <li><strong>Nothing here is encapsulated.</strong> “The part that changes” is the set of displays — and it is sitting in the middle of <code>WeatherData</code>.</li>
+        </ul>
+        <p style="font-size:.92rem;color:var(--ink-soft)">One thing it does get right: all three displays happen to have an <code>update(temp, humidity, pressure)</code> method, so at least it talks to them through a common shape. Chapter 2 turns that accident into an actual interface.</p>
+      </div>
+    </div>
+
+    <div class="quiz" style="margin-top:26px" id="o-quiz1">
+      <h3 style="margin-top:0">Exercise (book, page 42): which apply?</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Based on the first implementation, which of the following apply? (Choose all that apply.)</p>
+      <div id="o-quiz1-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. We are coding to concrete implementations, not interfaces.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="B"><span class="txt">B. For every new display we’ll need to alter this code.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="C"><span class="txt">C. We have no way to add (or remove) display elements at runtime.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="D"><span class="txt">D. The display elements don’t implement a common interface.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="E"><span class="txt">E. We haven’t encapsulated the part that changes.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="F"><span class="txt">F. We are violating encapsulation of the <code>WeatherData</code> class.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="o-quiz1-check">Check my answer</button>
+        <button class="btn ghost small" id="o-quiz1-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="o-quiz1-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:22px">
+      <strong>The book’s answer: A, B, C and E.</strong> D is tempting but the code does use a uniform <code>update()</code> signature — it just never declares an interface. F is a red herring: <code>WeatherData</code>’s own fields are still private. The encapsulation problem is that <em>change</em> (which displays exist) was never pulled out.
+    </div>
+  </div>
+</section>
+
+<!-- ================================================= 4. MEET OBSERVER -->
+<section id="o-pattern">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>meet the pattern</span></div>
+    <h2>Publisher + subscribers = Observer</h2>
+    <p class="sub">Forget code for a moment. You already know this pattern — you have subscribed to a newspaper, a channel or a mailing list.</p>
+
+    <div class="figure-grid" style="margin-top:26px">
+      <figure class="pic">
+        <img src="{{IMG2:newspaper}}" alt="A family in the 1950s reading a newspaper together, with a speech bubble about subscribing because everyone in Objectville does.">
+        <figcaption>The publisher/subscriber model: the publisher ships new editions to whoever is currently subscribed, and never needs to know their names.</figcaption>
+        {{SAYS:newspaper}}
+      </figure>
+      <div>
+        <ol class="checklist" style="counter-reset:none">
+          <li><span class="n">1</span><div>A newspaper publisher goes into business and begins publishing newspapers.</div></li>
+          <li><span class="n">2</span><div>You subscribe to a particular publisher, and every time there’s a new edition it gets delivered to you. As long as you remain a subscriber, you get new newspapers.</div></li>
+          <li><span class="n">3</span><div>You unsubscribe when you don’t want papers anymore, and they stop being delivered.</div></li>
+          <li><span class="n">4</span><div>While the publisher stays in business, people, hotels, airlines and other businesses constantly subscribe and unsubscribe.</div></li>
+        </ol>
+        <p style="margin-top:14px;font-size:.94rem">Rename the roles and you have the pattern: the publisher is the <strong>SUBJECT</strong>, the subscribers are the <strong>OBSERVERS</strong>. The subject owns the data; the observers ask to be told when it changes; nobody has to know anybody’s name.</p>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG2:subject-observers}}" alt="The Subject object sends the number 2 to Dog, Mouse and Cat objects; the Duck object is not an observer and gets nothing.">
+      <figcaption>One subject, many observers. The Duck object never registered, so it never hears about the <code>int 2</code> — and the subject never notices it exists.</figcaption>
+      {{SAYS:subject-observers}}
+    </figure>
+
+    <h3 style="margin-top:36px">A day in the life of the pattern</h3>
+    <p class="sub">Three moves: <strong>register</strong>, <strong>notify</strong>, <strong>remove</strong>. Everything else in this chapter is detail.</p>
+
+    <figure class="pic">
+      <img src="{{IMG2:day-in-life}}" alt="Three-panel sequence: the Duck object registers with the Subject, becomes an observer, and then receives the new value 8 with all the other observers.">
+      <figcaption>Register → notify → and later, on page 47, remove. The subject keeps a list; the observers just implement one method.</figcaption>
+      {{SAYS:day-in-life}}
+    </figure>
+    <p style="font-size:.94rem;color:var(--ink-soft)">When the Mouse gets tired of receiving <code>int</code>s it asks to be removed, the subject takes it off the list, and the next notification goes to everyone except the Mouse. No recompiling, no flags, no “is the mouse still interested?” checks sprinkled through the subject. That is loose coupling in one picture.</p>
+
+    <div class="grid2" style="margin-top:34px;align-items:center">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG2:drama}}" alt="Cartoon: two software developers, Lori and Jill, give their CVs to a headhunter who keeps a call list as the Subject.">
+        <figcaption>Five-minute drama: the headhunter is the subject, the developers are observers, and the “call list” is just <code>registerObserver()</code>.</figcaption>
+        {{SAYS:drama}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">The rest of the skit (pages 49–50)</h3>
+        <p>The headhunter notifies every observer when a Java job appears. Jill takes the job and asks to be taken off the list — an observer removing itself at runtime. The headhunter is furious; the pattern does not care.</p>
+        <p><strong>Two weeks later:</strong> Lori is still an observer, but she now keeps her own call list and notifies her own observers. She is a subject <em>and</em> an observer at the same time. Nothing in the pattern forbids it: the interfaces are roles, not a hierarchy.</p>
+        <div class="principle">
+          <span class="yy">☯</span>
+          <div><b>The Observer Pattern</b><p>The Observer Pattern defines a one-to-many dependency between objects so that when one object changes state, all of its dependents are notified and updated automatically.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:32px">
+      <img src="{{IMG2:defined-diagram}}" alt="One-to-many relationship: the Subject object that holds state notifies many dependent observer objects with automatic updates.">
+      <figcaption>The definition as a picture: one object holds the state, many dependent objects are updated automatically.</figcaption>
+      {{SAYS:defined-diagram}}
+    </figure>
+
+    <h3 style="margin-top:36px">The class diagram</h3>
+    <p class="sub">Most implementations of the pattern look like this: a <code>Subject</code> interface and an <code>Observer</code> interface, plus concrete classes that implement them.</p>
+
+    <figure class="pic">
+      <img src="{{IMG2:class-diagram}}" alt="Class diagram: Subject and Observer interfaces, ConcreteSubject implementing Subject and holding observers, ConcreteObserver implementing Observer.">
+      <figcaption>Subject knows only a list of <code>Observer</code>s; each <code>ConcreteObserver</code> registers with a <code>ConcreteSubject</code>. The arrows point one way only.</figcaption>
+      {{SAYS:class-diagram}}
+    </figure>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note">
+        <strong>Q: Where does “one-to-many” come from?</strong> The subject is the one object that contains the state and controls it. The observers use the state — many of them, all relying on the subject to tell them when it changes. One subject, many dependents.
+      </div>
+      <div class="note">
+        <strong>Q: Is Publish-Subscribe the same thing?</strong> No, though they are related. Publish-Subscribe is a more complex pattern: subscribers can express interest in different <em>types</em> of messages, and publishers are separated further from subscribers. Observer is the simpler, in-process version.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== 5. LOOSE COUPLING -->
+<section id="o-coupling">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>why the pattern is worth it</span></div>
+    <h2>The power of loose coupling</h2>
+    <p class="sub">Observer’s real gift is not notifications — it is that the subject and its observers know almost nothing about each other. Head First makes the point with a guru, a woven basket, and the chapter’s one new design principle.</p>
+
+    <div class="figure-grid" style="margin-top:26px">
+      <figure class="pic">
+        <img src="{{IMG2:guru}}" alt="Guru and Student dialogue about tightly and loosely woven baskets and about objects that are less tightly bound together.">
+        <figcaption>The guru’s basket: a stiffly woven basket breaks, a loosely woven one bends. Designs with less binding handle change better.</figcaption>
+        {{SAYS:guru}}
+      </figure>
+      <div>
+        <div class="principle">
+          <span class="yy">☯</span>
+          <div><b>Design Principle · the fourth one</b><p>Strive for loosely coupled designs between objects that interact.</p></div>
+        </div>
+        <p>Loosely coupled objects still interact — they just know very little about each other. The Observer Pattern is the textbook example, and the book lists exactly why:</p>
+        <ul class="bullets">
+          <li><strong>The subject only knows the interface.</strong> It knows an observer implements <code>Observer</code>; not its concrete class, not what it does with the data.</li>
+          <li><strong>Add observers at any time.</strong> New observers just register; the subject keeps working, even if you swap an observer mid-flight.</li>
+          <li><strong>Never modify the subject for a new observer type.</strong> Implement the interface, register, done.</li>
+          <li><strong>Reuse either side independently.</strong> A subject is useful without these particular observers; an observer is useful with a different subject.</li>
+          <li><strong>Changes stay local.</strong> Either side can change as long as it honors the interface.</li>
+        </ul>
+        <figure class="pic" style="margin-top:20px">
+          <img src="{{IMG2:loose-principle}}" alt="The Design Principle box: strive for loosely coupled designs between objects that interact, with a handwritten note calling it a new principle.">
+          <figcaption>The principle box, with the book’s handwritten “look! We have a new Design Principle!”</figcaption>
+          {{SAYS:loose-principle}}
+        </figure>
+        <p style="margin-top:16px">The book puts the payoff plainly: loosely coupled designs let us build flexible OO systems that handle change, because they minimize the interdependency between objects. You will see this principle again in almost every pattern that follows.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 6. BUILD IT -->
+<section id="o-design">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>designing the weather station</span></div>
+    <h2>Cubicle conversation → class diagram</h2>
+    <p class="sub">Mary and Sue work it out the way you should: start from the definition, map the roles onto the problem, then look for the common interface.</p>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">How the conversation goes</h3>
+        <p><strong>Mary:</strong> the <code>WeatherData</code> class is the “one” — it has the state (temperature, humidity, pressure). The displays are the “many”. When the measurements change we notify all of them.</p>
+        <p><strong>Sue:</strong> so the displays register themselves with <code>WeatherData</code>. And since every display is different, they need a common interface, so <code>WeatherData</code> knows how to send them the measurements.</p>
+        <p><strong>Mary:</strong> every display gets an <code>update()</code> method, defined in a common interface that all the elements implement.</p>
+        <div class="note ok" style="margin-bottom:0">
+          <strong>The design in one sentence:</strong> <code>WeatherData</code> implements <code>Subject</code>; the displays implement <code>Observer</code> (and <code>DisplayElement</code>); the subject keeps a list of <code>Observer</code>s and pushes new measurements to all of them.
+        </div>
+      </div>
+      <div class="note" style="margin-top:0">
+        <strong>What is still undecided:</strong> how the measurements travel. The displays all have an <code>update()</code> method, but should the subject hand over its values, or let each display ask for what it needs? That question returns on page 68 as the push-vs-pull debate — and it is the reason the <code>Observer</code> interface has two possible signatures.
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:32px">
+      <img src="{{IMG2:weather-design}}" alt="Full class diagram: WeatherData implementing Subject, the three displays implementing Observer and DisplayElement, plus a ThirdPartyDisplay for future developers.">
+      <figcaption>The finished design. Note the <code>ThirdPartyDisplay</code>: the marketplace Weather-O-Rama asked for, with no changes to <code>WeatherData</code>.</figcaption>
+      {{SAYS:weather-design}}
+    </figure>
+
+    <h3 style="margin-top:36px">Three interfaces</h3>
+    <div class="code">
+      <header><span class="fname">Subject.java · Observer.java · DisplayElement.java</span><span class="tagline">page 58</span></header>
+<pre><span class="kw">public interface</span> <span class="type">Subject</span> {
+    <span class="kw">public void</span> <span class="fn">registerObserver</span>(<span class="type">Observer</span> o);
+    <span class="kw">public void</span> <span class="fn">removeObserver</span>(<span class="type">Observer</span> o);
+    <span class="kw">public void</span> <span class="fn">notifyObservers</span>();
+}
+
+<span class="kw">public interface</span> <span class="type">Observer</span> {
+    <span class="kw">public void</span> <span class="fn">update</span>(<span class="kw">float</span> temp, <span class="kw">float</span> humidity, <span class="kw">float</span> pressure);
+}
+
+<span class="kw">public interface</span> <span class="type">DisplayElement</span> {
+    <span class="kw">public void</span> <span class="fn">display</span>();
+}</pre>
+    </div>
+    <p class="sub" style="margin-top:-6px"><code>registerObserver()</code> and <code>removeObserver()</code> take the observer to add or drop; <code>notifyObservers()</code> is called when the subject’s state changes. <code>update()</code> is the one method every observer must have, and <code>display()</code> is the one method every display must have — that is the whole contract.</p>
+
+    <h3 style="margin-top:30px">Implementing <code>Subject</code> in <code>WeatherData</code></h3>
+    <div class="grid2">
+      <div class="code">
+        <header><span class="fname">WeatherData.java</span><span class="tagline">the subject</span></header>
+<pre><span class="kw">public class</span> <span class="type">WeatherData</span> <span class="kw">implements</span> <span class="type">Subject</span> {
+    <span class="kw">private</span> <span class="type">List</span>&lt;<span class="type">Observer</span>&gt; observers;
+    <span class="kw">private float</span> temperature;
+    <span class="kw">private float</span> humidity;
+    <span class="kw">private float</span> pressure;
+
+    <span class="kw">public</span> <span class="fn">WeatherData</span>() {
+        observers = <span class="kw">new</span> <span class="type">ArrayList</span>&lt;<span class="type">Observer</span>&gt;();
+    }
+
+    <span class="kw">public void</span> <span class="fn">registerObserver</span>(<span class="type">Observer</span> o) {
+        observers.<span class="fn">add</span>(o);
+    }
+
+    <span class="kw">public void</span> <span class="fn">removeObserver</span>(<span class="type">Observer</span> o) {
+        observers.<span class="fn">remove</span>(o);
+    }
+
+    <span class="kw">public void</span> <span class="fn">notifyObservers</span>() {
+        <span class="kw">for</span> (<span class="type">Observer</span> observer : observers) {
+            observer.<span class="fn">update</span>(temperature, humidity, pressure);
+        }
+    }
+
+    <span class="kw">public void</span> <span class="fn">measurementsChanged</span>() {
+        <span class="fn">notifyObservers</span>();
+    }
+
+    <span class="cmt">// test harness for the displays</span>
+    <span class="kw">public void</span> <span class="fn">setMeasurements</span>(<span class="kw">float</span> temperature,
+                                <span class="kw">float</span> humidity,
+                                <span class="kw">float</span> pressure) {
+        <span class="kw">this</span>.temperature = temperature;
+        <span class="kw">this</span>.humidity = humidity;
+        <span class="kw">this</span>.pressure = pressure;
+        <span class="fn">measurementsChanged</span>();
+    }
+
+    <span class="kw">public float</span> <span class="fn">getTemperature</span>() { <span class="kw">return</span> temperature; }
+    <span class="kw">public float</span> <span class="fn">getHumidity</span>()    { <span class="kw">return</span> humidity; }
+    <span class="kw">public float</span> <span class="fn">getPressure</span>()    { <span class="kw">return</span> pressure; }
+}</pre>
+      </div>
+      <div>
+        <h4 style="margin-top:0">What changed, and why it matters</h4>
+        <ul class="bullets">
+          <li><code>WeatherData</code> now <strong>implements the <code>Subject</code> interface</strong>, so any observer can rely on the three methods existing.</li>
+          <li>An <code>ArrayList&lt;Observer&gt;</code> replaces the three named display fields. It is created in the constructor.</li>
+          <li><code>registerObserver()</code> appends; <code>removeObserver()</code> removes. Both happen at runtime.</li>
+          <li><code>notifyObservers()</code> is the fun part: because every element is an <code>Observer</code>, we know it has <code>update()</code>, so we can call it on all of them without knowing what they are.</li>
+          <li><code>setMeasurements()</code> is not in the station’s real API — it is the test harness the book adds because the publisher would not ship a weather station with each copy.</li>
+        </ul>
+        <div class="note">
+          <strong>Book’s footnote:</strong> the listings omit <code>import</code> and <code>package</code> statements on purpose; the complete source is on the book’s companion site, wickedlysmart.com.
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">The display elements</h3>
+    <div class="code">
+      <header><span class="fname">CurrentConditionsDisplay.java</span><span class="tagline">observer + display element</span></header>
+<pre><span class="kw">public class</span> <span class="type">CurrentConditionsDisplay</span> <span class="kw">implements</span> <span class="type">Observer</span>, <span class="type">DisplayElement</span> {
+    <span class="kw">private float</span> temperature;
+    <span class="kw">private float</span> humidity;
+    <span class="kw">private</span> <span class="type">WeatherData</span> weatherData;
+
+    <span class="kw">public</span> <span class="fn">CurrentConditionsDisplay</span>(<span class="type">WeatherData</span> weatherData) {
+        <span class="kw">this</span>.weatherData = weatherData;
+        weatherData.<span class="fn">registerObserver</span>(<span class="kw">this</span>);
+    }
+
+    <span class="kw">public void</span> <span class="fn">update</span>(<span class="kw">float</span> temperature, <span class="kw">float</span> humidity, <span class="kw">float</span> pressure) {
+        <span class="kw">this</span>.temperature = temperature;
+        <span class="kw">this</span>.humidity = humidity;
+        <span class="fn">display</span>();
+    }
+
+    <span class="kw">public void</span> <span class="fn">display</span>() {
+        System.out.<span class="fn">println</span>(<span class="str">"Current conditions: "</span> + temperature
+            + <span class="str">"F degrees and "</span> + humidity + <span class="str">"% humidity"</span>);
+    }
+}</pre>
+    </div>
+    <div class="grid2" style="margin-top:6px">
+      <p style="font-size:.93rem;color:var(--ink-soft)">The constructor is the registration: the display is handed the subject and immediately puts itself on the list. <code>update()</code> stores what it needs and calls <code>display()</code>. <code>display()</code> prints. That is a complete observer.</p>
+      <div class="note warn" style="margin-top:0">
+        <strong>Two good questions from the book:</strong> is <code>update()</code> the best place to call <code>display()</code>? Not really — MVC will fix that properly. And why keep the <code>weatherData</code> reference? So the display can un-register itself later.
+      </div>
+    </div>
+
+    <details class="figsay" style="margin-top:6px">
+      <summary>The other two displays, in the book’s source download</summary>
+      <p style="padding:0 12px;font-size:.86rem;line-height:1.55">The statistics display keeps running <code>min</code>/<code>max</code>/<code>sum</code>/<code>numReadings</code> and prints <code>Avg/Max/Min temperature = 80.0/82.0/78.0</code>. The forecast display keeps <code>lastPressure</code> and <code>currentPressure</code>: pressure rising means “Improving weather on the way!”, falling means “Watch out for cooler, rainy weather”, unchanged means “More of the same”. Both are ordinary observers — same <code>update()</code>, different <code>display()</code>.</p>
+    </details>
+
+    <h3 style="margin-top:34px">Power up the Weather Station</h3>
+    <div class="grid2">
+      <div class="code">
+        <header><span class="fname">WeatherStation.java</span><span class="tagline">the test harness</span></header>
+<pre><span class="kw">public class</span> <span class="type">WeatherStation</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) {
+        <span class="type">WeatherData</span> weatherData = <span class="kw">new</span> <span class="type">WeatherData</span>();
+
+        <span class="type">CurrentConditionsDisplay</span> currentDisplay =
+            <span class="kw">new</span> <span class="type">CurrentConditionsDisplay</span>(weatherData);
+        <span class="type">StatisticsDisplay</span> statisticsDisplay =
+            <span class="kw">new</span> <span class="type">StatisticsDisplay</span>(weatherData);
+        <span class="type">ForecastDisplay</span> forecastDisplay =
+            <span class="kw">new</span> <span class="type">ForecastDisplay</span>(weatherData);
+
+        weatherData.<span class="fn">setMeasurements</span>(80, 65, 30.4f);
+        weatherData.<span class="fn">setMeasurements</span>(82, 70, 29.2f);
+        weatherData.<span class="fn">setMeasurements</span>(78, 90, 29.2f);
+    }
+}</pre>
+      </div>
+      <div>
+        <figure class="pic" style="margin-top:0">
+          <img src="{{IMG2:testdrive}}" alt="Console window running WeatherStation and printing current conditions, statistics and forecast for three sets of measurements.">
+          <figcaption>Three calls to <code>setMeasurements()</code> → nine lines of output. Every display updated itself; <code>WeatherData</code> never learned their names.</figcaption>
+          {{SAYS:testdrive}}
+        </figure>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:22px;align-items:center">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG2:fan-mail}}" alt="A congratulatory letter from Weather-O-Rama praising the design that lets anyone add new displays at runtime.">
+        <figcaption>Weather-O-Rama’s verdict: three displays delivered, plus “a general design that allows anyone to create new display, and even allows users to add and remove displays at runtime.”</figcaption>
+        {{SAYS:fan-mail}}
+      </figure>
+      <div class="note ok" style="margin-top:0">
+        <strong>Why the client is happy:</strong> the deliverable is not three displays. It is a subject plus an interface, which means Weather-O-Rama can sell displays they have not thought of yet — and <code>WeatherData</code> never changes again.
+      </div>
+    </div>
+
+    <h3 style="margin-top:36px">A last-minute requirement: the heat index</h3>
+    <p class="sub">Johnny Hurricane calls: the station cannot ship without a Heat Index display. The heat index combines temperature and humidity into an “apparent temperature” — how hot it actually feels.</p>
+
+    <div class="grid2" style="margin-top:20px">
+      <div>
+        <div class="code">
+          <header><span class="fname">heatindex.txt</span><span class="tagline">the formula, straight from the client</span></header>
+<pre>heatindex =
+  16.923 + 1.85212 * 10^-1 * T + 5.37941 * RH
++ 9.41695 * 10^-3 * T^2 + 7.28898 * 10^-3 * RH^2
++ 3.45372 * 10^-4 * T^2 * RH - 8.14971 * 10^-4 * T * RH^2
++ 1.02102 * 10^-5 * T^2 * RH^2 - 3.8646 * 10^-5 * T^3
++ 2.91583 * 10^-5 * RH^3 + 1.42721 * 10^-6 * T^3 * RH
++ 1.97483 * 10^-7 * T * RH^3 - 2.18429 * 10^-8 * T^3 * RH^2
++ 8.43296 * 10^-10 * T^2 * RH^3 - 4.81975 * 10^-11 * T^3 * RH^3</pre>
+        </div>
+        <div class="code">
+          <header><span class="fname">HeatIndexDisplay.java</span><span class="tagline">your exercise</span></header>
+<pre><span class="kw">public class</span> <span class="type">HeatIndexDisplay</span> <span class="kw">implements</span> <span class="type">Observer</span>, <span class="type">DisplayElement</span> {
+    <span class="kw">private float</span> heatIndex = 0.0f;
+    <span class="kw">private</span> <span class="type">WeatherData</span> weatherData;
+
+    <span class="kw">public</span> <span class="fn">HeatIndexDisplay</span>(<span class="type">WeatherData</span> weatherData) {
+        <span class="kw">this</span>.weatherData = weatherData;
+        weatherData.<span class="fn">registerObserver</span>(<span class="kw">this</span>);
+    }
+
+    <span class="kw">public void</span> <span class="fn">update</span>(<span class="kw">float</span> t, <span class="kw">float</span> rh, <span class="kw">float</span> pressure) {
+        heatIndex = <span class="fn">computeHeatIndex</span>(t, rh);
+        <span class="fn">display</span>();
+    }
+
+    <span class="kw">public void</span> <span class="fn">display</span>() {
+        System.out.<span class="fn">println</span>(<span class="str">"Heat index is "</span> + heatIndex);
+    }
+
+    <span class="kw">private float</span> <span class="fn">computeHeatIndex</span>(<span class="kw">float</span> t, <span class="kw">float</span> rh) {
+        <span class="kw">float</span> index = 16.923f + 0.185212f * t + 5.37941f * rh
+            - 0.100254f * t * rh + 0.00941695f * t * t
+            + 0.00728898f * rh * rh + 0.000345372f * t * t * rh
+            - 0.000814971f * t * rh * rh
+            - 0.000038646f * t * t * t + 0.0000291583f * rh * rh * rh
+            + 0.00000142721f * t * t * t * rh
+            + 0.000000197483f * t * rh * rh * rh
+            - 0.0000000218429f * t * t * t * rh * rh
+            + 0.000000000843296f * t * t * rh * rh * rh
+            - 0.0000000000481975f * t * t * t * rh * rh * rh;
+        <span class="kw">return</span> index;
+    }
+}</pre>
+        </div>
+        <p style="font-size:.92rem;color:var(--ink-soft)">Do not type the formula — the book says copy it from <code>heatindex.txt</code>. The point of the exercise is that a brand-new display needs <strong>zero changes</strong> to <code>WeatherData</code>: implement <code>Observer</code> and <code>DisplayElement</code>, register in the constructor, done.</p>
+      </div>
+      <div>
+        <figure class="pic" style="margin-top:0">
+          <img src="{{IMG2:heat-console}}" alt="Console output from WeatherStation with a fourth line per measurement: the heat index value.">
+          <figcaption>Fourth display, fourth line of output — and not one edit to the subject. Try it live in the <a href="#o-demo">weather demo</a>.</figcaption>
+          {{SAYS:heat-console}}
+        </figure>
+        <div class="note ok">
+          <strong>The pattern’s payoff, in one screenshot:</strong> adding a display meant adding a class. The subject’s code stayed exactly as it was — which is precisely the “open for extension” behavior Weather-O-Rama is selling.
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:36px">Push vs. pull: the fireside chat (pages 63–64)</h3>
+    <p class="sub">Subject and Observer argue about the right way to hand over state. <strong>Push:</strong> the subject sends all its state in every notification. <strong>Pull:</strong> the subject only says “something changed”, and each observer asks for what it needs through getters.</p>
+    <div class="grid2">
+      <div class="note">
+        <strong>The Subject’s case for push:</strong> “I have to send my state with my notifications so all you lazy Observers will know what happened.” One notification, everything included — convenient.
+      </div>
+      <div class="note">
+        <strong>The Observer’s case for pull:</strong> “There are so many different kinds of us — just let us come to you for the state we need.” Add wind speed tomorrow and push forces every observer to change its <code>update()</code> signature; pull changes only the subject.
+      </div>
+    </div>
+    <p>The book agrees with the Observer, cautiously: <em>whether you push or pull is an implementation detail, but in a lot of cases it makes sense to let observers retrieve the data they need.</em> So it takes a second pass at the design.</p>
+
+    <div class="grid2" style="margin-top:18px">
+      <div class="code">
+        <header><span class="fname">Observer.java · WeatherData.java</span><span class="tagline">switching to pull</span></header>
+<pre><span class="kw">public interface</span> <span class="type">Observer</span> {
+    <span class="kw">public void</span> <span class="fn">update</span>();          <span class="cmt">// no arguments!</span>
+}
+
+<span class="cmt">// in WeatherData</span>
+<span class="kw">public void</span> <span class="fn">notifyObservers</span>() {
+    <span class="kw">for</span> (<span class="type">Observer</span> observer : observers) {
+        observer.<span class="fn">update</span>();
+    }
+}
+
+<span class="cmt">// in CurrentConditionsDisplay</span>
+<span class="kw">public void</span> <span class="fn">update</span>() {
+    <span class="kw">this</span>.temperature = weatherData.<span class="fn">getTemperature</span>();
+    <span class="kw">this</span>.humidity = weatherData.<span class="fn">getHumidity</span>();
+    <span class="fn">display</span>();
+}</pre>
+      </div>
+      <div>
+        <div class="note">
+          <strong>Three small edits:</strong> (1) <code>notifyObservers()</code> calls <code>update()</code> with no arguments, (2) the <code>Observer</code> interface’s <code>update()</code> loses its parameters, (3) each concrete observer pulls the values it wants through the subject’s getters.
+        </div>
+        <figure class="pic">
+          <img src="{{IMG2:code-magnets}}" alt="Code magnets on a fridge: scrambled snippets of the ForecastDisplay class.">
+          <figcaption>Code magnets (page 70): rebuild <code>ForecastDisplay</code> for the pull version. Answer below.</figcaption>
+          {{SAYS:code-magnets}}
+        </figure>
+      </div>
+    </div>
+
+    <details class="figsay" style="margin-top:14px">
+      <summary>Code magnets solution (page 76)</summary>
+      <pre style="margin:10px 14px 14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;line-height:1.6;white-space:pre-wrap">public class ForecastDisplay implements Observer, DisplayElement {
+    private float currentPressure = 29.92f;
+    private float lastPressure;
+    private WeatherData weatherData;
+
+    public ForecastDisplay(WeatherData weatherData) {
+        this.weatherData = weatherData;
+        weatherData.registerObserver(this);
+    }
+
+    public void update() {
+        lastPressure = currentPressure;
+        currentPressure = weatherData.getPressure();
+        display();
+    }
+
+    public void display() {
+        // display code here
+    }
+}</pre>
+    </details>
+  </div>
+</section>
+
+<!-- ==================================================== 7. IN THE WILD -->
+<section id="o-wild">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 6</span><i></i><span>the pattern in the wild</span></div>
+    <h2>You have already used Observer today</h2>
+    <p class="sub">Observer is one of the most common patterns in libraries and frameworks: JavaBeans, Swing, JavaScript events, Cocoa and Swift’s key-value observing. Knowing the pattern means recognizing the design motivation in code you did not write.</p>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">Swing is Observer with buttons</h3>
+        <p><code>JButton</code> inherits a pile of <code>add…Listener</code> / <code>remove…Listener</code> methods from <code>AbstractButton</code>. Those listeners <em>are</em> observers: you register one, and the button notifies it when something happens. Instead of <code>update()</code>, the callback is <code>actionPerformed()</code>.</p>
+        <div class="code">
+          <header><span class="fname">SwingObserverExample.java</span><span class="tagline">inner-class listeners</span></header>
+<pre><span class="kw">public class</span> <span class="type">SwingObserverExample</span> {
+    <span class="type">JFrame</span> frame;
+
+    <span class="kw">public void</span> <span class="fn">go</span>() {
+        frame = <span class="kw">new</span> <span class="type">JFrame</span>();
+        <span class="type">JButton</span> button = <span class="kw">new</span> <span class="type">JButton</span>(<span class="str">"Should I do it?"</span>);
+        button.<span class="fn">addActionListener</span>(<span class="kw">new</span> <span class="type">AngelListener</span>());
+        button.<span class="fn">addActionListener</span>(<span class="kw">new</span> <span class="type">DevilListener</span>());
+        <span class="cmt">// set frame properties here</span>
+    }
+
+    <span class="kw">class</span> <span class="type">AngelListener</span> <span class="kw">implements</span> <span class="type">ActionListener</span> {
+        <span class="kw">public void</span> <span class="fn">actionPerformed</span>(<span class="type">ActionEvent</span> event) {
+            System.out.<span class="fn">println</span>(<span class="str">"Don't do it, you might regret it!"</span>);
+        }
+    }
+
+    <span class="kw">class</span> <span class="type">DevilListener</span> <span class="kw">implements</span> <span class="type">ActionListener</span> {
+        <span class="kw">public void</span> <span class="fn">actionPerformed</span>(<span class="type">ActionEvent</span> event) {
+            System.out.<span class="fn">println</span>(<span class="str">"Come on, do it!"</span>);
+        }
+    }
+}</pre>
+        </div>
+      </div>
+      <div>
+        <figure class="pic" style="margin-top:0">
+          <img src="{{IMG2:swing}}" alt="A Swing window with a Should I do it button, an angel and a devil, and the console output showing both listener answers.">
+          <figcaption>Two observers, one button, no coupling: the button does not know what an angel or a devil is.</figcaption>
+          {{SAYS:swing}}
+        </figure>
+        <div class="code">
+          <header><span class="fname">SwingObserverExample.java</span><span class="tagline">lambda observers (Java 8+)</span></header>
+<pre>button.<span class="fn">addActionListener</span>(event -&gt;
+     System.out.<span class="fn">println</span>(<span class="str">"Don't do it, you might regret it!"</span>));
+button.<span class="fn">addActionListener</span>(event -&gt;
+     System.out.<span class="fn">println</span>(<span class="str">"Come on, do it!"</span>));</pre>
+        </div>
+        <p style="font-size:.9rem;color:var(--ink-soft)">A lambda creates a function object that <em>is</em> the observer. Java checks that its signature matches <code>actionPerformed()</code>, the single method in <code>ActionListener</code>. Same pattern, less ceremony.</p>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:30px">
+      <div class="note warn">
+        <strong>“Didn’t Java ship an <code>Observer</code>/<code>Observable</code> for this?”</strong> It did — <code>java.util.Observer</code> and <code>java.util.Observable</code> provided the subject plumbing for free. They were <strong>deprecated in Java 9</strong>: teams prefer the basic pattern in their own code, or something more robust. JavaBeans still offers <code>PropertyChangeEvents</code>/<code>PropertyChangeListener</code>, and the Flow API covers asynchronous publisher/subscriber streams.
+      </div>
+      <div class="note">
+        <strong>“Can I rely on notification order?”</strong> No. The JDK explicitly advises you not to depend on any particular order of notifications. Treat the observer list as a set, not a queue.
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">Where else you will meet it</h3>
+    <ul class="bullets">
+      <li><strong>GUI frameworks</strong> of every kind — Swing, JavaFX, Android, .NET events, DOM <code>addEventListener</code>.</li>
+      <li><strong>RxJava / reactive streams</strong> — subscribers register for a stream of values; the observable pushes them.</li>
+      <li><strong>JavaBeans</strong> — <code>PropertyChangeListener</code> fires when a bean property changes.</li>
+      <li><strong>RMI and messaging middleware</strong> — callbacks across process boundaries.</li>
+      <li><strong>Cocoa / Swift</strong> — key-value observing (<code>KVO</code>) does the same job with different plumbing.</li>
+      <li><strong>MVC</strong> — the next time this book needs Observer, it is the “view updates when the model changes” half of Model-View-Controller.</li>
+    </ul>
+  </div>
+</section>
+<!-- ======================================================= 8. LIVE DEMO -->
+<section id="o-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 7</span><i></i><span>live demo</span></div>
+    <h2>Drive the Weather Station yourself</h2>
+    <p class="sub">The book’s <code>WeatherData</code> object, ported to JavaScript: a subject that keeps a list of observers, and displays that put <em>themselves</em> on that list in their constructors. Move the sliders, call <code>setMeasurements()</code>, and watch one notification reach every registered observer.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>Weather-O-Rama · alpha station</h3>
+        <div class="actions">
+          <button class="btn primary" id="wx-set">setMeasurements()</button>
+          <button class="btn" id="wx-run">Run the book’s main()</button>
+          <button class="btn ghost" id="wx-reset">Reset</button>
+        </div>
+      </div>
+
+      <div class="wx">
+        <div class="wx-subject">
+          <h4>Subject · <code>WeatherData implements Subject</code></h4>
+          <div class="sig" id="wx-sig">interface Observer { void update(float t, float rh, float p); }</div>
+
+          <div class="wx-slider">
+            <div class="lab"><span>Temperature</span><output id="wx-t-out">80.0 °F</output></div>
+            <input type="range" id="wx-t" min="0" max="110" step="0.5" value="80" aria-label="Temperature">
+          </div>
+          <div class="wx-slider">
+            <div class="lab"><span>Humidity</span><output id="wx-h-out">65.0 %</output></div>
+            <input type="range" id="wx-h" min="0" max="100" step="0.5" value="65" aria-label="Humidity">
+          </div>
+          <div class="wx-slider">
+            <div class="lab"><span>Pressure</span><output id="wx-p-out">30.40 in</output></div>
+            <input type="range" id="wx-p" min="28" max="32" step="0.01" value="30.40" aria-label="Barometric pressure">
+          </div>
+
+          <h4 style="margin-top:16px">Registered observers <span id="wx-count" style="color:#8a82a2;font-weight:600">(3)</span></h4>
+          <ul class="wx-obs" id="wx-obs">
+            <li><label style="display:flex;align-items:center;gap:9px;width:100%;cursor:pointer"><input type="checkbox" data-obs="current" checked> CurrentConditionsDisplay <span class="kind">Observer, DisplayElement</span></label></li>
+            <li><label style="display:flex;align-items:center;gap:9px;width:100%;cursor:pointer"><input type="checkbox" data-obs="stats" checked> StatisticsDisplay <span class="kind">Observer, DisplayElement</span></label></li>
+            <li><label style="display:flex;align-items:center;gap:9px;width:100%;cursor:pointer"><input type="checkbox" data-obs="forecast" checked> ForecastDisplay <span class="kind">Observer, DisplayElement</span></label></li>
+            <li><label style="display:flex;align-items:center;gap:9px;width:100%;cursor:pointer"><input type="checkbox" data-obs="heat"> HeatIndexDisplay <span class="kind">Observer, DisplayElement</span></label></li>
+            <li><label style="display:flex;align-items:center;gap:9px;width:100%;cursor:pointer"><input type="checkbox" data-obs="third"> ThirdPartyDisplay <span class="kind">written by someone else</span></label></li>
+          </ul>
+          <p class="wx-hint">Un-tick a display to call <code>removeObserver()</code>: the subject keeps notifying the others, and never has to ask who left.</p>
+          <div class="wx-arrows" id="wx-arrows"></div>
+        </div>
+
+        <div class="wx-displays" id="wx-displays">
+          <div class="wxd" data-card="current">
+            <h5><span class="dot"></span>Current conditions</h5>
+            <div class="big"><span id="wx-c-temp">80.0</span>°F</div>
+            <div class="row2">Humidity <span id="wx-c-hum">65.0</span>% &nbsp;·&nbsp; Pressure <span id="wx-c-pres">30.40</span> in</div>
+            <div class="meter"><i id="wx-c-meter" style="width:72%"></i></div>
+            <div class="badge-off hidden">unsubscribed</div>
+          </div>
+          <div class="wxd" data-card="stats">
+            <h5><span class="dot"></span>Weather statistics</h5>
+            <div class="big" id="wx-s-avg">Avg 80.0</div>
+            <div class="row2">Max <span id="wx-s-max">80.0</span> &nbsp;·&nbsp; Min <span id="wx-s-min">80.0</span> &nbsp;·&nbsp; <span id="wx-s-n">1</span> readings</div>
+            <div class="badge-off hidden">unsubscribed</div>
+          </div>
+          <div class="wxd" data-card="forecast">
+            <h5><span class="dot"></span>Forecast</h5>
+            <div class="big" id="wx-f-text" style="font-size:1.12rem">—</div>
+            <div class="row2">last <span id="wx-f-last">29.92</span> in → now <span id="wx-f-now">29.92</span> in</div>
+            <div class="badge-off hidden">unsubscribed</div>
+          </div>
+          <div class="wxd" data-card="heat">
+            <h5><span class="dot"></span>Heat index</h5>
+            <div class="big" id="wx-hi">—</div>
+            <div class="row2">apparent temperature from T and RH</div>
+            <div class="badge-off hidden">unsubscribed</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wx-toolbar">
+        <label class="switch"><input type="checkbox" id="wx-pull"> pull instead of push</label>
+        <span class="chip" id="wx-mode-chip">push · update(t, rh, p)</span>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">WeatherStation — console</span>
+        </header>
+        <div class="body" id="wx-log"></div>
+        <footer><button class="btn small" id="wx-clear">Clear console</button></footer>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>What to try:</strong> tick <em>HeatIndexDisplay</em> — the subject gains a fourth observer with no code change. Un-tick <em>StatisticsDisplay</em> mid-run. Then switch to <strong>pull</strong> and watch the notification line change from <code>update(80.0, 65.0, 30.4)</code> to <code>update()</code>, with each display asking the subject for the values it wants.
+      </div>
+      <div class="note">
+        <strong>About the numbers:</strong> this page’s JavaScript port uses doubles where the book uses <code>float</code>, so the third heat index prints <code>83.64967</code> in both, while the second is <code>86.90123</code> here and <code>86.90124</code> in the book. The heat index formula itself is copied verbatim from <code>heatindex.txt</code>.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== 9. CHEAT SHEET -->
+<section id="o-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 8</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 2 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>One object owns the state</h4><p><code>WeatherData</code> holds temperature, humidity and pressure, and is told when they change. Everything else is a consumer of that state.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Hardcoding the consumers breaks first</h4><p>Calling <code>currentConditionsDisplay.update(…)</code> and friends codes to concrete classes, needs a change per display, and forbids runtime add/remove.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Publisher + subscribers</h4><p>Subject = publisher, observers = subscribers. Observers register, the subject notifies whoever is on its list, observers can leave at any time.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The pattern</h4><p>Observer defines a one-to-many dependency between objects so that when one object changes state, all its dependents are notified and updated automatically.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The new principle</h4><p>Strive for loosely coupled designs between objects that interact. The subject knows only that its observers implement an interface.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Push or pull</h4><p>Push sends the state in <code>update(temp, humidity, pressure)</code>. Pull sends <code>update()</code> and the observer calls getters. Pull survives new data fields; the book calls it more “correct”.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>It is everywhere</h4><p>Swing listeners, JavaBeans <code>PropertyChangeListener</code>, RxJava, RMI, Cocoa/Swift KVO, JavaScript events — and MVC, later in this book. <code>java.util.Observer</code>/<code>Observable</code> were deprecated in Java 9.</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The book’s bullet points</h3>
+        <ul class="bullets">
+          <li>The Observer Pattern defines a one-to-many relationship between objects.</li>
+          <li>Subjects update Observers using a common interface.</li>
+          <li>Observers of any concrete type can participate as long as they implement the <code>Observer</code> interface.</li>
+          <li>Observers are loosely coupled: the subject knows nothing about them other than that they implement the interface.</li>
+          <li>You can push or pull data from the subject (pull is considered more “correct”).</li>
+          <li>Swing makes heavy use of the pattern, as do many GUI frameworks.</li>
+          <li>You will also find it in RxJava, JavaBeans, RMI, Cocoa, Swift and JavaScript events.</li>
+          <li>It is related to Publish/Subscribe, which handles multiple subjects and/or multiple message types.</li>
+          <li>You will see it again when you learn Model-View-Controller.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Design Principle Challenge (page 73)</h3>
+        <p style="font-size:.92rem;color:var(--ink-soft)">For each previous principle, describe how the Observer Pattern uses it. The book’s answers:</p>
+        <table class="compare">
+          <thead><tr><th>Principle</th><th>How Observer honors it</th></tr></thead>
+          <tbody>
+            <tr><td>Encapsulate what varies</td><td>What varies is the subject’s state and the number and types of observers. You can vary the dependent objects without changing the subject.</td></tr>
+            <tr><td>Program to an interface</td><td>The subject tracks objects that implement <code>Observer</code>; observers register with, and are notified by, the <code>Subject</code> interface.</td></tr>
+            <tr><td>Favor composition</td><td>The subject is <em>composed</em> with any number of observers at runtime — not through an inheritance hierarchy.</td></tr>
+          </tbody>
+        </table>
+        <div class="note ok" style="margin-top:16px">
+          <strong>If you remember one line:</strong> when one object changes state and an unknown set of others care, let them subscribe to an interface instead of letting the subject name them.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:34px">
+      <img src="{{IMG2:toolbox}}" alt="The design toolbox cards from chapter 2: OO basics, the four OO principles and the two patterns learned so far.">
+      <figcaption>Chapter 2 adds one principle (“strive for loosely coupled designs”) and one pattern (Observer) to the toolbox Chapter 1 started.</figcaption>
+      {{SAYS:toolbox}}
+    </figure>
+
+    <h3 style="margin-top:38px">The chapter 2 crossword</h3>
+    <div class="grid2" style="align-items:start">
+      <figure class="pic" style="margin-top:0">
+        <img src="{{IMG2:crossword}}" alt="Design Patterns crossword grid for chapters 1 and 2, with numbered squares.">
+        <figcaption>The book’s crossword (page 74). All solution words come from chapters 1 and 2.</figcaption>
+        {{SAYS:crossword}}
+      </figure>
+      <div>
+        <details class="figsay" open style="margin-top:0">
+          <summary>Clues</summary>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:6px 12px 12px;font-size:.8rem;line-height:1.5">
+            <div>
+              <strong>Across</strong>
+              <ol style="margin:6px 0 0;padding-left:18px">
+                <li>One Subject likes to talk to ____ observers.</li>
+                <li>Subject initially wanted to ____ all the data to Observer.</li>
+                <li>CEO almost forgot the ____ index display.</li>
+                <li>CurrentConditionsDisplay implements this interface.</li>
+                <li>Java framework with lots of Observers.</li>
+                <li>A Subject is similar to a ____.</li>
+                <li>Observers like to be ____ when something new happens.</li>
+                <li>How to get yourself off the Observer list.</li>
+                <li>Lori was both an Observer and a ____.</li>
+                <li>Subject is an ____.</li>
+                <li>You want to keep your coupling ____.</li>
+                <li>Program to an ____ not an implementation.</li>
+                <li>Devil and Angel are ____ to the button.</li>
+              </ol>
+            </div>
+            <div>
+              <strong>Down</strong>
+              <ol style="margin:6px 0 0;padding-left:18px">
+                <li>He didn’t want any more ints, so he removed himself.</li>
+                <li>Temperature, humidity, and ____.</li>
+                <li>Weather-O-Rama’s CEO is named after this kind of storm.</li>
+                <li>He says you should go for it.</li>
+                <li>The Subject doesn’t have to know much about the ____.</li>
+                <li>The WeatherData class ____ the Subject interface.</li>
+                <li>Don’t count on this for notification.</li>
+                <li>Observers are ____ on the Subject.</li>
+                <li>Implement this method to get notified.</li>
+                <li>Jill got one of her own.</li>
+              </ol>
+            </div>
+          </div>
+        </details>
+        <details class="figsay" style="margin-top:10px">
+          <summary>Solution (page 77)</summary>
+          <div style="padding:6px 12px 12px;font-size:.82rem;line-height:1.6">
+            <strong>Across:</strong> 1 MANY · 3 PUSH · 6 HEAT · 8 OBSERVER · 9 SWING · 11 PUBLISHER · 12 NOTIFIED · 15 REMOVE · 16 SUBJECT · 18 INTERFACE · 20 LOOSE · 21 INTERFACE · 22 LISTENING<br>
+            <strong>Down:</strong> 1 MOUSE · 2 PRESSURE · 4 HURRICANE · 5 DEVIL · 7 OBSERVERS · 10 IMPLEMENTS · 13 ORDER · 14 DEPENDENT · 17 UPDATE · 19 JOB
+          </div>
+        </details>
+        <figure class="pic" style="margin-top:14px">
+          <img src="{{IMG2:crossword-solution}}" alt="The solved crossword grid with every chapter 1 and 2 answer filled in.">
+          <figcaption>The printed solution grid — handy when a clue is fighting back.</figcaption>
+          {{SAYS:crossword-solution}}
+        </figure>
+      </div>
+    </div>
+
+    <div class="quiz" style="margin-top:34px" id="o-quiz2">
+      <h3 style="margin-top:0">Check yourself: what is true of Observer?</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="o-quiz2-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. The subject knows only that its observers implement the <code>Observer</code> interface.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="B"><span class="txt">B. Observers must extend a common superclass so the subject can store them.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="C"><span class="txt">C. Observers can be added and removed at runtime.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="D"><span class="txt">D. Pushing the data in <code>update()</code> is the only workable option.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="E"><span class="txt">E. The pattern creates a one-to-many dependency between objects.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="o-quiz2-check">Check my answer</button>
+        <button class="btn ghost small" id="o-quiz2-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="o-quiz2-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>Chapter 2 in the book’s words:</strong> “The Observer Pattern defines a one-to-many dependency between objects so that when one object changes state, all of its dependents are notified and updated automatically.” Everything else — interfaces, push vs. pull, loose coupling — exists to make that sentence survivable in real code.
+    </div>
+  </div>
+</section>
+
+<script>
+/* ============================================================ chapter 2 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#wx-log');
+  if (!logBox) return;                    // page fragment reused elsewhere
+
+  let capturing = null;
+  let ready = false;              // false while the displays are still being built
+  const log = (html, cls = '') => {
+    if (capturing) { capturing.push({ html, cls }); return; }
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.innerHTML = html;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  const dim  = t => `<span class="dim">${t}</span>`;
+  const call = t => `<span class="call">${t}</span>`;
+  const res  = t => `<span class="res">${t}</span>`;
+  const ok   = t => `<span class="ok">${t}</span>`;
+  const esc  = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+  /* ---------------------------------------------------------- the subject */
+  class WeatherData {
+    constructor() {
+      this.observers = [];
+      this.temperature = 80;
+      this.humidity = 65;
+      this.pressure = 30.4;
+    }
+    getTemperature() { return this.temperature; }
+    getHumidity()    { return this.humidity; }
+    getPressure()    { return this.pressure; }
+
+    registerObserver(o) {
+      if (!this.observers.includes(o)) this.observers.push(o);
+      if (ready) log(dim('  ') + call(`registerObserver(${o.name})`) + dim(` → ${this.observers.length} on the list`));
+      if (ready) syncObsList();
+    }
+    removeObserver(o) {
+      const i = this.observers.indexOf(o);
+      if (i >= 0) this.observers.splice(i, 1);
+      if (ready) log(dim('  ') + call(`removeObserver(${o.name})`) + dim(` → ${this.observers.length} on the list`));
+      if (ready) syncObsList();
+    }
+    notifyObservers() {
+      const n = this.observers.length;
+      log(dim(`  notifyObservers() → ${n} observer${n === 1 ? '' : 's'}`));
+      [...this.observers].forEach(o => {
+        if (pullMode) {
+          log(dim(`  → ${o.name}.update()`));
+          o.update();
+        } else {
+          log(dim(`  → ${o.name}.update(${fx(this.temperature)}, ${fx(this.humidity)}, ${this.pressure.toFixed(2)})`));
+          o.update(this.temperature, this.humidity, this.pressure);
+        }
+      });
+      syncArrows();
+      setTimeout(syncArrows, 600);
+    }
+    measurementsChanged() { this.notifyObservers(); }
+    setMeasurements(t, h, p, quiet) {
+      this.temperature = t;
+      this.humidity = h;
+      this.pressure = p;
+      if (!quiet) log(dim(`setMeasurements(${fx(t)}, ${fx(h)}, ${p.toFixed(2)})`));
+      this.measurementsChanged();
+    }
+  }
+
+  const fx = n => (Math.round(n * 10) / 10).toFixed(1);
+
+  /* --------------------------------------------------------- the observers */
+  class CurrentConditionsDisplay {
+    constructor(subject) {
+      this.name = 'CurrentConditionsDisplay';
+      this.subject = subject;
+      this.temperature = 0;
+      this.humidity = 0;
+      subject.registerObserver(this);
+    }
+    update(t, h) {
+      this.temperature = t === undefined ? this.subject.getTemperature() : t;
+      this.humidity    = h === undefined ? this.subject.getHumidity() : h;
+      this.display();
+    }
+    display() {
+      const t = this.temperature, h = this.humidity, p = this.subject.getPressure();
+      $('#wx-c-temp').textContent = fx(t);
+      $('#wx-c-hum').textContent  = fx(h);
+      $('#wx-c-pres').textContent = p.toFixed(2);
+      $('#wx-c-meter').style.width = Math.max(2, Math.min(100, (t / 110) * 100)) + '%';
+      flash('current');
+      log('Current conditions: ' + fx(t) + 'F degrees and ' + fx(h) + '% humidity', 'res');
+    }
+  }
+
+  class StatisticsDisplay {
+    constructor(subject) {
+      this.name = 'StatisticsDisplay';
+      this.subject = subject;
+      this.maxTemp = -Infinity;
+      this.minTemp = Infinity;
+      this.tempSum = 0;
+      this.numReadings = 0;
+      subject.registerObserver(this);
+    }
+    update(t) {
+      const temp = t === undefined ? this.subject.getTemperature() : t;
+      this.tempSum += temp;
+      this.numReadings++;
+      if (temp > this.maxTemp) this.maxTemp = temp;
+      if (temp < this.minTemp) this.minTemp = temp;
+      this.display();
+    }
+    display() {
+      const avg = this.tempSum / this.numReadings;
+      $('#wx-s-avg').textContent = 'Avg ' + fx(avg);
+      $('#wx-s-max').textContent = fx(this.maxTemp);
+      $('#wx-s-min').textContent = fx(this.minTemp);
+      $('#wx-s-n').textContent = this.numReadings;
+      flash('stats');
+      log('Avg/Max/Min temperature = ' + fx(avg) + '/' + fx(this.maxTemp) + '/' + fx(this.minTemp), 'res');
+    }
+  }
+
+  class ForecastDisplay {
+    constructor(subject) {
+      this.name = 'ForecastDisplay';
+      this.subject = subject;
+      this.currentPressure = 29.92;
+      this.lastPressure = this.currentPressure;
+      subject.registerObserver(this);
+    }
+    update(t, h, p) {
+      this.lastPressure = this.currentPressure;
+      this.currentPressure = p === undefined ? this.subject.getPressure() : p;
+      this.display();
+    }
+    display() {
+      let text;
+      if (this.currentPressure > this.lastPressure)       text = 'Improving weather on the way!';
+      else if (this.currentPressure < this.lastPressure)  text = 'Watch out for cooler, rainy weather';
+      else                                                text = 'More of the same';
+      $('#wx-f-text').textContent = text;
+      $('#wx-f-last').textContent = this.lastPressure.toFixed(2);
+      $('#wx-f-now').textContent  = this.currentPressure.toFixed(2);
+      flash('forecast');
+      log('Forecast: ' + text, 'res');
+    }
+  }
+
+  /* straight out of heatindex.txt (page 62) */
+  const computeHeatIndex = (t, rh) =>
+      16.923 + 0.185212 * t + 5.37941 * rh - 0.100254 * t * rh
+    + 0.00941695 * t * t + 0.00728898 * rh * rh
+    + 0.000345372 * t * t * rh - 0.000814971 * t * rh * rh
+    + 0.0000102102 * t * t * rh * rh - 0.000038646 * t * t * t
+    + 0.0000291583 * rh * rh * rh + 0.00000142721 * t * t * t * rh
+    + 0.000000197483 * t * rh * rh * rh
+    - 0.0000000218429 * t * t * t * rh * rh
+    + 0.000000000843296 * t * t * rh * rh * rh
+    - 0.0000000000481975 * t * t * t * rh * rh * rh;
+
+  class HeatIndexDisplay {
+    constructor(subject) {
+      this.name = 'HeatIndexDisplay';
+      this.subject = subject;
+      this.heatIndex = 0;
+      subject.registerObserver(this);
+    }
+    update(t, rh) {
+      const temp = t === undefined ? this.subject.getTemperature() : t;
+      const hum  = rh === undefined ? this.subject.getHumidity() : rh;
+      this.heatIndex = computeHeatIndex(temp, hum);
+      this.display();
+    }
+    display() {
+      $('#wx-hi').textContent = this.heatIndex.toFixed(5);
+      flash('heat');
+      log('Heat index is ' + this.heatIndex.toFixed(5), 'res');
+    }
+  }
+
+  /* a display somebody else wrote, to prove the marketplace works */
+  class ThirdPartyDisplay {
+    constructor(subject) {
+      this.name = 'ThirdPartyDisplay';
+      this.subject = subject;
+      subject.registerObserver(this);
+    }
+    update(t, h, p) {
+      const temp = t === undefined ? this.subject.getTemperature() : t;
+      const hum  = h === undefined ? this.subject.getHumidity() : h;
+      const pres = p === undefined ? this.subject.getPressure() : p;
+      flash('current');
+      log('Third-party widget: ' + fx(temp) + '°F / ' + fx(hum) + '% / ' + pres.toFixed(2) + ' in', 'res');
+    }
+  }
+
+  /* ------------------------------------------------------- fresh JVM state */
+  function resetDisplayState() {
+    const st = displays.stats;
+    st.maxTemp = -Infinity; st.minTemp = Infinity; st.tempSum = 0; st.numReadings = 0;
+    displays.forecast.currentPressure = 29.92;
+    displays.forecast.lastPressure = 29.92;
+    displays.current.temperature = 0;
+    displays.current.humidity = 0;
+    ['#wx-s-avg', '#wx-s-max', '#wx-s-min'].forEach(sel => { const el = $(sel); if (el) el.textContent = '—'; });
+    $('#wx-s-n').textContent = '0';
+    $('#wx-f-text').textContent = '—';
+    $('#wx-f-last').textContent = '29.92';
+    $('#wx-f-now').textContent = '29.92';
+    $('#wx-hi').textContent = '—';
+  }
+
+  /* ------------------------------------------------------------- wiring up */
+  const weatherData = new WeatherData();
+  const displays = {
+    current:  new CurrentConditionsDisplay(weatherData),
+    stats:    new StatisticsDisplay(weatherData),
+    forecast: new ForecastDisplay(weatherData),
+    heat:     new HeatIndexDisplay(weatherData),
+    third:    new ThirdPartyDisplay(weatherData)
+  };
+  /* the two optional ones start out un-registered, like the book's first run */
+  weatherData.removeObserver(displays.heat);
+  weatherData.removeObserver(displays.third);
+  ready = true;
+
+  let pullMode = false;
+  const cardFor = id => $(`.wxd[data-card="${id}"]`);
+
+  function flash(id) {
+    const card = cardFor(id);
+    if (!card) return;
+    card.classList.add('flash');
+    setTimeout(() => card.classList.remove('flash'), 420);
+  }
+
+  function syncObsList() {
+    $$('#wx-obs input[data-obs]').forEach(box => {
+      const obs = displays[box.dataset.obs];
+      const on = weatherData.observers.includes(obs);
+      box.checked = on;
+      box.closest('li').classList.toggle('off', !on);
+      const card = cardFor(box.dataset.obs);
+      if (card) {
+        card.classList.toggle('sleeping', !on);
+        const badge = $('.badge-off', card);
+        if (badge) badge.classList.toggle('hidden', on);
+      }
+    });
+    $('#wx-count').textContent = `(${weatherData.observers.length})`;
+    syncArrows();
+  }
+
+  function syncArrows() {
+    const box = $('#wx-arrows');
+    if (!box) return;
+    box.innerHTML = weatherData.observers
+      .map(o => `<span>${o.name}.update()</span>`)
+      .join('') || '<span>no observers — nothing to notify</span>';
+  }
+
+  $$('#wx-obs input[data-obs]').forEach(box => {
+    box.addEventListener('change', () => {
+      const obs = displays[box.dataset.obs];
+      log(dim('// ' + (box.checked ? 'adding an observer at runtime' : 'removing an observer at runtime')));
+      if (box.checked) weatherData.registerObserver(obs);
+      else weatherData.removeObserver(obs);
+      syncObsList();
+    });
+  });
+
+  const tSlider = $('#wx-t'), hSlider = $('#wx-h'), pSlider = $('#wx-p');
+  const showValues = () => {
+    $('#wx-t-out').textContent = fx(+tSlider.value) + ' °F';
+    $('#wx-h-out').textContent = fx(+hSlider.value) + ' %';
+    $('#wx-p-out').textContent = (+pSlider.value).toFixed(2) + ' in';
+  };
+  [tSlider, hSlider, pSlider].forEach(s => s.addEventListener('input', showValues));
+
+  $('#wx-set').addEventListener('click', () => {
+    weatherData.setMeasurements(+tSlider.value, +hSlider.value, +pSlider.value);
+  });
+
+  $('#wx-reset').addEventListener('click', () => {
+    tSlider.value = 80; hSlider.value = 65; pSlider.value = 30.4;
+    showValues();
+    $$('#wx-obs input[data-obs]').forEach(box => {
+      const want = ['current', 'stats', 'forecast'].includes(box.dataset.obs);
+      if (box.checked !== want) { box.checked = want; box.dispatchEvent(new Event('change')); }
+    });
+    resetDisplayState();
+    logBox.innerHTML = '';
+    log(dim('// fresh station: WeatherData created, three displays registered'));
+    weatherData.setMeasurements(80, 65, 30.4, true);
+    syncObsList();
+  });
+
+  /* the book's WeatherStation.main(), line for line */
+  $('#wx-run').addEventListener('click', () => {
+    logBox.innerHTML = '';
+    resetDisplayState();
+    log(dim('% java WeatherStation'));
+    log(dim('// weatherData.setMeasurements(80, 65, 30.4f);  setMeasurements(82, 70, 29.2f);  setMeasurements(78, 90, 29.2f);'));
+    capturing = [];
+    [[80, 65, 30.4], [82, 70, 29.2], [78, 90, 29.2]]
+      .forEach(([t, h, p]) => weatherData.setMeasurements(t, h, p, true));
+    const printed = capturing.filter(l => l.cls === 'res').map(l => l.html);
+    capturing = null;
+    printed.forEach(line => log(line, 'res'));
+    tSlider.value = 78; hSlider.value = 90; pSlider.value = 29.2;
+    showValues();
+    log(dim('// three notifications, three displays (plus any you registered) — exactly the book’s output'));
+  });
+
+  $('#wx-pull').addEventListener('change', e => {
+    pullMode = e.target.checked;
+    $('#wx-sig').textContent = pullMode
+      ? 'interface Observer { void update(); }   // pull'
+      : 'interface Observer { void update(float t, float rh, float p); }   // push';
+    $('#wx-mode-chip').textContent = pullMode ? 'pull · update()' : 'push · update(t, rh, p)';
+    log(dim('// switched to ' + (pullMode ? 'PULL — observers call the getters' : 'PUSH — the subject sends its state')));
+  });
+
+  $('#wx-clear').addEventListener('click', () => { logBox.innerHTML = ''; });
+
+  /* -------------------------------------------------------- quiz 1 & 2 */
+  function wireQuiz(prefix, correct, message, perfect) {
+    const box = $('#' + prefix);
+    if (!box) return;
+    $('#' + prefix + '-check').addEventListener('click', () => {
+      let picked = 0, right = 0;
+      $$('#' + prefix + '-opts .opt').forEach(opt => {
+        const input = $('input', opt);
+        const isCorrect = opt.dataset.correct === '1';
+        opt.classList.remove('correct', 'wrong');
+        $('.mark', opt).textContent = '';
+        if (input.checked) {
+          picked++;
+          if (isCorrect) { opt.classList.add('correct'); $('.mark', opt).textContent = '✓'; right++; }
+          else { opt.classList.add('wrong'); $('.mark', opt).textContent = '✗'; }
+        } else if (isCorrect) {
+          opt.classList.add('correct');
+          $('.mark', opt).textContent = '✓ (missed)';
+        }
+      });
+      const answer = $('#' + prefix + '-answer');
+      answer.classList.remove('hidden');
+      answer.innerHTML = right === correct.length && picked === correct.length
+        ? '<strong>' + perfect + '</strong>'
+        : '<strong>' + message + '</strong>';
+    });
+    $('#' + prefix + '-reset').addEventListener('click', () => {
+      $$('#' + prefix + '-opts .opt').forEach(o => {
+        $('input', o).checked = false;
+        o.classList.remove('correct', 'wrong');
+        $('.mark', o).textContent = '';
+      });
+      $('#' + prefix + '-answer').classList.add('hidden');
+    });
+  }
+  wireQuiz('o-quiz1', ['A', 'B', 'C', 'E'],
+    'Book’s answer: A, B, C and E. D is tempting — the update() signatures match, but no interface was ever declared; F is a red herring, WeatherData still keeps its fields private.',
+    'Perfect — A, B, C and E.');
+  wireQuiz('o-quiz2', ['A', 'C', 'E'],
+    'Answer: A, C and E. Observers need no common superclass (only the interface), and pull is a perfectly good alternative to push.',
+    'Perfect — A, C and E.');
+
+  /* ------------------------------------------------------------- start up */
+  showValues();
+  syncObsList();
+  log(dim('// WeatherData created; CurrentConditionsDisplay, StatisticsDisplay and ForecastDisplay registered themselves.'));
+  log(dim('// Move the sliders and press setMeasurements(), or tick HeatIndexDisplay to add a fourth observer.'));
+  weatherData.setMeasurements(80, 65, 30.4, true);
+})();
+</script>

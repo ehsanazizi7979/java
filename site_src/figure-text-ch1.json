@@ -1,0 +1,113 @@
+{
+ "hero-couple": [
+  "“Now that we’re living in Objectville, we’ve just got to get into Design Patterns… everyone is doing them.”",
+  "“Soon we’ll be the hit of Jim and Betty’s Wednesday night patterns group!”"
+ ],
+ "duck-subclasses": [
+  "Duck: quack(), swim(), display(), // other duck-like methods…",
+  "MallardDuck: display() { // looks like a mallard } — RedheadDuck: display() { // looks like a redhead }",
+  "“All ducks quack and swim. The superclass takes care of the implementation code.”",
+  "“The display() method is abstract, since all duck subtypes look different.”",
+  "“Lots of other types of ducks inherit from the Duck class.” — “Each duck subtype is responsible for implementing its own display() behavior for how it looks on the screen.”"
+ ],
+ "fly-feature": [
+  "“What Joe added.” — Duck now has fly(), and “All subclasses inherit fly().”",
+  "“What we want.” — only ducks that actually fly should have it."
+ ],
+ "rubber-duck-flying": [
+  "Joe: “Okay, so there’s a slight flaw in my design… I don’t… not all… should fly. When…?” (a rubber duck flapping through the air)"
+ ],
+ "rubber-decoy-classes": [
+  "RubberDuck: quack() { // squeak }, display() { // rubber duck }, fly() { // override to do nothing }",
+  "DecoyDuck: quack() { // override to do nothing }, display() { // decoy duck }, fly() { // override to do nothing }",
+  "“But then what happens when we add wooden decoy ducks to the program? They aren’t supposed to fly or quack…”",
+  "“I could always just override the fly() method in rubber duck, like I have with the quack() method…”"
+ ],
+ "interface-design": [
+  "Duck stays the superclass of all ducks; Flyable and Quackable are interfaces.",
+  "MallardDuck / RedheadDuck implement Flyable and Quackable; RubberDuck and DecoyDuck only implement Quackable.",
+  "Each duck still supplies its own display(); the interfaces carry fly() and quack() signatures."
+ ],
+ "mirror-change": [
+  "“CHANGE (use a mirror to see the answer)” — the mirror spells out the chapter’s only constant."
+ ],
+ "pull-out-varies": [
+  "“Pull out what varies” — the Duck class stays the superclass of all ducks, but we pull out the fly and quack behaviors and put them in another class structure.",
+  "Duck Behaviors: QuackingBehaviors and FlyingBehaviors.",
+  "“Various behavior implementations are going to live here.” — “Now flying and quacking each get their own set of classes.”"
+ ],
+ "animal-example": [
+  "Animal: makeSound() — Dog: makeSound() { bark(); } — Cat: makeSound() { meow(); }",
+  "bark() { // bark sound } and meow() { // meow sound } are the “concrete implementations”.",
+  "Neither animal overrides the other’s sound: each has its own implementation of the same method."
+ ],
+ "behaviors-diagram": [
+  "<<interface>> FlyBehavior: fly() — implementations FlyWithWings and FlyNoWay",
+  "<<interface>> QuackBehavior: quack() — implementations Quack, Squeak and MuteQuack",
+  "“Here’s the implementation of flying for all ducks that have wings.” — “And here’s the implementation for all ducks that can’t fly.”",
+  "“Quacks that really quack.” — “Quacks that squeak.” — “Quacks that make no sound at all.”"
+ ],
+ "duck-has-behavior": [
+  "Duck now holds FlyBehavior flyBehavior and QuackBehavior quackBehavior; performFly() and performQuack() replace fly() and quack().",
+  "“Instance variables hold a reference to a specific behavior at runtime.”",
+  "“The behavior variables are declared as the behavior INTERFACE type.”",
+  "“These methods replace fly() and quack().”"
+ ],
+ "big-picture": [
+  "Duck: swim(), display(), performQuack(), performFly(), setFlyBehavior(), setQuackBehavior(), // other duck-like methods…",
+  "<<interface>> FlyBehavior → FlyWithWings, FlyNoWay; <<interface>> QuackBehavior → Quack, Squeak, MuteQuack",
+  "MallardDuck, RedheadDuck, RubberDuck and DecoyDuck all extend Duck and implement display().",
+  "“Encapsulated fly behavior” and “Encapsulated quack behavior” — “Think of each set of behaviors as a family of algorithms.”",
+  "“These behavior ‘algorithms’ are interchangeable.” — “Client makes use of an encapsulated family of algorithms for both flying and quacking.”",
+  "Your job in the book’s exercise: write IS-A, HAS-A or IMPLEMENTS on every arrow."
+ ],
+ "guru": [
+  "Guru: Tell me what you have learned of the Object-Oriented ways.",
+  "Student: Guru, I have learned that the promise of the object-oriented way is reuse.",
+  "Student: …through inheritance all good things may be reused and so we come to drastically cut development time like we swiftly cut bamboo in the woods.",
+  "Guru: Is more time spent on code before or after development is complete? — Student: The answer is after, Guru. We always spend more time maintaining and changing software than on initial development.",
+  "Guru: So, should effort go into reuse above maintainability and extensibility?",
+  "Guru: I can see that you still have much to learn. I would like for you to go and meditate on inheritance further."
+ ],
+ "ribbon-first": [
+  "“Congratulations on your first pattern!”",
+  "“You just applied your first design pattern—the STRATEGY Pattern. That’s right, you used the Strategy Pattern to rework the SimUDuck app.”",
+  "“Thanks to this pattern, the simulator is ready for any changes those execs might cook up on their next business trip to Maui.”"
+ ],
+ "diner": [
+  "Flo: “Give me a C.J. White, a black & white, a Jack Benny, a radio, a house boat, a coffee regular, and burn one!”",
+  "Alice: “I need a cream cheese with jelly on white bread, a chocolate soda with vanilla ice cream, a grilled cheese sandwich with bacon, a tuna fish salad on toast, a banana split with ice cream & sliced bananas, and a coffee with a cream and two sugars… oh, and put a hamburger on the grill!”",
+  "Same order, twice the words: Flo has a shared vocabulary with the short-order cook."
+ ],
+ "cubicle": [
+  "Rick: “So I created this broadcast class. It keeps track of all the objects listening to it, and anytime a new piece of data comes along it sends a message to each listener. What’s cool is that the listeners can join the broadcast at any time or they can even remove themselves. It is really dynamic and loosely coupled!”",
+  "“Rick, why didn’t you just say you are using the Observer Pattern?”",
+  "“If you communicate in patterns, then other developers know immediately and precisely the design you’re describing.”"
+ ],
+ "brain": [
+  "“Your Code, now new and improved with design patterns!”",
+  "“Your BRAIN” vs “Your Code” — patterns go into your brain before they go into your code.",
+  "“Rework your old code when you find it’s degrading into an inflexible mess.”"
+ ],
+ "toolbox": [
+  "OO Basics: Abstraction, Encapsulation, Polymorphism, Inheritance",
+  "OO Principles: Encapsulate what varies. — Favor composition over inheritance. — Program to interfaces, not implementations.",
+  "OO Patterns: Strategy — defines a family of algorithms, encapsulates each one, and makes them interchangeable…",
+  "“We assume you know the OO basics like abstraction, encapsulation, polymorphism, and inheritance. If you are a little rusty… pull out your favorite object-oriented book and review.”",
+  "“Throughout the book, think about how patterns rely on OO basics and principles.”"
+ ],
+ "crossword": [
+  "“It’s your standard crossword; all of the solution words are from this chapter.” — the numbered squares are the crossword grid."
+ ],
+ "puzzle-pieces": [
+  "<<interface>> WeaponBehavior: useWeapon();",
+  "KnifeBehavior (cutting with a knife), BowAndArrowBehavior (shooting an arrow with a bow), AxeBehavior (chopping with an axe), SwordBehavior (swinging a sword)",
+  "Character: WeaponBehavior weapon, setWeapon(WeaponBehavior w) { this.weapon = w; }, fight()",
+  "King, Queen, Knight and Troll each implement fight() { … }"
+ ],
+ "puzzle-solution": [
+  "Character HAS-A WeaponBehavior: fight() calls useWeapon() on the current weapon.",
+  "“Note that ANY object could implement the WeaponBehavior interface—say, a paper clip, a tube of toothpaste, or a mutated sea bass.”",
+  "“A Character HAS-A WeaponBehavior.”"
+ ]
+}
