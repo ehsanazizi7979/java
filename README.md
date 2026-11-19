@@ -1,9 +1,9 @@
 # java
 
-## Head First Design Patterns (2nd ed.) — study pages, chapters 1–3
+## Head First Design Patterns (2nd ed.) — study pages, chapters 1–4
 
 `head-first-ch1-design-patterns.html` is one self-contained page (no external assets,
-works offline) that summarizes the first three chapters of *Head First Design Patterns*:
+works offline) that summarizes the first four chapters of *Head First Design Patterns*:
 
 **Chapter 1 — Welcome to Design Patterns / Strategy** (book pages 1–36)
 the SimUDuck story, the three OO design principles, the Strategy Pattern, the diner-talk
@@ -35,12 +35,28 @@ design toolbox, and a live **Starbuzz order terminal**: pick a drink, stack cond
 watch the delegation stack unwind — or press "Run the book's main()" for the exact
 three-line output of page 98 (Espresso $1.99 / Dark Roast … $1.49 / House Blend … $1.34).
 
+**Chapter 4 — Baking with OO Goodness / Factory Patterns** (book pages 109–168)
+why `new` is a dependency and not a sin, the `orderPizza()` method that reopens every time the
+menu changes, encapsulating creation in a Simple Factory (and why Head First only gives it an
+Honorable Mention), franchising into an abstract `PizzaStore` with an abstract `createPizza()`
+so each regional subclass decides, the `PizzaTestDrive` console run, the Factory Method
+definition and its parallel creator/product hierarchies, the guru's lesson on object
+dependencies, the Dependency Inversion Principle with its three guidelines and the
+`DependentPizzaStore` counting exercise (8, or 12 with California), regional ingredient
+families, `PizzaIngredientFactory` with the New York and Chicago factories, `CheesePizza` /
+`ClamPizza` rewired to pull ingredients from their factory, the Factory-Method-vs-Abstract-
+Factory comparison, the toolbox, the chapter 4 crossword, and a live **Objectville Pizza
+Kitchen**: three eras of the same shop (dependent store → Factory Method → Abstract Factory),
+any store × any pizza, the book's own console strings, and a live dependency/ingredient
+readout for whatever you order.
+
 ### Build
 
 ```bash
 python tools/crop_ch1.py     # chapter 1 figures  -> assets/ch1/*.jpg
 python tools/crop_ch2.py     # chapter 2 figures  -> assets/ch2/*.jpg
 python tools/crop_ch3.py     # chapter 3 figures  -> assets/ch3/*.jpg
+python tools/crop_ch4.py     # chapter 4 figures  -> assets/ch4/*.jpg
 python tools/build_page.py   # inlines all chapters + base64 images -> head-first-ch1-design-patterns.html
 ```
 
@@ -51,20 +67,27 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   (uses `{{IMG2:name}}` for its figures and `{{SAYS:name}}` for its transcripts)
 * `site_src/chapter3.template.html` — chapter 3, spliced in at `{{CHAPTER3}}`
   (`{{IMG3:name}}`, plus its own `<script>` block for the coffee builder)
-* `site_src/figure-text-ch1.json`, `-ch2.json`, `-ch3.json` — curated transcripts of
-  the text printed inside each figure; `tools/figure_text.py` dumps the raw PDF text layer
-  per crop to help edit them
-* `tools/crop_ch1.py`, `tools/crop_ch2.py`, `tools/crop_ch3.py` — crop boxes in PDF points
-  (the page is 576 × 666 pt)
+* `site_src/chapter4.template.html` — chapter 4, spliced in at `{{CHAPTER4}}`
+  (`{{IMG4:name}}`, plus its own `<script>` block for the pizza kitchen and quiz)
+* `site_src/figure-text-ch1.json`, `-ch2.json`, `-ch3.json`, `-ch4.json` — curated
+  transcripts of the text printed inside each figure; `tools/figure_text.py` dumps the raw
+  PDF text layer per crop to help edit them. Each chapter's markers are resolved against its
+  own table, so a repeated figure name (`opener`, `crossword`, `toolbox`) never picks up
+  another chapter's text.
+* `tools/crop_ch1.py`, `tools/crop_ch2.py`, `tools/crop_ch3.py`, `tools/crop_ch4.py` — crop
+  boxes in PDF points (the page is 576 × 666 pt)
 * `index.html` — meta-refresh to the page (handy when serving the folder)
 
 ### Notes
 
 * The figures are book excerpts, © O'Reilly Media — study material, not for redistribution.
-  The Java listings are the book's code; the JavaScript ports and the two interactive
+  The Java listings are the book's code; the JavaScript ports and the four interactive
   simulators are written for this page.
 * The heat index demo uses the formula exactly as printed in the book; it computes in
   doubles where the book uses `float`, so one value differs in the fifth decimal
   (`86.90123` here vs `86.90124` in the book).
 * The coffee builder defaults to flat menu prices so that every total matches the book;
   the page-99 size-based pricing is a switch you can turn on.
+* The pizza kitchen reproduces the book's console strings verbatim; the California store is
+  the chapter's own design-puzzle extension (the book writes the class but never runs it),
+  and its ingredient family is the one on page 145.

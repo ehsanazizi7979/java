@@ -1,17 +1,19 @@
-"""Assemble the self-contained study page for chapters 1 and 2.
+"""Assemble the self-contained study page for chapters 1 to 4.
 
-Reads the two chapter templates from site_src/, splices chapter 2 in at the
-{{CHAPTER2}} marker of the chapter 1 shell, then replaces every figure
-placeholder with a base64 data URI:
+Reads the chapter templates from site_src/, splices chapters 2–4 in at their
+markers in the chapter 1 shell, then replaces every figure placeholder with a
+base64 data URI:
 
     {{IMG:name}}   -> assets/ch1/<name>.jpg     (chapter 1 figures)
     {{IMG2:name}}  -> assets/ch2/<name>.jpg     (chapter 2 figures)
+    {{IMG3:name}}  -> assets/ch3/<name>.jpg     (chapter 3 figures)
+    {{IMG4:name}}  -> assets/ch4/<name>.jpg     (chapter 4 figures)
     {{SAYS:name}}  -> a "what the figure says" panel built from the text that
                       is printed inside the artwork (site_src/figure-text-*.json)
 
 The result is one HTML file with no external assets, so it works offline.
 
-Usage:  python tools/crop_ch1.py && python tools/crop_ch2.py && python tools/build_page.py
+Usage:  python tools/crop_ch1.py … && python tools/build_page.py
 """
 import base64
 import html as htmllib
@@ -24,22 +26,17 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SHELL = ROOT / "site_src" / "chapter1.template.html"
 CHAPTER2 = ROOT / "site_src" / "chapter2.template.html"
 CHAPTER3 = ROOT / "site_src" / "chapter3.template.html"
-ASSETS = {"": ROOT / "assets" / "ch1", "2": ROOT / "assets" / "ch2", "3": ROOT / "assets" / "ch3"}
-TEXTS = [ROOT / "site_src" / f"figure-text-{c}.json" for c in ("ch1", "ch2", "ch3")]
+CHAPTER4 = ROOT / "site_src" / "chapter4.template.html"
+ASSETS = {"": ROOT / "assets" / "ch1", "2": ROOT / "assets" / "ch2", "3": ROOT / "assets" / "ch3", "4": ROOT / "assets" / "ch4"}
+TEXTS = [ROOT / "site_src" / f"figure-text-{c}.json" for c in ("ch1", "ch2", "ch3", "ch4")]
 OUTPUT = ROOT / "head-first-ch1-design-patterns.html"
 
-IMG = re.compile(r"\{\{IMG(2|3)?:([a-z0-9-]+)\}\}")
+IMG = re.compile(r"\{\{IMG(2|3|4)?:([a-z0-9-]+)\}\}")
 SAYS = re.compile(r"\{\{SAYS:([a-z0-9-]+)\}\}")
 MARKER = "{{CHAPTER2}}"
 
-page = SHELL.read_text(encoding="utf-8")
-for marker, path in (("{{CHAPTER2}}", CHAPTER2), ("{{CHAPTER3}}", CHAPTER3)):
-    if marker not in page:
-        sys.exit(f"chapter 1 template has no {marker} marker")
-    page = page.replace(marker, path.read_text(encoding="utf-8"))
-
 missing = set()
-used = {"": set(), "2": set(), "3": set()}
+used = {"": set(), "2": set(), "3": set(), "4": set()}
 
 
 def data_uri(chapter: str, name: str) -> str:
@@ -52,15 +49,17 @@ def data_uri(chapter: str, name: str) -> str:
     return f"data:image/jpeg;base64,{payload}"
 
 
-page = IMG.sub(lambda m: data_uri(m.group(1) or "", m.group(2)), page)
-
+# Each chapter keeps its own transcript table so that a repeated figure name
+# ("opener", "crossword", "toolbox") always resolves to that chapter's text.
+SAYS_TABLES = {p.stem.rsplit("-", 1)[-1]: json.loads(p.read_text(encoding="utf-8")) for p in TEXTS}
 says = {}
-for path in TEXTS:
-    says.update(json.loads(path.read_text(encoding="utf-8")))
+for table in SAYS_TABLES.values():
+    for key, value in table.items():
+        says.setdefault(key, value)
 
 
-def says_panel(name: str) -> str:
-    lines = says.get(name)
+def says_panel(name: str, table=None) -> str:
+    lines = (table if table is not None else says).get(name)
     if not lines:
         return ""
     items = "\n".join(f"            <li>{htmllib.escape(line)}</li>" for line in lines)
@@ -77,23 +76,49 @@ def says_panel(name: str) -> str:
     )
 
 
-page = SAYS.sub(lambda m: says_panel(m.group(1)), page)
+# splice the chapters in, resolving each chapter's SAYS markers against its own table
+def resolve_says(text: str, table: dict) -> str:
+    return SAYS.sub(lambda m: says_panel(m.group(1), table), text)
+
+
+def missing_transcripts(text: str, table: dict) -> list:
+    return sorted({n for n in SAYS.findall(text) if n not in table})
+
+
+GAPS = []
+GAPS += [f"ch1:{n}" for n in missing_transcripts(SHELL.read_text(encoding="utf-8"), SAYS_TABLES["ch1"])]
+page = resolve_says(SHELL.read_text(encoding="utf-8"), SAYS_TABLES["ch1"])
+for marker, key, path in (("{{CHAPTER2}}", "ch2", CHAPTER2),
+                          ("{{CHAPTER3}}", "ch3", CHAPTER3),
+                          ("{{CHAPTER4}}", "ch4", CHAPTER4)):
+    if marker not in page:
+        sys.exit(f"chapter 1 template has no {marker} marker")
+    chunk = path.read_text(encoding="utf-8")
+    GAPS += [f"{key}:{n}" for n in missing_transcripts(chunk, SAYS_TABLES[key])]
+    page = page.replace(marker, resolve_says(chunk, SAYS_TABLES[key]))
+
+page = IMG.sub(lambda m: data_uri(m.group(1) or "", m.group(2)), page)
 
 left = SAYS.findall(page) + IMG.findall(page)
 if left:
     sys.exit(f"unresolved placeholders: {left[:5]}")
 if missing:
-    sys.exit(f"missing crops: {', '.join(sorted(missing))} (run tools/crop_ch1.py / tools/crop_ch2.py)")
+    sys.exit(f"missing crops: {', '.join(sorted(missing))} (run tools/crop_ch1.py … tools/crop_ch4.py)")
 
 OUTPUT.write_text(page, encoding="utf-8")
 
 on_disk = {p.stem for p in (ROOT / "assets" / "ch1").glob("*.jpg")}
 on_disk2 = {p.stem for p in (ROOT / "assets" / "ch2").glob("*.jpg")}
 on_disk3 = {p.stem for p in (ROOT / "assets" / "ch3").glob("*.jpg")}
+on_disk4 = {p.stem for p in (ROOT / "assets" / "ch4").glob("*.jpg")}
 print(f"wrote {OUTPUT.relative_to(ROOT)}  ({OUTPUT.stat().st_size / 1024 / 1024:.2f} MB)")
+if GAPS:
+    print(f"WARNING: no transcript for {', '.join(GAPS)}")
 print(f"embedded {len(used[''])} chapter-1 figures, {len(used['2'])} chapter-2 figures, "
-      f"{len(used['3'])} chapter-3 figures, {len(says)} figure transcripts")
-for label, disk, use in (("ch1", on_disk, used[""]), ("ch2", on_disk2, used["2"]), ("ch3", on_disk3, used["3"])):
+      f"{len(used['3'])} chapter-3 figures, {len(used['4'])} chapter-4 figures, "
+      f"{len(says)} figure transcripts")
+for label, disk, use in (("ch1", on_disk, used[""]), ("ch2", on_disk2, used["2"]),
+                         ("ch3", on_disk3, used["3"]), ("ch4", on_disk4, used["4"])):
     unused = sorted(disk - use)
     if unused:
         print(f"unused {label} crops: {', '.join(unused)}")

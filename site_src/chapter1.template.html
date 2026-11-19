@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Head First Design Patterns · Chapters 1–3 — Strategy, Observer &amp; Decorator · Summaries, Book Figures, Code and Live Demos</title>
-<meta name="description" content="Visual summaries of chapters 1–3 of Head First Design Patterns (2nd edition): the SimUDuck story and the Strategy Pattern, then the Weather-O-Rama station and the Observer Pattern — with the book's figures (and the text inside them), the full Java code, an interactive duck simulator and a live weather station.">
+<title>Head First Design Patterns · Chapters 1–4 — Strategy, Observer, Decorator &amp; Factory Patterns · Summaries, Book Figures, Code and Live Demos</title>
+<meta name="description" content="Visual summaries of chapters 1–4 of Head First Design Patterns (2nd edition): SimUDuck and the Strategy Pattern, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, then Objectville PizzaStore and the factory patterns — with the book's figures (and the text inside them), the full Java code, and live demos of all four chapters.">
 <style>
 /* ---------------------------------------------------------------- tokens */
 :root{
@@ -456,6 +456,21 @@ input[type=range]{width:100%;accent-color:var(--purple-2);height:22px}
 .orderline code{font-size:.84rem;color:#3f3a55;background:#f7f4ff;padding:4px 8px;border-radius:8px}
 .orderline .price{margin-left:auto;font-weight:900;font-size:1.3rem;color:var(--purple)}
 
+/* ------------------------------------------------------- pizza kitchen */
+.pz-modes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.pz-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:940px){.pz-grid{grid-template-columns:1fr}}
+.pz-panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+.pz-panel h4{margin:0 0 10px;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--purple-2)}
+.pz-name{font-weight:900;font-size:1.02rem;color:var(--purple);line-height:1.35}
+.pz-sub{font-size:.82rem;color:#6d6480;margin-top:5px}
+.pz-ing{width:100%;border-collapse:collapse;margin:12px 0 0;font-size:.82rem}
+.pz-ing th{text-align:left;font-weight:700;color:#6d6480;padding:5px 10px 5px 0;white-space:nowrap;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.76rem}
+.pz-ing td{padding:5px 0;color:#3f3a55;font-weight:600}
+.pz-ing tr+tr th,.pz-ing tr+tr td{border-top:1px dashed #ece5fa}
+.pz-dep{font-size:.78rem;font-weight:700;color:#5b5470;background:#f4efff;border:1px dashed #d7cbf2;border-radius:999px;padding:6px 12px}
+.console .body .out{color:#cfe9d8}
+
 /* ------------------------------------------------------------- lightbox */
 .lightbox{
   position:fixed;inset:0;background:rgba(18,14,28,.86);display:none;place-items:center;z-index:200;padding:26px
@@ -516,7 +531,7 @@ footer.site strong{color:#4a4560}
 
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–3</a>
+    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–4</a>
     <nav class="navlinks">
       <a href="#story">SimUDuck</a>
       <a href="#principles">Principles</a>
@@ -541,6 +556,15 @@ footer.site strong{color:#4a4560}
       <a href="#d-javaio">Java I/O</a>
       <a href="#d-demo">Coffee demo</a>
       <a href="#d-cheatsheet">Ch. 3 recap</a>
+      <span class="navsep" aria-hidden="true">Ch.&nbsp;4</span>
+      <a href="#f-story">PizzaStore</a>
+      <a href="#f-simple">Simple Factory</a>
+      <a href="#f-framework">Subclasses decide</a>
+      <a href="#f-pattern">Factory Method</a>
+      <a href="#f-dip">Dependency Inversion</a>
+      <a href="#f-abstract">Abstract Factory</a>
+      <a href="#f-demo">Pizza demo</a>
+      <a href="#f-cheatsheet">Ch. 4 recap</a>
     </nav>
   </div>
 </div>
@@ -586,9 +610,7 @@ footer.site strong{color:#4a4560}
       <div>
         <figure class="pic" style="margin-bottom:20px">
           <img src="{{IMG:simuduck-computer}}" alt="A hand-drawn computer monitor showing the SimUDuck pond simulation with two ducks.">
-          <figcaption>SimUDuck: ducks swim, quack and look different on screen.</figcaption>
-        
-          {{SAYS:simuduck-computer}}
+          <figcaption>SimUDuck: ducks swim, quack and look different on screen. (The artwork has no printed text inside it.)</figcaption>
         </figure>
         <figure class="pic" style="margin:0">
           <img src="{{IMG:duck-subclasses}}" alt="UML diagram: Duck superclass with quack(), swim() and abstract display(); MallardDuck and RedheadDuck implement display().">
@@ -1300,11 +1322,13 @@ model.performFly();</pre>
 
 {{CHAPTER3}}
 
+{{CHAPTER4}}
+
 <footer class="site">
   <div class="wrap">
-    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78) and Chapter 3, “Decorating Objects” (pages 79–108).</div>
-    <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and both interactive simulators are written for this page.</div>
-    <div><strong>Built:</strong> three chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station and Starbuzz demos (no external assets, works offline).</div>
+    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168).</div>
+    <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and the four interactive simulators are written for this page.</div>
+    <div><strong>Built:</strong> four chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz and Objectville Pizza Kitchen demos (no external assets, works offline).</div>
     <a class="totop" href="#top">↑ back to top</a>
   </div>
 </footer>
