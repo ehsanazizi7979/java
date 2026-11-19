@@ -23,21 +23,23 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SHELL = ROOT / "site_src" / "chapter1.template.html"
 CHAPTER2 = ROOT / "site_src" / "chapter2.template.html"
-ASSETS = {"": ROOT / "assets" / "ch1", "2": ROOT / "assets" / "ch2"}
-TEXTS = [ROOT / "site_src" / "figure-text-ch1.json", ROOT / "site_src" / "figure-text-ch2.json"]
+CHAPTER3 = ROOT / "site_src" / "chapter3.template.html"
+ASSETS = {"": ROOT / "assets" / "ch1", "2": ROOT / "assets" / "ch2", "3": ROOT / "assets" / "ch3"}
+TEXTS = [ROOT / "site_src" / f"figure-text-{c}.json" for c in ("ch1", "ch2", "ch3")]
 OUTPUT = ROOT / "head-first-ch1-design-patterns.html"
 
-IMG = re.compile(r"\{\{IMG(2?):([a-z0-9-]+)\}\}")
+IMG = re.compile(r"\{\{IMG(2|3)?:([a-z0-9-]+)\}\}")
 SAYS = re.compile(r"\{\{SAYS:([a-z0-9-]+)\}\}")
 MARKER = "{{CHAPTER2}}"
 
 page = SHELL.read_text(encoding="utf-8")
-if MARKER not in page:
-    sys.exit("chapter 1 template has no {{CHAPTER2}} marker")
-page = page.replace(MARKER, CHAPTER2.read_text(encoding="utf-8"))
+for marker, path in (("{{CHAPTER2}}", CHAPTER2), ("{{CHAPTER3}}", CHAPTER3)):
+    if marker not in page:
+        sys.exit(f"chapter 1 template has no {marker} marker")
+    page = page.replace(marker, path.read_text(encoding="utf-8"))
 
 missing = set()
-used = {"": set(), "2": set()}
+used = {"": set(), "2": set(), "3": set()}
 
 
 def data_uri(chapter: str, name: str) -> str:
@@ -50,7 +52,7 @@ def data_uri(chapter: str, name: str) -> str:
     return f"data:image/jpeg;base64,{payload}"
 
 
-page = IMG.sub(lambda m: data_uri(m.group(1), m.group(2)), page)
+page = IMG.sub(lambda m: data_uri(m.group(1) or "", m.group(2)), page)
 
 says = {}
 for path in TEXTS:
@@ -87,10 +89,11 @@ OUTPUT.write_text(page, encoding="utf-8")
 
 on_disk = {p.stem for p in (ROOT / "assets" / "ch1").glob("*.jpg")}
 on_disk2 = {p.stem for p in (ROOT / "assets" / "ch2").glob("*.jpg")}
+on_disk3 = {p.stem for p in (ROOT / "assets" / "ch3").glob("*.jpg")}
 print(f"wrote {OUTPUT.relative_to(ROOT)}  ({OUTPUT.stat().st_size / 1024 / 1024:.2f} MB)")
 print(f"embedded {len(used[''])} chapter-1 figures, {len(used['2'])} chapter-2 figures, "
-      f"{len(says)} figure transcripts")
-for label, disk, use in (("ch1", on_disk, used[""]), ("ch2", on_disk2, used["2"])):
+      f"{len(used['3'])} chapter-3 figures, {len(says)} figure transcripts")
+for label, disk, use in (("ch1", on_disk, used[""]), ("ch2", on_disk2, used["2"]), ("ch3", on_disk3, used["3"])):
     unused = sorted(disk - use)
     if unused:
         print(f"unused {label} crops: {', '.join(unused)}")

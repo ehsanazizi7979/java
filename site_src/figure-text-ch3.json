@@ -1,0 +1,100 @@
+{
+ "opener": [
+  "“I used to think real men subclassed everything. That was until I learned the power of extension at runtime, rather than at compile time. Now look at me!”"
+ ],
+ "starbuzz-beverage": [
+  "Beverage: description, getDescription(), cost(), // Other useful methods…",
+  "HouseBlend cost(), DarkRoast cost(), Decaf cost(), Espresso cost() — “Each subclass implements cost() to return the cost of the beverage.”",
+  "“Beverage is an abstract class, subclassed by all beverages offered in the coffee shop.”",
+  "“The description instance variable is set in each subclass and holds a description of the beverage, like ‘Most Excellent Dark Roast’. The getDescription() method returns the description.”",
+  "“The cost() method is abstract; subclasses need to define their own implementation.”"
+ ],
+ "class-explosion": [
+  "The tree of subclasses: HouseBlendWithSteamedMilk andCaramel, HouseBlendWithMocha, HouseBlendWithWhip andMocha, HouseBlendWithSteamedMilk andSoy, HouseBlendWithSoy, HouseBlendWithWhip, HouseBlendWithSteamedMilk andWhip, HouseBlendWithSoyandMocha, HouseBlendWithWhipandSoy … and the same set again for DarkRoast, Decaf and Espresso.",
+  "Handwritten: “Whoa! Can you say ‘class explosion’?”",
+  "“In addition to your coffee, you can also ask for several condiments like steamed milk, soy, and mocha (otherwise known as chocolate), and have it all topped off with whipped milk. Starbuzz charges a bit for each condiment, so they really need to get them built into their order system.”",
+  "“Each cost method computes the cost of the coffee along with the other condiments in the order.”"
+ ],
+ "condiments": [
+  "Beverage: description, milk, soy, mocha, whip, getDescription(), cost(), hasMilk(), setMilk(), hasSoy(), setSoy(), hasMocha(), setMocha(), hasWhip(), setWhip(), // Other useful methods…",
+  "“New boolean values for each condiment.”",
+  "“Now we’ll implement cost() in Beverage (instead of keeping it abstract), so that it can calculate the costs associated with the condiments for a particular beverage instance. Subclasses will still override cost(), but they will also invoke the super version so that they can calculate the total cost of the basic beverage plus the costs of the added condiments.”",
+  "“These get and set the boolean values for the condiments.”"
+ ],
+ "guru3": [
+  "Guru: It has been some time since our last meeting. Have you been deep in meditation on inheritance?",
+  "Student: Yes, Guru. While inheritance is powerful, I have learned that it doesn’t always lead to the most flexible or maintainable designs.",
+  "Guru: So, tell me, my student, how then will you achieve reuse if not through inheritance? — Student: Guru, I have learned there are ways of “inheriting” behavior at runtime through composition and delegation.",
+  "Student: When I inherit behavior by subclassing, that behavior is set statically at compile time. In addition, all subclasses must inherit the same behavior. If, however, I can extend an object’s behavior through composition, then I can do this dynamically at runtime.",
+  "Student: …it is possible for me to add multiple new responsibilities to objects through this technique, including responsibilities that were not even thought of by the designer of the superclass. And I don’t have to touch their code!",
+  "Student: By dynamically composing objects, I can add new functionality by writing new code rather than altering existing code. Because I’m not changing existing code, the chances of introducing bugs or causing unintended side effects in pre-existing code are much reduced.",
+  "Guru: Remember, code should be closed (to change) like the lotus flower in the evening, yet open (to extension) like the lotus flower in the morning."
+ ],
+ "open-closed": [
+  "Design Principle: “Classes should be open for extension, but closed for modification.”",
+  "The OPEN shop: “Come on in; we’re open. Feel free to extend our classes with any new behavior you like. If your needs or requirements change (and we know they will), just go ahead and make your own extensions.”",
+  "The CLOSED shop: “Sorry, we’re closed. That’s right, we spent a lot of time getting this code correct and bug free, so we can’t let you alter the existing code. It must remain closed to modification. If you don’t like it, you can speak to the manager.”"
+ ],
+ "wrapping": [
+  "1 We start with our DarkRoast object. “Remember that DarkRoast inherits from Beverage and has a cost() method that computes the cost of the drink.”",
+  "2 The customer wants Mocha, so we create a Mocha object and wrap it around the DarkRoast. “The Mocha object is a decorator. Its type mirrors the object it is decorating—in this case, a Beverage.”",
+  "3 The customer also wants Whip, so we create a Whip decorator and wrap Mocha with it. “Whip is a decorator, so it also mirrors DarkRoast’s type and includes a cost() method.”",
+  "“So, Mocha has a cost() method too, and through polymorphism we can treat any Beverage wrapped in Mocha as a Beverage, too (because Mocha is a subtype of Beverage).”",
+  "“So, a DarkRoast wrapped in Mocha and Whip is still a Beverage and we can do anything with it we can do with a DarkRoast, including call its cost() method.”"
+ ],
+ "decorator-diagram": [
+  "Component: methodA(), methodB(), // other methods",
+  "ConcreteComponent: methodA(), methodB() — “The ConcreteComponent is the object we’re going to dynamically add new behavior to. It extends Component.”",
+  "Decorator: Component wrappedObj — “Each decorator HAS-A (wraps) a component, which means the decorator has an instance variable that holds a reference to a component.”",
+  "ConcreteDecoratorA: methodA(), methodB(), newBehavior() — ConcreteDecoratorB: methodA(), methodB(), Object newState",
+  "“Decorators implement the same interface or abstract class as the component they are going to decorate.”",
+  "“Each component can be used on its own or wrapped by a decorator.” — “Decorators can extend the state of the component.”",
+  "“Decorators can add new methods; however, new behavior is typically added by doing computation before or after an existing method in the component.”"
+ ],
+ "starbuzz-design": [
+  "Beverage: description, cost(), getDescription() — “Beverage acts as our abstract component class.”",
+  "HouseBlend, DarkRoast, Decaf, Espresso: cost() — “The four concrete components, one per coffee type.”",
+  "CondimentDecorator: Beverage beverage, getDescription() — “Here’s the reference to the Beverage that the Decorators will be wrapping.”",
+  "Milk, Mocha, Soy, Whip: cost(), getDescription() — “And here are our condiment decorators; notice they need to implement not only cost() but also getDescription().”"
+ ],
+ "menu": [
+  "Starbuzz Coffee Coffees: House Blend .89 · Dark Roast .99 · Decaf 1.05 · Espresso 1.99",
+  "Condiments: Steamed Milk .10 · Mocha .20 · Soy .15 · Whip .10"
+ ],
+ "serve-console": [
+  "% java StarbuzzCoffee",
+  "Espresso $1.99",
+  "Dark Roast Coffee, Mocha, Mocha, Whip $1.49",
+  "House Blend Coffee, Soy, Mocha, Whip $1.34"
+ ],
+ "javaio": [
+  "A text file for reading → FileInputStream → BufferedInputStream → ZipInputStream",
+  "“FileInputStream is the component that’s being decorated. The Java I/O library supplies several components, including FileInputStream, StringBufferInputStream, ByteArrayInputStream, and a few others.”",
+  "“BufferedInputStream is a concrete decorator. BufferedInputStream adds buffering behavior to a FileInputStream: it buffers input to improve performance.”",
+  "“ZipInputStream is also a concrete decorator. It adds the ability to read zip file entries as it reads data from a zip file.”"
+ ],
+ "javaio-diagram": [
+  "InputStream: “Here’s our abstract component.”",
+  "FileInputStream, StringBufferInputStream, ByteArrayInputStream: “These InputStreams act as the concrete components that we will wrap with decorators.”",
+  "FilterInputStream: “FilterInputStream is an abstract decorator.”",
+  "PushbackInputStream, BufferedInputStream, DataInputStream, InflaterInputStream, ZipInputStream: “And finally, here are all our concrete decorators.”"
+ ],
+ "inputtest": [
+  "% java InputTest",
+  "i know the decorator pattern therefore i rule!",
+  "(the file test.txt contains “I know the Decorator Pattern therefore I RULE!”)"
+ ],
+ "toolbox3": [
+  "OO Basics: Abstraction, Encapsulation, Polymorphism, Inheritance",
+  "OO Principles: Encapsulate what varies. — Favor composition over inheritance. — Program to interfaces, not implementations. — Strive for loosely coupled designs between objects that interact. — Classes should be open for extension but closed for modification.",
+  "OO Patterns: Strategy, Observer, and Decorator — Attach additional responsibilities to an object dynamically. Decorators provide a flexible alternative to subclassing for extending functionality.",
+  "Handwritten: “We now have the Open-Closed Principle to guide us. We’re going to strive to design our system so that the closed parts are isolated from our new extensions.”",
+  "Handwritten: “And here’s our first pattern for creating designs that satisfy the Open-Closed Principle. Or was it really the first? Is there another pattern we’ve used that follows this principle as well?”"
+ ],
+ "barista-chain": [
+  "“double mocha soy latte with whip” — Whip wraps Mocha wraps Mocha wraps Soy wraps HouseBlend.",
+  "1–2 First we call cost() on the outermost decorator, Whip — Whip calls cost() on Mocha. 3 Mocha calls cost() on another Mocha. 4 Next, Mocha calls cost() on Soy. 5 Last topping! Soy calls cost() on HouseBlend.",
+  "6 HouseBlend’s cost() method returns .89 and pops off the stack. 7 Soy adds .15. 8 The second Mocha adds .20. 9 The first Mocha adds .20. 10 Finally, the result returns to Whip’s cost(), which adds .10, giving us a final cost of $1.54.",
+  "The stack, layer by layer: Steam Milk (not used here) .10 · Whip .10 · Mocha .20 · Mocha .20 · Soy .15 · HouseBlend .89"
+ ]
+}

@@ -21,6 +21,7 @@ PDF_GLOB = "Head First Design Patterns*.pdf"
 SOURCES = {
     "ch1": ("tools/crop_ch1.py", 1),
     "ch2": ("tools/crop_ch2.py", 2),
+    "ch3": ("tools/crop_ch3.py", 3),
 }
 
 
