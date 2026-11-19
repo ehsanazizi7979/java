@@ -1,0 +1,177 @@
+{
+ "opener": [
+  "Chapter 5 · the Singleton Pattern",
+  "“One-of-a-Kind Objects”",
+  "“I tell ya she’s ONE OF A KIND. Look at the lines, the curves, the body, the headlights!”",
+  "“You talkin’ to me or the car? Oh, and when can I get my oven mitt back?”",
+  "“Our next stop is the Singleton Pattern, our ticket to creating one-of-a-kind objects for which there is only one instance, ever. You might be happy to know that of all patterns, the Singleton is the simplest in terms of its class diagram; in fact, the diagram holds just a single class! But don’t get too comfortable; despite its simplicity from a class design perspective, it’s going to require some deep object-oriented thinking in its implementation. So put on that thinking cap, and let’s get going.”"
+ ],
+ "guru5": [
+  "Developer’s thought bubble: “What is this? An entire chapter about how to instantiate just ONE object?”",
+  "Guru’s thought bubble: “That’s one and ONLY ONE object.”",
+  "Developer: What use is that?",
+  "Guru: There are many objects we only need one of: thread pools, caches, dialog boxes, objects that handle preferences and registry settings, objects used for logging, and objects that act as device drivers to devices like printers and graphics cards. In fact, for many of these types of objects, if we were to instantiate more than one we’d run into all sorts of problems like incorrect program behavior, overuse of resources, or inconsistent results.",
+  "Developer: Okay, so maybe there are classes that should only be instantiated once, but do I need a whole chapter for this? Can’t I just do this by convention or by global variables? You know, like in Java, I could do it with a static variable.",
+  "Guru: In many ways, the Singleton Pattern is a convention for ensuring one and only one object is instantiated for a given class. If you’ve got a better one, the world would like to hear about it; but remember, like all patterns, the Singleton Pattern is a time-tested method for ensuring only one object gets created. The Singleton Pattern also gives us a global point of access, just like a global variable, but without the downsides.",
+  "Developer: What downsides?",
+  "Guru: Well, here’s one example: if you assign an object to a global variable, then that object might be created when your application begins. Right? What if this object is resource intensive and your application never ends up using it? As you will see, with the Singleton Pattern, we can create our objects only when they are needed.",
+  "Developer: This still doesn’t seem like it should be so difficult.",
+  "Guru: If you’ve got a good handle on static class variables and methods as well as access modifiers, it’s not. But, in either case, it is interesting to see how a Singleton works, and, as simple as it sounds, Singleton code is hard to get right. Just ask yourself: how do I prevent more than one object from being instantiated? It’s not so obvious, is it?"
+ ],
+ "little-singleton-1": [
+  "“The Little Singleton — A small Socratic exercise in the style of The Little Lisper”",
+  "Q: How would you create a single object? — A: new MyObject();",
+  "Q: And, what if another object wanted to create a MyObject? Could it call new on MyObject again? — A: Yes, of course.",
+  "Q: So as long as we have a class, can we always instantiate it one or more times? — A: Yes. Well, only if it’s a public class.",
+  "Q: And if not? — A: Well, if it’s not a public class, only classes in the same package can instantiate it. But they can still instantiate it more than once.",
+  "Q: Hmm, interesting. Did you know you could do this?  public MyClass { private MyClass() {} }",
+  "Q: What does it mean? — A: I suppose it is a class that can’t be instantiated because it has a private constructor.",
+  "Q: Well, is there ANY object that could use the private constructor? — A: Hmm, I think the code in MyClass is the only code that could call it. But that doesn’t make much sense."
+ ],
+ "little-singleton-2": [
+  "Q: Why not? — A: Because I’d have to have an instance of the class to call it, but I can’t have an instance because no other class can instantiate it. It’s a chicken-and-egg problem: I can use the constructor from an object of type MyClass, but I can never instantiate that object because no other object can use “new MyClass()”.",
+  "Q: Okay. It was just a thought. What does this mean?  public MyClass { public static MyClass getInstance() { } }",
+  "A: MyClass is a class with a static method. We can call the static method like this: MyClass.getInstance();",
+  "Q: Why did you use MyClass instead of some object name? — A: Well, getInstance() is a static method; in other words, it is a CLASS method. You need to use the class name to reference a static method.",
+  "Q: Very interesting. What if we put things together?  public MyClass { private MyClass() {} public static MyClass getInstance() { return new MyClass(); } }",
+  "Q: Now can I instantiate a MyClass? — A: Wow, you sure can.",
+  "Q: So, now can you think of a second way to instantiate an object? — A: MyClass.getInstance();",
+  "Q: Can you finish the code so that only ONE instance of MyClass is ever created? — A: Yes, I think so… (You’ll find the code on the next page.)"
+ ],
+ "classic-singleton": [
+  "“Dissecting the classic Singleton Pattern implementation”",
+  "Code: public class Singleton { private static Singleton uniqueInstance; // other useful instance variables here private Singleton() {} public static Singleton getInstance() { if (uniqueInstance == null) { uniqueInstance = new Singleton(); } return uniqueInstance; } // other useful methods here }",
+  "“Let’s rename MyClass to Singleton.”",
+  "“We have a static variable to hold our one instance of the class Singleton.”",
+  "“Our constructor is declared private; only Singleton can instantiate this class!”",
+  "“The getInstance() method gives us a way to instantiate the class and also to return an instance of it.”",
+  "“Of course, Singleton is a normal class; it has other useful instance variables and methods.”",
+  "Code Up Close: “uniqueInstance holds our ONE instance; remember, it is a static variable.” / “If uniqueInstance is null, then we haven’t created the instance yet… and, if it doesn’t exist, we instantiate Singleton through its private constructor and assign it to uniqueInstance. Note that if we never need the instance, it never gets created; this is lazy instantiation.” / “By the time we hit this code, we have an instance and we return it. If uniqueInstance wasn’t null, then it was previously created. We just fall through to the return statement.”",
+  "“If you’re just flipping through the book, don’t blindly type in this code; you’ll see it has a few issues later in the chapter.”"
+ ],
+ "interview": [
+  "Patterns Exposed — this week’s interview: “Confessions of a Singleton”.",
+  "HeadFirst: Today we are pleased to bring you an interview with a Singleton object. Why don’t you begin by telling us a bit about yourself? — Singleton: Well, I’m totally unique; there is just one of me!",
+  "HeadFirst: One? — Singleton: Yes, one. I’m based on the Singleton Pattern, which ensures that at any time there is only one instance of me.",
+  "HeadFirst: Isn’t that sort of a waste? Someone took the time to develop a full-blown class and now all we can get is one object out of it? — Singleton: Not at all! There is power in ONE. Let’s say you have an object that contains registry settings. You don’t want multiple copies of that object and its values running around—that would lead to chaos. By using an object like me you can ensure that every object in your application is making use of the same global resource.",
+  "HeadFirst: Tell us more… — Singleton: Oh, I’m good for all kinds of things. Being single sometimes has its advantages, you know. I’m often used to manage pools of resources, like connection or thread pools.",
+  "HeadFirst: Still, only one of your kind? That sounds lonely. — Singleton: Because there’s only one of me, I do keep busy, but it would be nice if more developers knew me—many developers run into bugs because they have multiple copies of objects floating around they’re not even aware of.",
+  "HeadFirst: So, if we may ask, how do you know there is only one of you? Can’t anyone with a new operator create a “new you”? — Singleton: Nope! I’m truly unique.",
+  "HeadFirst: Well, do developers swear an oath not to instantiate you more than once? — Singleton: Of course not. The truth be told…well, this is getting kind of personal but…I have no public constructor.",
+  "HeadFirst: NO PUBLIC CONSTRUCTOR! Oh, sorry, no public constructor? — Singleton: That’s right. My constructor is declared private.",
+  "HeadFirst: How does that work? How do you EVER get instantiated? — Singleton: You see, to get a hold of a Singleton object, you don’t instantiate one, you just ask for an instance. So my class has a static method called getInstance(). Call that, and I’ll show up at once, ready to work. In fact, I may already be helping other objects when you request me.",
+  "HeadFirst: Well, Mr. Singleton, there seems to be a lot under your covers to make all this work. Thanks for revealing yourself and we hope to speak with you again soon!"
+ ],
+ "chocolate-boiler": [
+  "“The Chocolate Factory”",
+  "“Everyone knows that all modern chocolate factories have computer-controlled chocolate boilers. The job of the boiler is to take in chocolate and milk, bring them to a boil, and then pass them on to the next phase of making chocolate bars.”",
+  "“Here’s the controller class for Choc-O-Holic, Inc.’s industrial strength Chocolate Boiler. Check out the code; you’ll notice they’ve tried to be very careful to ensure that bad things don’t happen, like draining 500 gallons of unboiled mixture, or filling the boiler when it’s already full, or boiling an empty boiler!”",
+  "Code: public class ChocolateBoiler { private boolean empty; private boolean boiled; public ChocolateBoiler() { empty = true; boiled = false; } public void fill() { if (isEmpty()) { empty = false; boiled = false; // fill the boiler with a milk/chocolate mixture } } public void drain() { if (!isEmpty() && isBoiled()) { // drain the boiled milk and chocolate empty = true; } } public void boil() { if (!isEmpty() && !isBoiled()) { // bring the contents to a boil boiled = true; } } public boolean isEmpty() { return empty; } public boolean isBoiled() { return boiled; } }",
+  "“This code is only started when the boiler is empty!”",
+  "“To fill the boiler it must be empty, and, once it’s full, we set the empty and boiled flags.”",
+  "“To drain the boiler, it must be full (non-empty) and also boiled. Once it is drained, we set empty back to true.”",
+  "“To boil the mixture, the boiler has to be full and not already boiled. Once it’s boiled, we set the boiled flag to true.”"
+ ],
+ "boiler-exercise": [
+  "BRAIN POWER: “Choc-O-Holic has done a decent job of ensuring bad things don’t happen, don’t you think? Then again, you probably suspect that if two ChocolateBoiler instances get loose, some very bad things can happen.”",
+  "“How might things go wrong if more than one instance of ChocolateBoiler is created in an application?”",
+  "Sharpen your pencil: “Can you help Choc-O-Holic improve their ChocolateBoiler class by turning it into a Singleton?”",
+  "Stub given: public class ChocolateBoiler { private boolean empty; private boolean boiled; ____ ChocolateBoiler() { empty = true; boiled = false; } … public void fill() { if (isEmpty()) { empty = false; boiled = false; // fill the boiler with a milk/chocolate mixture } } // rest of ChocolateBoiler code… }"
+ ],
+ "singleton-defined": [
+  "“The Singleton Pattern ensures a class has only one instance, and provides a global point of access to it.”",
+  "“Now that you’ve got the classic implementation of Singleton in your head, it’s time to sit back, enjoy a bar of chocolate, and check out the finer points of the Singleton Pattern.”",
+  "“What’s really going on here? We’re taking a class and letting it manage a single instance of itself. We’re also preventing any other class from creating a new instance on its own. To get an instance, you’ve got to go through the class itself.”",
+  "“We’re also providing a global access point to the instance: whenever you need an instance, just query the class and it will hand you back the single instance. As you’ve seen, we can implement this so that the Singleton is created in a lazy manner, which is especially important for resource-intensive objects.”",
+  "Class diagram: Singleton — static uniqueInstance, // Other useful Singleton data…, static getInstance(), // Other useful Singleton methods…",
+  "“The getInstance() method is static, which means it’s a class method, so you can conveniently access this method from anywhere in your code using Singleton.getInstance(). That’s just as easy as accessing a global variable, but we get benefits like lazy instantiation from the Singleton.”",
+  "“The uniqueInstance class variable holds our one and only instance of Singleton.”",
+  "“A class implementing the Singleton Pattern is more than a Singleton; it is a general-purpose class with its own set of data and methods.”"
+ ],
+ "threads-problem": [
+  "“Houston, we have a problem…” — “Hershey, PA”",
+  "“It looks like the Chocolate Boiler has let us down; despite the fact we improved the code using the classic Singleton Pattern, somehow the Chocolate Boiler’s fill() method was able to start filling the boiler even though a batch of milk and chocolate was already boiling! That’s 500 gallons of spilled milk (and chocolate)! What happened!?”",
+  "“We don’t know what happened! The new Singleton code was running fine. The only thing we can think of is that we just added some optimizations to the Chocolate Boiler Controller that makes use of multiple threads.”",
+  "“Could the addition of threads have caused this? Isn’t it the case that once we’ve set the uniqueInstance variable to the sole instance of ChocolateBoiler, all calls to getInstance() should return the same instance? Right?”",
+  "The boiler is stamped “CAUTION! MAY CONTAIN 500 GALLONS OF BOILING CHOCOLATE!”"
+ ],
+ "be-the-jvm": [
+  "“BE the JVM”",
+  "“We have two threads, each executing this code. Your job is to play the JVM and determine whether there is a case in which two threads might get a hold of different boiler objects. Hint: you really just need to look at the sequence of operations in the getInstance() method and the value of uniqueInstance to see how they might overlap. Use the code magnets to help you study how the code might interleave to create two boiler objects.”",
+  "Code magnets: ChocolateBoiler boiler = ChocolateBoiler.getInstance(); boiler.fill(); boiler.boil(); boiler.drain();  public static ChocolateBoiler getInstance() {  if (uniqueInstance == null) {  uniqueInstance = new ChocolateBoiler();  return uniqueInstance; }",
+  "Table headings: Thread One | Thread Two | Value of uniqueInstance",
+  "“Make sure you check your answer on page 188 before continuing!”"
+ ],
+ "synchronized": [
+  "“Dealing with multithreading — Our multithreading woes are almost trivially fixed by making getInstance() a synchronized method:”",
+  "Code: public class Singleton { private static Singleton uniqueInstance; // other useful instance variables here private Singleton() {} public static synchronized Singleton getInstance() { if (uniqueInstance == null) { uniqueInstance = new Singleton(); } return uniqueInstance; } // other useful methods here }",
+  "“By adding the synchronized keyword to getInstance(), we force every thread to wait its turn before it can enter the method. That is, no two threads may enter the method at the same time.”",
+  "Thought bubble: “I agree this fixes the problem. But synchronization is expensive; is this an issue?”",
+  "“Good point, and it’s actually a little worse than you make out: the only time synchronization is relevant is the first time through this method. In other words, once we’ve set the uniqueInstance variable to an instance of Singleton, we have no further need to synchronize this method. After the first time through, synchronization is totally unneeded overhead!”"
+ ],
+ "eager": [
+  "“Can we improve multithreading? For most Java applications, we obviously need to ensure that the Singleton works in the presence of multiple threads. But it’s expensive to synchronize the getInstance() method, so what do we do? Well, we have a few options…”",
+  "“1. Do nothing if the performance of getInstance() isn’t critical to your application. That’s right; if calling the getInstance() method isn’t causing substantial overhead for your application, forget about it. Synchronizing getInstance() is straightforward and effective. Just keep in mind that synchronizing a method can decrease performance by a factor of 100, so if a high-traffic part of your code begins using getInstance(), you may have to reconsider.”",
+  "“2. Move to an eagerly created instance rather than a lazily created one. If your application always creates and uses an instance of the Singleton, or the overhead of creation and runtime aspects of the Singleton isn’t onerous, you may want to create your Singleton eagerly, like this:”",
+  "Code: public class Singleton { private static Singleton uniqueInstance = new Singleton(); private Singleton() {} public static Singleton getInstance() { return uniqueInstance; } }",
+  "“Go ahead and create an instance of Singleton in a static initializer. This code is guaranteed to be thread safe!” / “We’ve already got an instance, so just return it.”",
+  "“Using this approach, we rely on the JVM to create the unique instance of the Singleton when the class is loaded. The JVM guarantees that the instance will be created before any thread accesses the static uniqueInstance variable.”"
+ ],
+ "double-checked": [
+  "“3. Use ‘double-checked locking’ to reduce the use of synchronization in getInstance().”",
+  "“With double-checked locking, we first check to see if an instance is created, and if not, THEN we synchronize. This way, we only synchronize the first time through, just what we want. Let’s check out the code:”",
+  "Code: public class Singleton { private volatile static Singleton uniqueInstance; private Singleton() {} public static Singleton getInstance() { if (uniqueInstance == null) { synchronized (Singleton.class) { if (uniqueInstance == null) { uniqueInstance = new Singleton(); } } } return uniqueInstance; } }",
+  "“Check for an instance and if there isn’t one, enter a synchronized block.”",
+  "“Once in the block, check again and if it’s still null, create an instance.”",
+  "“Note we only synchronize the first time through!”",
+  "“The volatile keyword ensures that multiple threads handle the uniqueInstance variable correctly when it is being initialized to the Singleton instance.”",
+  "“If performance is an issue in your use of the getInstance() method, then this method of implementing the Singleton can drastically reduce the overhead.”",
+  "Watch it!: “Double-checked locking doesn’t work in Java 1.4 or earlier! If for some reason you’re using an old version of Java, unfortunately, in Java version 1.4 and earlier, many JVMs contain implementations of the volatile keyword that allow improper synchronization for double-checked locking. If you must use a JVM earlier than Java 5, consider other methods of implementing your Singleton.”"
+ ],
+ "back-at-factory": [
+  "“Meanwhile, back at the Chocolate Factory… While we’ve been off diagnosing the multithreading problems, the chocolate boiler has been cleaned up and is ready to go. But first, we have to fix the multithreading problems. We have a few solutions at hand, each with different tradeoffs, so which solution are we going to employ?”",
+  "Sharpen your pencil: “For each solution, describe its applicability to the problem of fixing the Chocolate Boiler code:” — Synchronize the getInstance() method: / Use eager instantiation: / Double-checked locking:",
+  "“Congratulations! At this point, the Chocolate Factory is a happy customer and Choc-O-Holic was glad to have some expertise applied to their boiler code. No matter which multithreading solution you applied, the boiler should be in good shape with no more mishaps. Congratulations—not only have you managed to escape 500 lbs of hot chocolate in this chapter, but you’ve also been through all the potential problems of the Singleton Pattern.”"
+ ],
+ "jvm-solution": [
+  "“BE the JVM Solution”",
+  "Table: Thread One | Thread Two | Value of uniqueInstance — public static ChocolateBoiler getInstance() { if (uniqueInstance == null) { uniqueInstance = new ChocolateBoiler(); return uniqueInstance; }",
+  "Values down the table: null · null · null · <object1> · <object1> · <object2> · <object2>",
+  "“Uh oh, this doesn’t look good!”",
+  "“Two different objects are returned! We have two ChocolateBoiler instances!!!”"
+ ],
+ "chocolate-singleton": [
+  "Sharpen your pencil Solution — “Can you help Choc-O-Holic improve their ChocolateBoiler class by turning it into a Singleton?”",
+  "Code: public class ChocolateBoiler { private boolean empty; private boolean boiled; private static ChocolateBoiler uniqueInstance; private ChocolateBoiler() { empty = true; boiled = false; } public static ChocolateBoiler getInstance() { if (uniqueInstance == null) { uniqueInstance = new ChocolateBoiler(); } return uniqueInstance; } public void fill() { if (isEmpty()) { empty = false; boiled = false; // fill the boiler with a milk/chocolate mixture } } // rest of ChocolateBoiler code… }"
+ ],
+ "enum": [
+  "“I just realized…I think we can solve a lot of the problems with Singleton by using an enum. Is that right?” — “Ah, good idea!”",
+  "“Many of the problems we’ve discussed—worrying about synchronization, class loading issues, reflection, and serialization/deserialization issues—can all be solved by using an enum to create your Singleton. Here’s how you’d do that:”",
+  "Code: public enum Singleton { UNIQUE_INSTANCE; // more useful fields here }  public class SingletonClient { public static void main(String[] args) { Singleton singleton = Singleton.UNIQUE_INSTANCE; // use the singleton here } }",
+  "“Yep, that’s all there is to it. Simplest Singleton ever, right? Now, you might be asking, why did we go through all that earlier with creating a Singleton class with a getInstance() method and then synchronizing, and so on? We did that so you really, truly understand how Singleton works. Now that you know, you can go off and use enum whenever you need a Singleton, and still be able to ace that Java interview if the question pops up: ‘How do you implement a Singleton without using enum?’”",
+  "“And back in the old days, when we had to walk to school, uphill, in the snow, in both directions, Java didn’t have enums.”",
+  "BRAIN POWER: “Can you rework Choc-O-Holic to use an enum? Give it a try.”"
+ ],
+ "toolbox5": [
+  "“Tools for your Design Toolbox — You’ve now added another pattern to your toolbox. Singleton gives you another method of creating objects—in this case, unique objects.”",
+  "“As you’ve seen, despite its apparent simplicity, there are a lot of details involved in Singleton’s implementation. After reading this chapter, though, you’re ready to go out and use Singleton in the wild.”",
+  "OO Basics: Abstraction · Encapsulation · Polymorphism · Inheritance.",
+  "OO Principles: Encapsulate what varies. · Favor composition over inheritance. · Program to interfaces, not implementations. · Strive for loosely coupled designs between objects that interact. · Classes should be open for extension but closed for modification. · Depend on abstractions. Do not depend on concrete classes.",
+  "OO Patterns: Strategy · Observer · Decorator · Abstract Factory · Factory Method · Singleton — “Ensure a class only has one instance and provide a global point of access to it.”",
+  "“When you need to ensure you only have one instance of a class running around your application, turn to the Singleton.”",
+  "BULLET POINTS: The Singleton Pattern ensures you have at most one instance of a class in your application. · The Singleton Pattern also provides a global access point to that instance. · Java’s implementation of the Singleton Pattern makes use of a private constructor, a static method combined with a static variable. · Examine your performance and resource constraints and carefully choose an appropriate Singleton implementation for multithreaded applications (and we should consider all applications multithreaded!). · Beware of the double-checked locking implementation; it isn’t thread safe in versions before Java 5. · Be careful if you are using multiple class loaders; this could defeat the Singleton implementation and result in multiple instances. · You can use Java’s enums to simplify your Singleton implementation."
+ ],
+ "crossword5": [
+  "“Design Patterns Crossword — Sit back, open that case of chocolate that you were sent for solving the multithreading problem, and have some downtime working on this little crossword puzzle; all of the solution words are from this chapter.”",
+  "ACROSS — 3. Company that produces boilers. 6. An incorrect implementation caused this to overflow. 7. The Singleton Pattern has one. 10. To totally defeat the new constructor, we have to declare the constructor __________. 12. The classic implementation doesn’t handle this. 13. Singleton provides a single instance and __________ (three words). 14. An easy way to create Singletons in Java. 15. The Singleton was embarrassed it had no public __________. 16. A Singleton is a class that manages an instance of ________.",
+  "DOWN — 1. Added to chocolate in the boiler. 2. Flawed multithreading approach if not using Java 5 or later (two words). 3. It was “one of a kind.” 4. Multiple __________ can cause problems (two words). 5. If you don’t need to worry about lazy instantiation, you can create your instance __________. 8. One advantage over global variables: ________ creation. 9. Chocolate capital of the USA. 11. Singleton ensures only one of these exists."
+ ],
+ "crossword-solution5": [
+  "Sharpen your pencil Solution — “For each solution, describe its applicability to the problem of fixing the Chocolate Boiler code:”",
+  "Synchronize the getInstance() method: “A straightforward technique that is guaranteed to work. We don’t seem to have any performance concerns with the chocolate boiler, so this would be a good choice.”",
+  "Use eager instantiation: “We are always going to instantiate the chocolate boiler in our code, so statically initializing the instance would cause no concerns. This solution would work as well as the synchronized method, although perhaps be less obvious to a developer familiar with the standard pattern.”",
+  "Double-checked locking: “Given we have no performance concerns, double-checked locking seems like overkill. In addition, we’d have to ensure that we are running at least Java 5.”",
+  "ACROSS — 3 CHOC-O-HOLIC · 6 BOILER · 7 CLASS · 10 PRIVATE · 12 MULTITHREADING · 13 GLOBAL ACCESS POINT · 14 ENUM · 15 CONSTRUCTOR · 16 ITSELF",
+  "DOWN — 1 MILK · 2 DOUBLE CHECKED · 3 CAR · 4 CLASS LOADERS · 5 STATICALLY · 8 LAZY · 9 HERSHEY · 11 INSTANCE"
+ ]
+}

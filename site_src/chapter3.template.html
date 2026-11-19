@@ -1,0 +1,871 @@
+<!-- ==================================================== CHAPTER 3 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 3</b> the Decorator Pattern</div>
+  <h2>Decorating <span style="color:var(--purple)">Objects</span></h2>
+  <p>Inheritance sets behavior at compile time, and it hands every subclass the same behavior whether it wants it or not. Decorator replaces that with wrapping: you take an object, put another object around it, and get new behavior at runtime — without touching the class of the thing you wrapped.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Starbuzz Coffee</span>
+    <span class="chip">1 new principle</span>
+    <span class="chip">1 pattern</span>
+    <span class="chip">13 Java files</span>
+    <span class="chip">1 live coffee builder</span>
+  </div>
+</div>
+
+<!-- ========================================================== 3. STORY -->
+<section id="d-story">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>the starbuzz story</span></div>
+    <h2>Coffee, condiments, and a class explosion</h2>
+    <p class="sub">Starbuzz Coffee is the fastest-growing coffee chain around — so fast that their ordering system is already out of date. They started with four drinks and a clean little hierarchy. Then the condiments arrived.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <div>
+        <figure class="pic" style="margin:0">
+          <img src="{{IMG3:opener}}" alt="A 1950s man holding a coffee cup, with a thought bubble about extension at runtime instead of compile time.">
+          <figcaption>“Design Eye for the Inheritance Guy”: give an object new responsibilities at runtime instead of subclassing everything.</figcaption>
+          {{SAYS:opener}}
+        </figure>
+      </div>
+      <div>
+        <figure class="pic" style="margin-top:0">
+          <img src="{{IMG3:starbuzz-beverage}}" alt="The original Starbuzz design: an abstract Beverage class with cost() and getDescription(), subclassed by HouseBlend, DarkRoast, Decaf and Espresso.">
+          <figcaption>The original design. <code>Beverage</code> is abstract; each drink sets its <code>description</code> and returns its own price from <code>cost()</code>.</figcaption>
+          {{SAYS:starbuzz-beverage}}
+        </figure>
+      </div>
+    </div>
+
+    <div class="code" style="margin-top:26px">
+      <header><span class="fname">Beverage.java · Espresso.java</span><span class="tagline">the design before condiments</span></header>
+<pre><span class="kw">public abstract class</span> <span class="type">Beverage</span> {
+    <span class="type">String</span> description = <span class="str">"Unknown Beverage"</span>;
+
+    <span class="kw">public</span> <span class="type">String</span> <span class="fn">getDescription</span>() { <span class="kw">return</span> description; }
+
+    <span class="kw">public abstract double</span> <span class="fn">cost</span>();
+}
+
+<span class="kw">public class</span> <span class="type">Espresso</span> <span class="kw">extends</span> <span class="type">Beverage</span> {
+    <span class="kw">public</span> <span class="fn">Espresso</span>() { description = <span class="str">"Espresso"</span>; }
+    <span class="kw">public double</span> <span class="fn">cost</span>() { <span class="kw">return</span> <span class="num">1.99</span>; }
+}</pre>
+    </div>
+
+    <h3 style="margin-top:34px">Then customers asked for milk, soy, mocha and whip</h3>
+    <p class="sub">Starbuzz charges for each condiment, so every combination has to be priced. Their first instinct is the one every inheritance-trained designer has: make a subclass for every drink × condiment combination.</p>
+
+    <figure class="pic">
+      <img src="{{IMG3:class-explosion}}" alt="A huge tree of subclasses such as HouseBlendWithSteamedMilkAndMocha and DarkRoastWithWhipAndSoy, with a man asking can you say class explosion.">
+      <figcaption>Four drinks × every combination of four condiments. Add caramel and the tree doubles again — before you have written a line of logic.</figcaption>
+      {{SAYS:class-explosion}}
+    </figure>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">Attempt two: the boolean flags</h3>
+        <p>“Can’t we just use instance variables and inheritance in the superclass to keep track of the condiments?” So <code>Beverage</code> grows four booleans, four <code>has…()</code> getters, four <code>set…()</code> setters, and a <code>cost()</code> that adds up whatever is switched on. Subclasses call <code>super.cost()</code> and add their own price.</p>
+        <div class="code">
+          <header><span class="fname">Beverage.java</span><span class="tagline">attempt two</span></header>
+<pre><span class="kw">public double</span> <span class="fn">cost</span>() {
+    <span class="kw">double</span> condimentCost = <span class="num">0.0</span>;
+    <span class="kw">if</span> (<span class="fn">hasMilk</span>())  { condimentCost += milkCost; }
+    <span class="kw">if</span> (<span class="fn">hasSoy</span>())   { condimentCost += soyCost; }
+    <span class="kw">if</span> (<span class="fn">hasMocha</span>()) { condimentCost += mochaCost; }
+    <span class="kw">if</span> (<span class="fn">hasWhip</span>())  { condimentCost += whipCost; }
+    <span class="kw">return</span> condimentCost;
+}</pre>
+        </div>
+      </div>
+      <div>
+        <figure class="pic" style="margin-top:0">
+          <img src="{{IMG3:condiments}}" alt="Beverage class with milk, soy, mocha and whip booleans, their has and set methods, and handwritten notes about implementing cost in the superclass.">
+          <figcaption>Four booleans, eight accessors, and a <code>cost()</code> that knows about every topping in the shop.</figcaption>
+          {{SAYS:condiments}}
+        </figure>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">What breaks first (book page 84)</h3>
+    <div class="grid2" style="margin-top:14px">
+      <ul class="bullets" style="margin-top:0">
+        <li><strong>Price changes</strong> for condiments force us to alter existing code.</li>
+        <li><strong>New condiments</strong> force us to add new methods and alter <code>cost()</code> in the superclass.</li>
+        <li><strong>New beverages</strong> inherit things that don’t apply: iced tea gets <code>hasWhip()</code> whether it likes it or not.</li>
+        <li><strong>Double mocha?</strong> A single <code>boolean mocha</code> can’t count to two.</li>
+      </ul>
+      <div class="note warn" style="margin-top:0">
+        <strong>Two principles violated, in a big way.</strong> The superclass is modified every time a condiment changes (nothing is closed for modification), and we cannot extend the menu with a new topping without editing existing code (nothing is open for extension). It is Chapter 1’s lesson again: behavior is being decided by the class, not by the object.
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG3:guru3}}" alt="Guru and Student: inheritance sets behavior at compile time, composition and delegation set it at runtime.">
+        <figcaption>The guru, back from Chapter 1: subclassing bakes behavior in at compile time; composition lets you add responsibilities to an object at runtime — including ones the original designer never imagined.</figcaption>
+        {{SAYS:guru3}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">The idea in one sentence</h3>
+        <p>Instead of asking “which subclass is this drink?”, ask “what is wrapped around this drink?”. A <code>Mocha</code> object that also <em>is</em> a <code>Beverage</code> can stand in for the drink it wraps, add 20¢ to its <code>cost()</code>, and append “, Mocha” to its description — and you can stack as many as the customer orders.</p>
+        <div class="note">
+          <strong>The catch, stated up front:</strong> the decorator has the same type as the thing it decorates, and it <em>holds</em> one. So there is still inheritance in the design — used for <em>type matching</em>, not for behavior. Behavior comes from composition.
+        </div>
+        <p style="font-size:.93rem;color:var(--ink-soft)">That is the whole trick: type comes from inheritance, behavior comes from composition and delegation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== 4. OPEN–CLOSED -->
+<section id="d-openclosed">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>the principle behind the pattern</span></div>
+    <h2>The Open-Closed Principle</h2>
+    <div class="principle">
+      <span class="yy">☯</span>
+      <div><b>Design Principle · the fifth one</b><p>Classes should be open for extension, but closed for modification.</p></div>
+    </div>
+    <p class="sub">Our goal is to allow classes to be easily extended to incorporate new behavior without modifying existing code. Get that right and you get designs that are resilient to change and flexible enough to take on new functionality — which is exactly the thing that coffee shops, weather stations and every other client keep asking for.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG3:open-closed}}" alt="The Design Principle box, plus two shop signs: an OPEN welcome sign for extension and a CLOSED sign for modification.">
+        <figcaption>Same building, two signs: open to anyone who wants to extend it, closed to anyone who wants to rewrite it.</figcaption>
+        {{SAYS:open-closed}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">Dumb questions (book page 87)</h3>
+        <p><strong>“Open for extension and closed for modification? That sounds contradictory.”</strong> It does — but OO gives us techniques for extending a system without editing the underlying code. Chapter 2 was already an example: you extend a Subject by adding Observers, and the Subject never changes.</p>
+        <p><strong>“How do I design something to be extensible yet closed?”</strong> That is what patterns are for. Most patterns supply a means of extension that keeps the core code untouched — this chapter’s Decorator is the clearest example.</p>
+        <p><strong>“Can I make every part of my design follow it?”</strong> Usually not, and you shouldn’t try. Following the principle adds abstraction, and abstraction adds complexity. Apply it where change is likely, not everywhere.</p>
+        <div class="note ok">
+          <strong>How you will use it:</strong> pick the area that varies (here: condiments and their prices), put a stable interface around it, and extend by adding new classes instead of editing old ones.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 5. THE PATTERN -->
+<section id="d-pattern">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>meet the pattern</span></div>
+    <h2>Wrap the drink, don’t subclass it</h2>
+    <p class="sub">Decorating means exactly what it sounds like: start with a beverage, then wrap it in condiment objects, one layer at a time, at runtime.</p>
+
+    <ol class="checklist" style="margin-top:22px">
+      <li><span class="n">1</span><div>Start with a <code>DarkRoast</code> object.</div></li>
+      <li><span class="n">2</span><div>Decorate it with a <code>Mocha</code> object.</div></li>
+      <li><span class="n">3</span><div>Decorate it with a <code>Whip</code> object.</div></li>
+      <li><span class="n">4</span><div>Call the <code>cost()</code> method and rely on delegation to add up the condiment costs.</div></li>
+    </ol>
+
+    <figure class="pic" style="margin-top:28px">
+      <img src="{{IMG3:wrapping}}" alt="Three steps: a DarkRoast object, then Mocha wrapping DarkRoast, then Whip wrapping Mocha, with notes explaining that each decorator mirrors the type it wraps.">
+      <figcaption>Each layer is a <code>Beverage</code> that holds a <code>Beverage</code>. The customer ends up holding the Whip; the Whip holds the Mocha; the Mocha holds the DarkRoast.</figcaption>
+      {{SAYS:wrapping}}
+    </figure>
+
+    <div class="grid2" style="margin-top:30px">
+      <div>
+        <h3 style="margin-top:0">What the book tells us about decorators</h3>
+        <ul class="bullets">
+          <li>Decorators have the <strong>same supertype</strong> as the objects they decorate.</li>
+          <li>You can use <strong>one or more decorators</strong> to wrap an object.</li>
+          <li>Because the types match, you can <strong>pass a decorated object in place of the original</strong>.</li>
+          <li>The decorator adds its own behavior <strong>before and/or after</strong> delegating to the object it decorates.</li>
+          <li>Objects can be decorated <strong>at any time</strong> — as many decorators as you like, at runtime.</li>
+        </ul>
+        <div class="principle">
+          <span class="yy">🎁</span>
+          <div><b>The Decorator Pattern</b><p>The Decorator Pattern attaches additional responsibilities to an object dynamically. Decorators provide a flexible alternative to subclassing for extending functionality.</p></div>
+        </div>
+      </div>
+      <div>
+        <figure class="pic" style="margin-top:0">
+          <img src="{{IMG3:decorator-diagram}}" alt="The Decorator Pattern class diagram: Component, ConcreteComponent, Decorator holding a Component, and two concrete decorators.">
+          <figcaption>The general shape: <code>Decorator</code> HAS-A <code>Component</code> and IS-A <code>Component</code>. That double relationship is the pattern.</figcaption>
+          {{SAYS:decorator-diagram}}
+        </figure>
+      </div>
+    </div>
+
+    <h3 style="margin-top:36px">The same diagram, applied to coffee</h3>
+    <figure class="pic">
+      <img src="{{IMG3:starbuzz-design}}" alt="Starbuzz class diagram: Beverage, four concrete drinks, CondimentDecorator holding a Beverage, and Milk, Mocha, Soy and Whip decorators.">
+      <figcaption><code>Beverage</code> is the component, the four drinks are concrete components, <code>CondimentDecorator</code> is the abstract decorator, and Milk, Mocha, Soy and Whip are concrete decorators.</figcaption>
+      {{SAYS:starbuzz-design}}
+    </figure>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note">
+        <strong>Cubicle conversation (page 93):</strong> “I thought we weren’t going to use inheritance?” — We use inheritance <em>only</em> to get the right type, so a <code>Mocha</code> can stand in for a <code>Beverage</code>. The behavior comes from composition: each decorator wraps a component and adds to what it delegates to.
+      </div>
+      <div class="note">
+        <strong>Why not an interface for <code>Beverage</code>?</strong> Starbuzz already had an abstract class, and the chapter’s rule is not to alter working code (“don’t ‘fix’ it if the abstract class will work just fine”). An interface would work equally well in a new design.
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">New barista training: follow the delegation</h3>
+    <p class="sub">Order: a “double mocha soy latte with whip” — <code>HouseBlend</code>, <code>Soy</code>, <code>Mocha</code>, <code>Mocha</code>, <code>Whip</code>. The outermost decorator is asked for the price; every layer delegates inward, then adds its own cut on the way back out.</p>
+
+    <div class="grid2" style="margin-top:22px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG3:barista-chain}}" alt="Ten-step call stack: Whip calls Mocha calls Mocha calls Soy calls HouseBlend, returning .89, then .15, .20, .20 and .10 for a total of $1.54.">
+        <figcaption>The stack unwinds: <code>.89</code> → <code>+ .15</code> → <code>+ .20</code> → <code>+ .20</code> → <code>+ .10</code> = <strong>$1.54</strong>.</figcaption>
+        {{SAYS:barista-chain}}
+      </figure>
+      <div>
+        <figure class="pic" style="margin-top:0">
+          <img src="{{IMG3:menu}}" alt="The Starbuzz Coffee menu board listing coffee and condiment prices.">
+          <figcaption>The prices the whole chapter turns on. Note mocha is 20¢ and soy 15¢ — the numbers in every example.</figcaption>
+          {{SAYS:menu}}
+        </figure>
+        <div id="d-demo-inline" class="note ok" style="margin-top:14px">
+          <strong>Try it:</strong> the <a href="#d-demo">coffee builder below</a> performs this exact walk and prints every layer’s contribution, so you can watch the stack unwind instead of taking the picture’s word for it.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- =========================================================== 6. CODE -->
+<section id="d-code">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>writing the starbuzz code</span></div>
+    <h2>Four decorators, four drinks, one interface</h2>
+    <p class="sub">The component and the abstract decorator first, then the drinks, then the condiments — and finally the test harness that orders three coffees.</p>
+
+    <div class="grid2" style="margin-top:24px">
+      <div class="code">
+        <header><span class="fname">Beverage.java</span><span class="tagline">the component — unchanged</span></header>
+<pre><span class="kw">public abstract class</span> <span class="type">Beverage</span> {
+    <span class="type">String</span> description = <span class="str">"Unknown Beverage"</span>;
+
+    <span class="kw">public</span> <span class="type">String</span> <span class="fn">getDescription</span>() {
+        <span class="kw">return</span> description;
+    }
+
+    <span class="kw">public abstract double</span> <span class="fn">cost</span>();
+}</pre>
+      </div>
+      <div class="code">
+        <header><span class="fname">CondimentDecorator.java</span><span class="tagline">the abstract decorator</span></header>
+<pre><span class="kw">public abstract class</span> <span class="type">CondimentDecorator</span> <span class="kw">extends</span> <span class="type">Beverage</span> {
+    <span class="type">Beverage</span> beverage;
+
+    <span class="kw">public abstract</span> <span class="type">String</span> <span class="fn">getDescription</span>();
+}</pre>
+      </div>
+    </div>
+    <p style="font-size:.92rem;color:var(--ink-soft)">Two things to notice: <code>CondimentDecorator</code> <strong>extends</strong> <code>Beverage</code> (so a decorator can stand in for a drink) and <strong>holds</strong> a <code>Beverage</code> (so it can wrap one). Every condiment is required to re-implement <code>getDescription()</code> so it can append its own name to the drink it wraps.</p>
+
+    <div class="grid2" style="margin-top:22px">
+      <div class="code">
+        <header><span class="fname">Espresso.java · HouseBlend.java</span><span class="tagline">concrete components</span></header>
+<pre><span class="kw">public class</span> <span class="type">Espresso</span> <span class="kw">extends</span> <span class="type">Beverage</span> {
+    <span class="kw">public</span> <span class="fn">Espresso</span>() { description = <span class="str">"Espresso"</span>; }
+    <span class="kw">public double</span> <span class="fn">cost</span>() { <span class="kw">return</span> <span class="num">1.99</span>; }
+}
+
+<span class="kw">public class</span> <span class="type">HouseBlend</span> <span class="kw">extends</span> <span class="type">Beverage</span> {
+    <span class="kw">public</span> <span class="fn">HouseBlend</span>() { description = <span class="str">"House Blend Coffee"</span>; }
+    <span class="kw">public double</span> <span class="fn">cost</span>() { <span class="kw">return</span> <span class="num">.89</span>; }
+}
+
+<span class="cmt">// DarkRoast  -> "Dark Roast Coffee", .99
+// Decaf      -> "Decaf Coffee",      1.05</span></pre>
+      </div>
+      <div class="code">
+        <header><span class="fname">Mocha.java</span><span class="tagline">a concrete decorator</span></header>
+<pre><span class="kw">public class</span> <span class="type">Mocha</span> <span class="kw">extends</span> <span class="type">CondimentDecorator</span> {
+
+    <span class="kw">public</span> <span class="fn">Mocha</span>(<span class="type">Beverage</span> beverage) {
+        <span class="kw">this</span>.beverage = beverage;
+    }
+
+    <span class="kw">public</span> <span class="type">String</span> <span class="fn">getDescription</span>() {
+        <span class="kw">return</span> beverage.<span class="fn">getDescription</span>() + <span class="str">", Mocha"</span>;
+    }
+
+    <span class="kw">public double</span> <span class="fn">cost</span>() {
+        <span class="kw">return</span> beverage.<span class="fn">cost</span>() + <span class="num">.20</span>;
+    }
+}</pre>
+      </div>
+    </div>
+
+    <details class="figsay" open style="margin-top:14px">
+      <summary>SteamedMilk.java · Soy.java · Whip.java — the same three lines each</summary>
+      <pre style="margin:10px 14px 14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;line-height:1.6;white-space:pre-wrap">public class Soy extends CondimentDecorator {
+    public Soy(Beverage beverage) { this.beverage = beverage; }
+    public String getDescription() { return beverage.getDescription() + ", Soy"; }
+    public double cost() { return beverage.cost() + .15; }
+}
+
+public class Whip extends CondimentDecorator {
+    public Whip(Beverage beverage) { this.beverage = beverage; }
+    public String getDescription() { return beverage.getDescription() + ", Whip"; }
+    public double cost() { return beverage.cost() + .10; }
+}
+
+public class SteamedMilk extends CondimentDecorator {
+    public SteamedMilk(Beverage beverage) { this.beverage = beverage; }
+    public String getDescription() { return beverage.getDescription() + ", Steamed Milk"; }
+    public double cost() { return beverage.cost() + .10; }
+}</pre>
+    </details>
+
+    <h3 style="margin-top:34px">Serving some coffees</h3>
+    <div class="grid2">
+      <div class="code">
+        <header><span class="fname">StarbuzzCoffee.java</span><span class="tagline">the test harness</span></header>
+<pre><span class="kw">public class</span> <span class="type">StarbuzzCoffee</span> {
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span> args[]) {
+        <span class="type">Beverage</span> beverage = <span class="kw">new</span> <span class="type">Espresso</span>();
+        System.out.<span class="fn">println</span>(beverage.<span class="fn">getDescription</span>()
+            + <span class="str">" $"</span> + beverage.<span class="fn">cost</span>());
+
+        <span class="type">Beverage</span> beverage2 = <span class="kw">new</span> <span class="type">DarkRoast</span>();
+        beverage2 = <span class="kw">new</span> <span class="type">Mocha</span>(beverage2);
+        beverage2 = <span class="kw">new</span> <span class="type">Mocha</span>(beverage2);
+        beverage2 = <span class="kw">new</span> <span class="type">Whip</span>(beverage2);
+        System.out.<span class="fn">println</span>(beverage2.<span class="fn">getDescription</span>()
+            + <span class="str">" $"</span> + beverage2.<span class="fn">cost</span>());
+
+        <span class="type">Beverage</span> beverage3 = <span class="kw">new</span> <span class="type">HouseBlend</span>();
+        beverage3 = <span class="kw">new</span> <span class="type">Soy</span>(beverage3);
+        beverage3 = <span class="kw">new</span> <span class="type">Mocha</span>(beverage3);
+        beverage3 = <span class="kw">new</span> <span class="type">Whip</span>(beverage3);
+        System.out.<span class="fn">println</span>(beverage3.<span class="fn">getDescription</span>()
+            + <span class="str">" $"</span> + beverage3.<span class="fn">cost</span>());
+    }
+}</pre>
+      </div>
+      <div>
+        <figure class="pic" style="margin-top:0">
+          <img src="{{IMG3:serve-console}}" alt="Console output: Espresso $1.99, Dark Roast Coffee, Mocha, Mocha, Whip $1.49, House Blend Coffee, Soy, Mocha, Whip $1.34.">
+          <figcaption>Three orders, no subclasses per combination: the same <code>Beverage</code> variable gets reassigned to a thicker and thicker wrapper.</figcaption>
+          {{SAYS:serve-console}}
+        </figure>
+        <div class="note">
+          <strong>Note the variable type:</strong> everything stays a <code>Beverage</code>. The client never sees <code>Mocha</code>; it just calls <code>getDescription()</code> and <code>cost()</code> on whatever it is holding.
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:36px">Starbuzz adds sizes (page 99 exercise)</h3>
+    <p class="sub">Tall, grande and venti — and condiments now charge by size, with soy at 10¢, 15¢ and 20¢. The fix requires no change to the base classes beyond adding the size state; each decorator asks the object it wraps how big it is.</p>
+    <div class="grid2">
+      <div class="code">
+        <header><span class="fname">Beverage.java</span><span class="tagline">with size state</span></header>
+<pre><span class="kw">public abstract class</span> <span class="type">Beverage</span> {
+
+    <span class="kw">public enum</span> <span class="type">Size</span> { TALL, GRANDE, VENTI };
+
+    <span class="type">Size</span> size = <span class="type">Size</span>.TALL;
+    <span class="type">String</span> description = <span class="str">"Unknown Beverage"</span>;
+
+    <span class="kw">public</span> <span class="type">String</span> <span class="fn">getDescription</span>() { <span class="kw">return</span> description; }
+
+    <span class="kw">public void</span> <span class="fn">setSize</span>(<span class="type">Size</span> size) { <span class="kw">this</span>.size = size; }
+    <span class="kw">public</span> <span class="type">Size</span> <span class="fn">getSize</span>() { <span class="kw">return</span> <span class="kw">this</span>.size; }
+
+    <span class="kw">public abstract double</span> <span class="fn">cost</span>();
+}</pre>
+      </div>
+      <div class="code">
+        <header><span class="fname">Soy.java</span><span class="tagline">size-aware decorator</span></header>
+<pre><span class="kw">public double</span> <span class="fn">cost</span>() {
+    <span class="kw">double</span> cost = beverage.<span class="fn">cost</span>();
+    <span class="kw">if</span> (beverage.<span class="fn">getSize</span>() == <span class="type">Size</span>.TALL)   cost += <span class="num">.10</span>;
+    <span class="kw">if</span> (beverage.<span class="fn">getSize</span>() == <span class="type">Size</span>.GRANDE) cost += <span class="num">.15</span>;
+    <span class="kw">if</span> (beverage.<span class="fn">getSize</span>() == <span class="type">Size</span>.VENTI)  cost += <span class="num">.20</span>;
+    <span class="kw">return</span> cost;
+}</pre>
+      </div>
+    </div>
+    <p style="font-size:.92rem;color:var(--ink-soft)">The size lives on the component, so the decorator reads it through the object it wraps — <code>beverage.getSize()</code>. Decorators can ask their component questions, not just call its methods.</p>
+
+    <h3 style="margin-top:32px">Three things people worry about</h3>
+    <div class="grid2">
+      <div class="note warn">
+        <strong>“What if code depends on a concrete type — say, a discount for <code>HouseBlend</code>?”</strong> Then decorators break it, exactly as the book warns. Once the drink is wrapped, the client holds a <code>Beverage</code>, not a <code>HouseBlend</code>. Keep client code written against the abstract component and decorating stays transparent.
+      </div>
+      <div class="note">
+        <strong>“Could I accidentally hold an inner decorator?”</strong> Yes — you have more objects to manage, so it is easier to end up with a reference to the Soy instead of the Whip and lose the outer layers. In practice you create decorated objects through a factory or builder, which encapsulates the wrapping (Factory is next chapter).
+      </div>
+    </div>
+    <div class="note" style="margin-top:14px">
+      <strong>“Can a decorator see the other decorations?”</strong> Not by design. When you need to look several layers in, you are pushing the pattern past its intent. The book’s escape hatch is a separate <code>CondimentPrettyPrint</code> decorator that reformats “Mocha, Whip, Mocha” as “Whip, Double Mocha”.
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 7. JAVA I/O -->
+<section id="d-javaio">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>decorators in the wild</span></div>
+    <h2>Java I/O is the Decorator Pattern</h2>
+    <p class="sub">If <code>java.io</code> ever looked like an unreasonably large pile of classes, this is why: it is a decorator-heavy API. <code>FileInputStream</code> is a component; <code>BufferedInputStream</code> and <code>ZipInputStream</code> are decorators that wrap it.</p>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG3:javaio}}" alt="A FileInputStream wrapped by a BufferedInputStream wrapped by a ZipInputStream, with notes explaining each layer.">
+        <figcaption>A file, wrapped for buffering, wrapped again for zip entries. Same object graph as a coffee with mocha and whip.</figcaption>
+        {{SAYS:javaio}}
+      </figure>
+      <div>
+        <figure class="pic" style="margin-top:0">
+          <img src="{{IMG3:javaio-diagram}}" alt="java.io class diagram: InputStream, concrete input streams, FilterInputStream as abstract decorator, and its concrete decorators.">
+          <figcaption><code>InputStream</code> is the abstract component, <code>FilterInputStream</code> is the abstract decorator, and <code>BufferedInputStream</code>, <code>DataInputStream</code>, <code>PushbackInputStream</code> … are concrete decorators.</figcaption>
+          {{SAYS:javaio-diagram}}
+        </figure>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:28px">
+      <div class="code">
+        <header><span class="fname">LowerCaseInputStream.java</span><span class="tagline">your own I/O decorator</span></header>
+<pre><span class="kw">public class</span> <span class="type">LowerCaseInputStream</span> <span class="kw">extends</span> <span class="type">FilterInputStream</span> {
+
+    <span class="kw">public</span> <span class="fn">LowerCaseInputStream</span>(<span class="type">InputStream</span> in) {
+        <span class="kw">super</span>(in);
+    }
+
+    <span class="kw">public int</span> <span class="fn">read</span>() <span class="kw">throws</span> <span class="type">IOException</span> {
+        <span class="kw">int</span> c = in.<span class="fn">read</span>();
+        <span class="kw">return</span> (c == -<span class="num">1</span> ? c : <span class="type">Character</span>.<span class="fn">toLowerCase</span>((<span class="kw">char</span>)c));
+    }
+
+    <span class="kw">public int</span> <span class="fn">read</span>(<span class="kw">byte</span>[] b, <span class="kw">int</span> offset, <span class="kw">int</span> len)
+            <span class="kw">throws</span> <span class="type">IOException</span> {
+        <span class="kw">int</span> result = in.<span class="fn">read</span>(b, offset, len);
+        <span class="kw">for</span> (<span class="kw">int</span> i = offset; i &lt; offset + result; i++) {
+            b[i] = (<span class="kw">byte</span>)<span class="type">Character</span>.<span class="fn">toLowerCase</span>((<span class="kw">char</span>)b[i]);
+        }
+        <span class="kw">return</span> result;
+    }
+}</pre>
+      </div>
+      <div>
+        <div class="code">
+          <header><span class="fname">InputTest.java</span><span class="tagline">wrapping a file stream</span></header>
+<pre><span class="type">InputStream</span> in =
+    <span class="kw">new</span> <span class="type">LowerCaseInputStream</span>(
+        <span class="kw">new</span> <span class="type">BufferedInputStream</span>(
+            <span class="kw">new</span> <span class="type">FileInputStream</span>(<span class="str">"test.txt"</span>)));
+
+<span class="kw">while</span> ((c = in.<span class="fn">read</span>()) &gt;= <span class="num">0</span>) {
+    System.out.<span class="fn">print</span>((<span class="kw">char</span>)c);
+}</pre>
+        </div>
+        <figure class="pic">
+          <img src="{{IMG3:inputtest}}" alt="Console: java InputTest then the lowercase line i know the decorator pattern therefore i rule!">
+          <figcaption>Three nested constructors, zero changes to <code>java.io</code>. The file says “I RULE!”, the decorator says otherwise.</figcaption>
+          {{SAYS:inputtest}}
+        </figure>
+        <div class="note warn" style="margin-top:14px">
+          <strong>The cost of all this wrapping:</strong> decorator-heavy APIs produce a lot of small classes, which is why <code>java.io</code> intimidates people. The pattern’s power and its main downside come from the same place.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================== 8. DEMO -->
+<section id="d-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 6</span><i></i><span>live demo</span></div>
+    <h2>Build a coffee, one wrapper at a time</h2>
+    <p class="sub">Same classes as the book, ported to JavaScript. Pick a drink, stack condiments on it, and watch the object graph grow. <code>cost()</code> walks to the innermost object and adds its way back out — exactly the ten-step stack from page 107.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>Starbuzz Coffee · order terminal</h3>
+        <div class="actions">
+          <button class="btn primary" id="cof-cost">cost() → total</button>
+          <button class="btn" id="cof-book">Run the book’s main()</button>
+          <button class="btn ghost" id="cof-reset">New order</button>
+        </div>
+      </div>
+
+      <div class="cof-grid">
+        <div class="cof-panel">
+          <h4>1 · Beverage</h4>
+          <div class="cof-btns" id="cof-bases">
+            <button class="cond" data-base="HouseBlend">House Blend<b>.89</b></button>
+            <button class="cond" data-base="DarkRoast">Dark Roast<b>.99</b></button>
+            <button class="cond" data-base="Decaf">Decaf<b>1.05</b></button>
+            <button class="cond" data-base="Espresso">Espresso<b>1.99</b></button>
+          </div>
+
+          <h4 style="margin-top:16px">2 · Condiments (decorators)</h4>
+          <div class="cof-btns" id="cof-cond">
+            <button class="cond" data-cond="Milk">Steamed Milk<b>.10</b></button>
+            <button class="cond" data-cond="Mocha">Mocha<b>.20</b></button>
+            <button class="cond" data-cond="Soy">Soy<b>.15</b></button>
+            <button class="cond" data-cond="Whip">Whip<b>.10</b></button>
+          </div>
+
+          <h4 style="margin-top:16px">3 · Size</h4>
+          <div class="cof-btns" id="cof-size">
+            <button class="cond sizebtn" data-size="TALL">Tall</button>
+            <button class="cond sizebtn" data-size="GRANDE">Grande</button>
+            <button class="cond sizebtn" data-size="VENTI">Venti</button>
+          </div>
+          <label class="switch" style="margin-top:12px">
+            <input type="checkbox" id="cof-sizeprice"> size-based condiment pricing (page 99)
+          </label>
+        </div>
+
+        <div class="cof-panel">
+          <h4>The object you are holding</h4>
+          <div class="cup" id="cof-cup"></div>
+          <div class="orderline">
+            <code id="cof-desc">House Blend Coffee</code>
+            <span class="price" id="cof-price">$0.89</span>
+          </div>
+          <p class="wx-hint" id="cof-type">The reference type is always <code>Beverage</code>.</p>
+        </div>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">StarbuzzCoffee — console</span>
+        </header>
+        <div class="body" id="cof-log"></div>
+        <footer><button class="btn small" id="cof-clear">Clear console</button></footer>
+      </div>
+
+      <div class="wx-toolbar">
+        <span class="chip" id="cof-chip">HouseBlend · 0 wrappers</span>
+        <button class="btn ghost small" id="cof-peel">Peel off the outermost wrapper</button>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>What to try:</strong> make a “double mocha soy latte with whip” (House Blend → Soy → Mocha → Mocha → Whip) and press <code>cost()</code>: you should get <strong>$1.54</strong>, the exact total from page 107. Then add a third Mocha — something the boolean-flag design could not represent at all.
+      </div>
+      <div class="note">
+        <strong>Why no subclass explosion here:</strong> 4 drinks × every combination of 4 condiments is 64 subclasses, and adding caramel would make it 128. The decorator version has <strong>4 drinks + 4 decorators = 8 classes</strong> and it covers every combination, including duplicates.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================== 9. CHEAT SHEET -->
+<section id="d-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 7</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 3 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Subclassing every combination explodes</h4><p>Four drinks × four condiments is dozens of classes, and each new topping multiplies the tree. Nobody maintains that.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Boolean flags are no better</h4><p><code>hasMilk()</code>/<code>setWhip()</code> put every topping into the base class, can’t count a double mocha, and force a change to <code>Beverage</code> whenever the menu changes.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The Open-Closed Principle</h4><p>Classes should be open for extension, but closed for modification. Apply it where change is likely — not everywhere.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The pattern</h4><p>Attach additional responsibilities to an object dynamically. Decorators give a flexible alternative to subclassing for extending functionality.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>How it works</h4><p>A decorator has the same supertype as the component it wraps (for type) and holds a reference to it (for behavior). It delegates, adding its own work before and/or after.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>It composes at runtime</h4><p>You can wrap a component with any number of decorators, in any order, whenever you like — the client just sees a <code>Beverage</code>.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Its price</h4><p>Many small objects and a lot of wrapping code. It breaks clients that depend on concrete component types. <code>java.io</code> is the famous example of both the power and the confusion.</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The book’s bullet points</h3>
+        <ul class="bullets">
+          <li>Inheritance is one form of extension, but not necessarily the best way to achieve flexibility.</li>
+          <li>Designs should allow behavior to be extended without modifying existing code.</li>
+          <li>Composition and delegation can add new behaviors at runtime.</li>
+          <li>Decorator provides an alternative to subclassing for extending behavior.</li>
+          <li>Decorator classes wrap concrete components and mirror their type.</li>
+          <li>Decorators change behavior by adding functionality before and/or after (or in place of) calls to the component.</li>
+          <li>You can wrap a component with any number of decorators.</li>
+          <li>Decorators are transparent to the client — unless the client depends on the concrete type.</li>
+          <li>Decorators can result in many small objects; overuse is complex.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Inheritance vs. decoration (coffee, 4 drinks, 4 toppings)</h3>
+        <table class="compare">
+          <thead><tr><th></th><th>Subclass per combination</th><th>Decorator</th></tr></thead>
+          <tbody>
+            <tr><td>Classes</td><td>4 × 2⁴ = <strong>64</strong></td><td><strong>8</strong> (4 drinks + 4 decorators)</td></tr>
+            <tr><td>Add caramel</td><td>4 × 2⁵ = 128 classes</td><td>+1 class, nothing else changes</td></tr>
+            <tr><td>Double mocha</td><td>Not representable</td><td>Wrap <code>Mocha</code> twice</td></tr>
+            <tr><td>Change a price</td><td>Edit many classes</td><td>Edit one decorator</td></tr>
+            <tr><td>Decided</td><td>At compile time</td><td>At runtime</td></tr>
+          </tbody>
+        </table>
+        <div class="note ok" style="margin-top:16px">
+          <strong>If you remember one line:</strong> when the number of combinations explodes, stop enumerating them in the type system — wrap the object instead, and let each wrapper add its own behavior to whatever it holds.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:34px">
+      <img src="{{IMG3:toolbox3}}" alt="The design toolbox cards after chapter 3, with the new Open-Closed principle and the Decorator pattern added.">
+      <figcaption>The toolbox after Chapter 3: five principles and three patterns. Note the margin note asking whether <em>another</em> pattern already satisfied Open-Closed — Observer does.</figcaption>
+      {{SAYS:toolbox3}}
+    </figure>
+
+    <div class="quiz" style="margin-top:34px" id="d-quiz">
+      <h3 style="margin-top:0">Check yourself: what is true of Decorator?</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="d-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. A decorator has the same supertype as the component it wraps.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="B"><span class="txt">B. Decorators are added at compile time by subclassing the component.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="C"><span class="txt">C. A decorator holds a reference to the component it decorates and delegates to it.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="D"><span class="txt">D. Wrapping a component with several decorators is allowed, even repeating one.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="E"><span class="txt">E. Clients can always rely on the concrete component type once decorators are in play.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="d-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="d-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="d-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>Chapter 3 in the book’s words:</strong> “The Decorator Pattern attaches additional responsibilities to an object dynamically. Decorators provide a flexible alternative to subclassing for extending functionality.” The chapter ends with a fictional interview in which Decorator admits its own downsides — small classes, type assumptions, complicated construction — and points at Factory and Builder as the fix.
+    </div>
+  </div>
+</section>
+
+<script>
+/* ============================================================ chapter 3 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#cof-log');
+  if (!logBox) return;
+
+  const log = (html, cls = '') => {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.innerHTML = html;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  const dim = t => `<span class="dim">${t}</span>`;
+  const res = t => `<span class="res">${t}</span>`;
+  const call = t => `<span class="call">${t}</span>`;
+  const money = n => '$' + n.toFixed(2);
+
+  /* --------------------------------------------------------- components */
+  const BASES = {
+    HouseBlend: { description: 'House Blend Coffee', price: 0.89 },
+    DarkRoast:  { description: 'Dark Roast Coffee',  price: 0.99 },
+    Decaf:      { description: 'Decaf Coffee',       price: 1.05 },
+    Espresso:   { description: 'Espresso',           price: 1.99 }
+  };
+  const CONDIMENTS = {
+    Milk:  { price: 0.10 },
+    Mocha: { price: 0.20 },
+    Soy:   { price: 0.15 },
+    Whip:  { price: 0.10 }
+  };
+  const SIZE_PRICE = {
+    TALL:   { Soy: 0.10, Milk: 0.10, Mocha: 0.20, Whip: 0.10 },
+    GRANDE: { Soy: 0.15, Milk: 0.10, Mocha: 0.20, Whip: 0.10 },
+    VENTI:  { Soy: 0.20, Milk: 0.10, Mocha: 0.20, Whip: 0.10 }
+  };
+
+  /* the decorator chain is a linked list, outermost first */
+  let order = { base: 'HouseBlend', size: 'GRANDE', wrappers: [], sizePrice: false };
+
+  const priceOf = name => {
+    if (!order.sizePrice) return CONDIMENTS[name].price;
+    return SIZE_PRICE[order.size][name];
+  };
+  const descriptionOf = () => {
+    const base = BASES[order.base].description;
+    /* outermost decorator is last in the array; it appends its name to the inner description */
+    return base + order.wrappers.map(w => ', ' + w).join('');
+  };
+  const total = () => order.wrappers.reduce((sum, w) => sum + priceOf(w), BASES[order.base].price);
+
+  /* -------------------------------------------------------------- render */
+  function render() {
+    const cup = $('#cof-cup');
+    const rows = [];
+    /* outermost first, like the picture in the book */
+    [...order.wrappers].reverse().forEach((w, i) => {
+      rows.push(`<div class="layer deco" data-wrap="${order.wrappers.length - 1 - i}">
+          <span class="lname">${w}</span>
+          <span class="lprice">+${priceOf(w).toFixed(2)}</span>
+          <button class="lx" title="peel off this wrapper" aria-label="remove ${w}">✕</button>
+        </div>`);
+    });
+    rows.push(`<div class="layer base">
+        <span class="lname">${BASES[order.base].description}</span>
+        <span class="lprice">${BASES[order.base].price.toFixed(2)}</span>
+      </div>`);
+    cup.innerHTML = rows.join('');
+
+    $('#cof-desc').textContent = descriptionOf();
+    $('#cof-price').textContent = money(total());
+    $('#cof-chip').textContent = `${order.base} · ${order.wrappers.length} wrapper${order.wrappers.length === 1 ? '' : 's'} · ${order.size.toLowerCase()}`;
+    $('#cof-type').innerHTML = order.wrappers.length
+      ? `The reference type is still <code>Beverage</code>; the outermost object is a <code>${order.wrappers[order.wrappers.length - 1]}</code>.`
+      : 'The reference type is <code>Beverage</code>; no wrapper yet.';
+
+    $$('#cof-bases .cond').forEach(b => b.classList.toggle('on', b.dataset.base === order.base));
+    $$('#cof-size .cond').forEach(b => b.classList.toggle('on', b.dataset.size === order.size));
+
+    $$('#cof-cup .layer.deco .lx').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = +btn.dataset.wrap;
+        const removed = order.wrappers[idx];
+        order.wrappers.splice(idx, 1);
+        log(dim(`// peeled off ${removed} — any wrappers outside it now wrap what was inside it`));
+        render();
+      });
+    });
+  }
+
+  /* ------------------------------------------------------- cost() trace */
+  function traceCost() {
+    const layers = [...order.wrappers].reverse();     // outermost → innermost
+    const base = BASES[order.base];
+    log(call('order.cost()') + dim(`   // reference type: Beverage`));
+    if (layers.length) {
+      log(dim(`  ${layers[0]}.cost()  ← outermost decorator`));
+      let indent = '    ';
+      layers.forEach((w, i) => {
+        const inner = i + 1 < layers.length ? `${layers[i + 1]}.cost()` : `${order.base}.cost()`;
+        log(dim(`${indent}${w}.cost() → delegates to ${inner}`));
+        indent += '  ';
+      });
+      log(dim(`${indent}${order.base}.cost() returns ${base.price.toFixed(2)}`));
+    } else {
+      log(dim(`  ${order.base}.cost() returns ${base.price.toFixed(2)} (no decorators)`));
+    }
+    let running = base.price;
+    log(dim(`  ← ${order.base}.cost() = ${running.toFixed(2)}`));
+    for (let i = layers.length - 1; i >= 0; i--) {
+      running += priceOf(layers[i]);
+      log(dim(`  ← + ${layers[i]} ${priceOf(layers[i]).toFixed(2)} = ${running.toFixed(2)}`));
+    }
+    log(res(`${descriptionOf()} $${running.toFixed(2)}`));
+    return running;
+  }
+
+  /* ------------------------------------------------------------ controls */
+  $$('#cof-bases .cond').forEach(btn => btn.addEventListener('click', () => {
+    order.base = btn.dataset.base;
+    order.wrappers = [];
+    log(dim(`Beverage beverage = new ${order.base}();`));
+    render();
+  }));
+
+  $$('#cof-cond .cond').forEach(btn => btn.addEventListener('click', () => {
+    const name = btn.dataset.cond;
+    order.wrappers.push(name);
+    const n = order.wrappers.length;
+    log(dim(`beverage = new ${name}(beverage);`) + dim(`   // ${n} wrapper${n === 1 ? '' : 's'} deep`));
+    render();
+  }));
+
+  $$('#cof-size .cond').forEach(btn => btn.addEventListener('click', () => {
+    order.size = btn.dataset.size;
+    log(dim(`beverage.setSize(Size.${order.size});`));
+    render();
+  }));
+
+  $('#cof-sizeprice').addEventListener('change', e => {
+    order.sizePrice = e.target.checked;
+    log(dim('// ' + (order.sizePrice
+      ? 'size-based pricing on: Soy now asks beverage.getSize() and charges .10/.15/.20'
+      : 'size-based pricing off: every condiment uses the flat menu price')));
+    render();
+  });
+
+  $('#cof-cost').addEventListener('click', () => { traceCost(); });
+
+  $('#cof-peel').addEventListener('click', () => {
+    if (!order.wrappers.length) { log(dim('// nothing to peel — this is just the drink')); return; }
+    const removed = order.wrappers.pop();
+    log(dim(`// removed the outermost wrapper: ${removed}`));
+    render();
+  });
+
+  $('#cof-clear').addEventListener('click', () => { logBox.innerHTML = ''; });
+
+  $('#cof-reset').addEventListener('click', () => {
+    order = { base: 'HouseBlend', size: 'GRANDE', wrappers: [], sizePrice: false };
+    $('#cof-sizeprice').checked = false;
+    logBox.innerHTML = '';
+    log(dim('// new order: a plain House Blend, no wrappers'));
+    render();
+  });
+
+  $('#cof-book').addEventListener('click', () => {
+    logBox.innerHTML = '';
+    log(dim('% java StarbuzzCoffee'));
+    const runs = [
+      { base: 'Espresso',  wrappers: [] },
+      { base: 'DarkRoast', wrappers: ['Mocha', 'Mocha', 'Whip'] },
+      { base: 'HouseBlend', wrappers: ['Soy', 'Mocha', 'Whip'] }
+    ];
+
+    const saved = { ...order };
+    order.sizePrice = false;
+    runs.forEach(r => {
+      const prev = { base: order.base, wrappers: order.wrappers };
+      order.base = r.base;
+      order.wrappers = r.wrappers;
+      log(res(`${descriptionOf()} $${total().toFixed(2)}`), 'res');
+      order.base = prev.base;
+      order.wrappers = prev.wrappers;
+    });
+    order = { ...saved, base: 'HouseBlend', wrappers: ['Soy', 'Mocha', 'Whip'] };
+    render();
+    log(dim('// the last order is now loaded in the builder above — press cost() to walk it'));
+  });
+
+  /* --------------------------------------------------------------- quiz */
+  const quiz = $('#d-quiz');
+  if (quiz) {
+    $('#d-quiz-check').addEventListener('click', () => {
+      let picked = 0, right = 0;
+      $$('#d-quiz-opts .opt').forEach(opt => {
+        const input = $('input', opt);
+        const ok = opt.dataset.correct === '1';
+        opt.classList.remove('correct', 'wrong');
+        $('.mark', opt).textContent = '';
+        if (input.checked) {
+          picked++;
+          if (ok) { opt.classList.add('correct'); $('.mark', opt).textContent = '✓'; right++; }
+          else { opt.classList.add('wrong'); $('.mark', opt).textContent = '✗'; }
+        } else if (ok) {
+          opt.classList.add('correct');
+          $('.mark', opt).textContent = '✓ (missed)';
+        }
+      });
+      const answer = $('#d-quiz-answer');
+      answer.classList.remove('hidden');
+      answer.innerHTML = right === 3 && picked === 3
+        ? '<strong>Perfect — A, C and D.</strong> Type comes from inheritance, behavior from composition and delegation, and you can wrap as many layers as you like — even repeats.'
+        : '<strong>Answer: A, C and D.</strong> Decorators are added at runtime, not compile time, and E is the classic trap: once wrapped, the client only knows it holds a <code>Beverage</code>.';
+    });
+    $('#d-quiz-reset').addEventListener('click', () => {
+      $$('#d-quiz-opts .opt').forEach(o => {
+        $('input', o).checked = false;
+        o.classList.remove('correct', 'wrong');
+        $('.mark', o).textContent = '';
+      });
+      $('#d-quiz-answer').classList.add('hidden');
+    });
+  }
+
+  /* ------------------------------------------------------------ start up */
+  render();
+  log(dim('// Starbuzz order terminal ready. Pick a beverage, then wrap it with condiments.'));
+  log(dim('// cost() is called on the outermost object and delegates all the way down.'));
+})();
+</script>
