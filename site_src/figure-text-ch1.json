@@ -64,9 +64,12 @@
  "guru": [
   "Guru: Tell me what you have learned of the Object-Oriented ways.",
   "Student: Guru, I have learned that the promise of the object-oriented way is reuse.",
-  "Student: …through inheritance all good things may be reused and so we come to drastically cut development time like we swiftly cut bamboo in the woods.",
-  "Guru: Is more time spent on code before or after development is complete? — Student: The answer is after, Guru. We always spend more time maintaining and changing software than on initial development.",
+  "Guru: Continue…",
+  "Student: Guru, through inheritance all good things may be reused and so we come to drastically cut development time like we swiftly cut bamboo in the woods.",
+  "Guru: Is more time spent on code before or after development is complete?",
+  "Student: The answer is after, Guru. We always spend more time maintaining and changing software than on initial development.",
   "Guru: So, should effort go into reuse above maintainability and extensibility?",
+  "Student: Guru, I believe that there is truth in this.",
   "Guru: I can see that you still have much to learn. I would like for you to go and meditate on inheritance further."
  ],
  "ribbon-first": [

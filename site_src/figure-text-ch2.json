@@ -1,11 +1,12 @@
 {
  "statement": [
-  "Congratulations on being selected to build our next-generation, internet-based Weather Monitoring Station!",
+  "“Congratulations on being selected to build our next-generation, internet-based Weather Monitoring Station!”",
   "The weather station will be based on our patent pending WeatherData object, which tracks current weather conditions (temperature, humidity, and barometric pressure).",
-  "…an application that initially provides three display elements: current conditions, weather statistics, and a simple forecast, all updated in real time as the WeatherData object acquires the most recent measurements.",
-  "Further, this is an expandable weather station. Weather-O-Rama wants to allow other developers to write their own weather displays and plug them right in.",
+  "We’d like you to create an application that initially provides three display elements: current conditions, weather statistics, and a simple forecast, all updated in real time as the WeatherData object acquires the most recent measurements.",
+  "Further, this is an expandable weather station. Weather-O-Rama wants to allow other developers to write their own weather displays and plug them right in. So it’s important that new displays will be easy to add in the future.",
   "Weather-O-Rama thinks we have a great business model: once the customers are hooked, we intend to charge them for each display they use. Now for the best part: we are going to pay you in stock options.",
-  "Sincerely, Johnny Hurricane, CEO — P.S. See the attached WeatherData source files!"
+  "We look forward to seeing your design and alpha application. Sincerely, Johnny Hurricane, CEO",
+  "P.S. See the attached WeatherData source files!"
  ],
  "overview": [
   "Weather Station: Temperature sensor device, Humidity sensor device, Pressure sensor device",
@@ -35,16 +36,18 @@
   "Publishers + Subscribers = Observer Pattern"
  ],
  "day-in-life": [
-  "“A Duck object comes along and tells the Subject that he wants to become an observer.” — the arrow is labelled “register/subscribe me”.",
+  "“A Duck object comes along and tells the Subject that he wants to become an observer.” — the arrow between them is labelled “register/subscribe me”.",
+  "“Duck really wants in on the action; those ints Subject is sending out whenever its state changes look pretty interesting…”",
   "“The Duck object is now an official observer. Duck is psyched… he’s on the list and is waiting with great anticipation for the next notification so he can get an int.”",
-  "“The Subject gets a new data value! Now Duck and all the rest of the observers get a notification that the Subject has changed.” (the int 8 goes to every observer)",
-  "Observer Objects: Dog Object, Mouse Object, Cat Object, Duck Object — Subject Object keeps the list."
+  "“The Subject gets a new data value! Now Duck and all the rest of the observers get a notification that the Subject has changed.” — the int 8 is delivered to every observer.",
+  "Observer Objects: Dog Object, Mouse Object, Cat Object, Duck Object. Subject Object keeps the list and the int."
  ],
  "drama": [
   "1 Software Developer #1 — Lori: “This is Lori. I’m looking for a Java development position. I’ve got five years of experience and…”",
   "2 Headhunter/Subject: “Uh, yeah, you and everybody else, baby. I’m putting you on my list of Java developers. Don’t call me, I’ll call you!”",
   "3 Software Developer #2 — Jill: “Hi, I’m Jill. I’ve written a lot of enterprise systems. I’m interested in any job you’ve got with Java development.”",
-  "4 Subject: “I’ll add you to the list—you’ll know along with everyone else.”"
+  "4 Subject: “I’ll add you to the list—you’ll know along with everyone else.”",
+  "The two developers are the observers; the headhunter is the Subject holding the state (the call list)."
  ],
  "defined-diagram": [
   "ONE-TO-MANY RELATIONSHIP",
@@ -67,10 +70,13 @@
   "Guru: Is a tightly woven basket stiff or flexible? — Student: Stiff, Guru.",
   "Guru: And do stiff or flexible baskets tear or break less easily? — Student: A flexible basket tends to break less easily.",
   "Guru: And in our software, might our designs break less easily if our objects are less tightly bound together?",
+  "Student: Guru, I see the truth of it. But what does it mean for objects to be less tightly bound? — Guru: We like to call it, loosely coupled.",
   "Guru: We say an object is tightly coupled to another object when it is too dependent on that object.",
-  "Guru: …a loosely coupled object doesn’t know or care too much about the details of another object.",
-  "Guru: By not knowing too much about other objects, we can create designs that can handle change better. Designs that have more flexibility, like the less tightly woven basket.",
-  "Student: Could you give me an example? — Guru: That is enough for today."
+  "Student: So a loosely coupled object can’t depend on another object?",
+  "Guru: Think of nature; all living things depend on each other. Likewise, all objects depend on other objects. But a loosely coupled object doesn’t know or care too much about the details of another object.",
+  "Student: But Guru, that doesn’t sound like a good quality. Surely not knowing is worse than knowing.",
+  "Guru: You are doing well in your studies, but you have much to learn. By not knowing too much about other objects, we can create designs that can handle change better. Designs that have more flexibility, like the less tightly woven basket.",
+  "Student: Of course, I am sure you are right. Could you give me an example? — Guru: That is enough for today."
  ],
  "loose-principle": [
   "Design Principle: Strive for loosely coupled designs between objects that interact.",

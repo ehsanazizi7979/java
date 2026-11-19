@@ -62,11 +62,12 @@ def says_panel(name: str) -> str:
     if not lines:
         return ""
     items = "\n".join(f"            <li>{htmllib.escape(line)}</li>" for line in lines)
+    cls = "long" if len(lines) > 8 else ""
     return (
-        '<details class="figsay">\n'
-        "            <summary>What the figure says"
+        '<details class="figsay" open>\n'
+        "            <summary>Text printed inside this figure"
         f' <span class="n">{len(lines)}</span></summary>\n' 
-        "            <ul>\n"
+        f'            <ul class="{cls}">\n' 
         f"{items}\n"
         "            </ul>\n"
         '            <span class="src">transcribed from the artwork itself, not the body copy</span>\n'

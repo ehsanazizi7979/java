@@ -194,7 +194,7 @@
       <figcaption>Register → notify → and later, on page 47, remove. The subject keeps a list; the observers just implement one method.</figcaption>
       {{SAYS:day-in-life}}
     </figure>
-    <p style="font-size:.94rem;color:var(--ink-soft)">When the Mouse gets tired of receiving <code>int</code>s it asks to be removed, the subject takes it off the list, and the next notification goes to everyone except the Mouse. No recompiling, no flags, no “is the mouse still interested?” checks sprinkled through the subject. That is loose coupling in one picture.</p>
+    <p style="font-size:.94rem;color:var(--ink-soft)">Look at what the arrows actually say: the Duck’s request is labelled <strong>“register/subscribe me”</strong>, the subject then pushes its new value — the <code>int</code> 8 — to <em>every</em> observer in the list, and when the Mouse gets tired of receiving <code>int</code>s it asks to be removed, the subject takes it off the list, and the next notification goes to everyone except the Mouse. No recompiling, no flags, no “is the mouse still interested?” checks sprinkled through the subject. That is loose coupling in one picture.</p>
 
     <div class="grid2" style="margin-top:34px;align-items:center">
       <figure class="pic" style="margin:0">
@@ -224,7 +224,7 @@
 
     <figure class="pic">
       <img src="{{IMG2:class-diagram}}" alt="Class diagram: Subject and Observer interfaces, ConcreteSubject implementing Subject and holding observers, ConcreteObserver implementing Observer.">
-      <figcaption>Subject knows only a list of <code>Observer</code>s; each <code>ConcreteObserver</code> registers with a <code>ConcreteSubject</code>. The arrows point one way only.</figcaption>
+      <figcaption>Subject knows only a list of <code>Observer</code>s; each <code>ConcreteObserver</code> registers with a <code>ConcreteSubject</code>. The arrows point one way only — the book’s margin note under the <code>observers</code> arrow says it plainly: “Each subject can have many observers.”</figcaption>
       {{SAYS:class-diagram}}
     </figure>
 
@@ -265,6 +265,7 @@
           <li><strong>Reuse either side independently.</strong> A subject is useful without these particular observers; an observer is useful with a different subject.</li>
           <li><strong>Changes stay local.</strong> Either side can change as long as it honors the interface.</li>
         </ul>
+        <p style="font-size:.94rem;color:var(--ink-soft)">The guru’s definition is the one to remember: <em>“A loosely coupled object doesn’t know or care too much about the details of another object”</em> — and that is exactly the relationship between <code>WeatherData</code> and a display it has never heard of.</p>
         <figure class="pic" style="margin-top:20px">
           <img src="{{IMG2:loose-principle}}" alt="The Design Principle box: strive for loosely coupled designs between objects that interact, with a handwritten note calling it a new principle.">
           <figcaption>The principle box, with the book’s handwritten “look! We have a new Design Principle!”</figcaption>
@@ -417,7 +418,7 @@
       </div>
     </div>
 
-    <details class="figsay" style="margin-top:6px">
+    <details class="figsay" open style="margin-top:6px">
       <summary>The other two displays, in the book’s source download</summary>
       <p style="padding:0 12px;font-size:.86rem;line-height:1.55">The statistics display keeps running <code>min</code>/<code>max</code>/<code>sum</code>/<code>numReadings</code> and prints <code>Avg/Max/Min temperature = 80.0/82.0/78.0</code>. The forecast display keeps <code>lastPressure</code> and <code>currentPressure</code>: pressure rising means “Improving weather on the way!”, falling means “Watch out for cooler, rainy weather”, unchanged means “More of the same”. Both are ordinary observers — same <code>update()</code>, different <code>display()</code>.</p>
     </details>
@@ -573,7 +574,7 @@
       </div>
     </div>
 
-    <details class="figsay" style="margin-top:14px">
+    <details class="figsay" open style="margin-top:14px">
       <summary>Code magnets solution (page 76)</summary>
       <pre style="margin:10px 14px 14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;line-height:1.6;white-space:pre-wrap">public class ForecastDisplay implements Observer, DisplayElement {
     private float currentPressure = 29.92f;
@@ -876,7 +877,7 @@ button.<span class="fn">addActionListener</span>(event -&gt;
             </div>
           </div>
         </details>
-        <details class="figsay" style="margin-top:10px">
+        <details class="figsay" open style="margin-top:10px">
           <summary>Solution (page 77)</summary>
           <div style="padding:6px 12px 12px;font-size:.82rem;line-height:1.6">
             <strong>Across:</strong> 1 MANY · 3 PUSH · 6 HEAT · 8 OBSERVER · 9 SWING · 11 PUBLISHER · 12 NOTIFIED · 15 REMOVE · 16 SUBJECT · 18 INTERFACE · 20 LOOSE · 21 INTERFACE · 22 LISTENING<br>

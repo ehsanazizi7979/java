@@ -19,9 +19,10 @@ Station**: a real subject with register/remove/notify, five observers that regis
 themselves in their constructors, push↔pull switching, and a console that reproduces the
 book's `WeatherStation.main()` output line for line.
 
-Every figure is cropped from the PDF and followed by a **“what the figure says”** panel:
-the speech bubbles, handwritten arrows and labels printed *inside* the artwork are
-transcribed, so the captions inside the pictures are not lost.
+Every figure is cropped from the PDF and followed by an **open “Text printed inside this
+figure”** panel: the speech bubbles, handwritten arrows and labels printed *inside* the
+artwork are transcribed in full (collapsible, but shown by default), so the captions inside
+the pictures are part of the page rather than being skipped.
 
 ### Build
 
