@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Head First Design Patterns · Chapters 1–6 — Strategy, Observer, Decorator, Factory, Singleton &amp; Command Patterns · Summaries, Book Figures, Code and Live Demos</title>
-<meta name="description" content="Visual summaries of chapters 1–6 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, then the seven-slot Home Automation remote control and the Command Pattern — with the book's figures (and the text inside them), the full Java code, and live demos of all six chapters.">
+<title>Head First Design Patterns · Chapters 1–7 — Strategy, Observer, Decorator, Factory, Singleton, Command, Adapter &amp; Facade · Summaries, Book Figures, Code and Live Demos</title>
+<meta name="description" content="Visual summaries of chapters 1–7 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, the seven-slot Home Automation remote and the Command Pattern, then the turkey that quacks (Adapter), the one-button home theater (Facade) and the Principle of Least Knowledge — with the book's figures (and the text inside them), the full Java code, and live demos of all seven chapters.">
 <style>
 /* ---------------------------------------------------------------- tokens */
 :root{
@@ -420,6 +420,29 @@ input[type=range]{width:100%;accent-color:var(--purple-2);height:22px}
 .wx-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
 .wx-toolbar .switch{margin-left:auto}
 .wx-hint{font-size:.78rem;color:#7a7290;margin:10px 0 0}
+/* --------------------------------------------- ch.7 adapter / facade */
+.ad-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.ad-card h4{margin:0 0 10px;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--purple-2)}
+.ad-choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ad-card .wx-hint{font-size:.86rem;color:var(--ink-soft)}
+#ad-trace,#ad-call{min-height:96px}
+#ad-log .out{color:#e9e4f7}
+#ad-log .dim{color:#8d84a8}
+#ad-log .call{color:var(--yellow);font-weight:700}
+#ad-log .res{color:#9be8b6}
+#ad-log .err{color:#ff9aa8}
+#ad-log div{margin:1px 0}
+.demo-wrap .cg-modes{display:flex;gap:8px;margin:14px 0}
+.demo-wrap .cg-modes .tab{
+  font:inherit;font-size:.78rem;font-weight:800;letter-spacing:.06em;cursor:pointer;
+  border-radius:999px;padding:8px 16px;border:1px solid var(--line);background:#fff;color:var(--ink-soft)
+}
+.demo-wrap .cg-modes .tab[aria-selected="true"]{background:var(--purple);border-color:var(--purple);color:#fff}
+.cg-verdict{margin-top:12px;border-radius:12px;padding:11px 13px;font-size:.86rem;line-height:1.55;border:1px solid var(--line);background:#f7f5fb}
+.cg-verdict.ok{border-color:#bfe3c9;background:#f1faf3}
+.cg-verdict.bad{border-color:#f0c3c9;background:#fdf2f3}
+.grid2 .ad-card,.grid2 .note{margin-top:0}
+
 @media print{.wx,.figsay{display:none!important}}
 
 /* ------------------------------------------------------- starbuzz demo */
@@ -606,7 +629,7 @@ footer.site strong{color:#4a4560}
 
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–6</a>
+    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–7</a>
     <nav class="navlinks">
       <a href="#story">SimUDuck</a>
       <a href="#principles">Principles</a>
@@ -656,6 +679,12 @@ footer.site strong{color:#4a4560}
       <a href="#c-uses">In the wild</a>
       <a href="#c-demo">Remote demo</a>
       <a href="#c-cheatsheet">Ch. 6 recap</a>
+      <span class="navsep" aria-hidden="true">Ch.&nbsp;7</span>
+      <a href="#a-story">Square peg</a>
+      <a href="#a-facade">Facade</a>
+      <a href="#a-knowledge">Least knowledge</a>
+      <a href="#a-demo">Adapter demo</a>
+      <a href="#a-cheatsheet">Ch. 7 recap</a>
     </nav>
   </div>
 </div>
@@ -1419,11 +1448,13 @@ model.performFly();</pre>
 
 {{CHAPTER6}}
 
+{{CHAPTER7}}
+
 <footer class="site">
   <div class="wrap">
     <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168) and Chapter 5, “One-of-a-Kind Objects” (pages 169–190) and Chapter 6, “Encapsulating Invocation” (pages 191–236).</div>
-    <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and the six interactive simulators are written for this page.</div>
-    <div><strong>Built:</strong> six chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler and Objectville Remote Control demos (no external assets, works offline).</div>
+    <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and the seven interactive simulators are written for this page.</div>
+    <div><strong>Built:</strong> seven chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler, Objectville Remote Control, Turkey Adapter and Home Theater Facade demos (no external assets, works offline).</div>
     <a class="totop" href="#top">↑ back to top</a>
   </div>
 </footer>

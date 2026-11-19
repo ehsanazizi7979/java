@@ -1,9 +1,9 @@
 # java
 
-## Head First Design Patterns (2nd ed.) — study pages, chapters 1–6
+## Head First Design Patterns (2nd ed.) — study pages, chapters 1–7
 
 `head-first-ch1-design-patterns.html` is one self-contained page (no external assets,
-works offline) that summarizes the first six chapters of *Head First Design Patterns*:
+works offline) that summarizes the first seven chapters of *Head First Design Patterns*:
 
 **Chapter 1 — Welcome to Design Patterns / Strategy** (book pages 1–36)
 the SimUDuck story, the three OO design principles, the Strategy Pattern, the diner-talk
@@ -81,6 +81,26 @@ verified solution, and a live **Objectville Remote Control**: seven programmable
 vendor programmes, on/off buttons, a real `undo()` and a party macro — with the book's exact console
 output from pages 213, 220, 224 and 227.
 
+**Chapter 7 — Being Adaptive / Adapter and Facade** (book pages 237–276)
+the photo studio that is really a horse race, the British-outlet AC adapter as the mental model, and
+the object-oriented version (a vendor class with the wrong interface, an adapter that implements the
+interface your code expects). The duck/turkey adapter in full: `Duck`, `MallardDuck`, `Turkey`,
+`WildTurkey`, `TurkeyAdapter` (`quack()` → `gobble()`, `fly()` → five short flights), `DuckTestDrive`
+with the page-242 console output, the three-step "pattern explained" diagram, the definition and class
+diagram, object vs. class adapters (and why Java only gets the former), the ducks-that-fly-north
+exercise solution, the object-vs-class fireside chat, and the real-world adapter —
+`EnumerationIterator`, including the honest `remove()` that throws `UnsupportedOperationException`.
+Then the Facade half: the "who does what" comparison of Decorator/Adapter/Facade, the seven home
+theater components and the thirteen tasks needed to watch a movie, `HomeTheaterFacade`'s
+`watchMovie()` / `endMovie()` with the page-265 console run, the Facade definition, the **Principle of
+Least Knowledge** ("talk only to your immediate friends"), the four kinds of legal method calls
+(`Car`), the `House`/`getTemp()` exercise, the Law-of-Demeter fine print, the toolbox, the chapter 7
+crossword with its verified grid, both exercise solutions (`DuckAdapter`, `IteratorEnumeration`), and
+a live **Adapter + Facade** demo: pass a turkey to `testDuck()` and watch the client reject it, then
+wrap it and watch one `quack()` become a `gobble()` and one `fly()` become five; or switch tabs and run
+the whole home theater from a single `watchMovie("Raiders of the Lost Ark")` call, with a toggle that
+shows the thirteen individual subsystem calls it replaces.
+
 ### Build
 
 ```bash
@@ -90,6 +110,7 @@ python tools/crop_ch3.py     # chapter 3 figures  -> assets/ch3/*.jpg
 python tools/crop_ch4.py     # chapter 4 figures  -> assets/ch4/*.jpg
 python tools/crop_ch5.py     # chapter 5 figures  -> assets/ch5/*.jpg
 python tools/crop_ch6.py     # chapter 6 figures  -> assets/ch6/*.jpg
+python tools/crop_ch7.py     # chapter 7 figures  -> assets/ch7/*.jpg
 python tools/build_page.py   # inlines all chapters + base64 images -> head-first-ch1-design-patterns.html
 ```
 
@@ -106,19 +127,21 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   (`{{IMG5:name}}`, plus its own `<script>` block for the boiler plant and quiz)
 * `site_src/chapter6.template.html` — chapter 6, spliced in at the `{{CHAPTER6}}` marker
   (`{{IMG6:name}}`, plus its own `<script>` block for the remote control and quiz)
-* `site_src/figure-text-ch1.json` … `-ch6.json` — curated
+* `site_src/chapter7.template.html` — chapter 7, spliced in at the `{{CHAPTER7}}` marker
+  (`{{IMG7:name}}`, plus its own `<script>` block for the adapter/facade demo and quiz)
+* `site_src/figure-text-ch1.json` … `-ch7.json` — curated
   transcripts of the text printed inside each figure; `tools/figure_text.py` dumps the raw
   PDF text layer per crop to help edit them. Each chapter's markers are resolved against its
   own table, so a repeated figure name (`opener`, `crossword`, `toolbox`) never picks up
   another chapter's text.
-* `tools/crop_ch1.py` … `tools/crop_ch6.py` — crop
+* `tools/crop_ch1.py` … `tools/crop_ch7.py` — crop
   boxes in PDF points (the page is 576 × 666 pt)
 * `index.html` — meta-refresh to the page (handy when serving the folder)
 
 ### Notes
 
 * The figures are book excerpts, © O'Reilly Media — study material, not for redistribution.
-  The Java listings are the book's code; the JavaScript ports and the six interactive
+  The Java listings are the book's code; the JavaScript ports and the seven interactive
   simulators are written for this page.
 * The heat index demo uses the formula exactly as printed in the book; it computes in
   doubles where the book uses `float`, so one value differs in the fifth decimal
