@@ -1130,7 +1130,7 @@ Place pizza in official PizzaStore box
 
   opts.forEach(opt => {
     opt.addEventListener('change', () => {
-      opt.classList.remove('right', 'wrong');
+      opt.classList.remove('correct', 'wrong');
       opt.querySelector('.mark').textContent = '';
     });
   });
@@ -1142,23 +1142,24 @@ Place pizza in official PizzaStore box
       const ticked  = opt.querySelector('input').checked;
       const correct = opt.dataset.correct === '1';
       const mark    = opt.querySelector('.mark');
-      opt.classList.remove('right', 'wrong');
-      if (ticked && correct) { opt.classList.add('right'); mark.textContent = '✓'; right++; }
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
       else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
-      else if (!ticked && correct) { mark.textContent = '·'; }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
       else { mark.textContent = ''; }
     });
     const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    const allFound = right === correctSet.length;
     answer.classList.remove('hidden');
-    answer.innerHTML = wrong.length
-      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} correct. Rethink ${wrong.join(', ')} — Factory Method defers through inheritance, Abstract Factory composes a factory object, and DIP pushes both sides towards the abstraction.`
-      : `<strong>All ${correctSet.length} correct.</strong> A, C and F are true: Factory Method defers instantiation to subclasses, Simple Factory is only an Honorable Mention, and a new product in an Abstract Factory means changing the factory interface — which is exactly why the book calls that its weak spot.`;
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, C and F: Factory Method defers instantiation to subclasses, Simple Factory is only an Honorable Mention, and a new product in an Abstract Factory means changing the factory interface — the book’s own criticism of it.`
+      : `<strong>All ${correctSet.length} correct.</strong> Factory Method defers through inheritance, Abstract Factory composes a factory object, DIP pushes both sides towards the abstraction, and a static factory method cannot be overridden.`;
   });
 
   $('#f-quiz-reset', box)?.addEventListener('click', () => {
     opts.forEach(opt => {
       opt.querySelector('input').checked = false;
-      opt.classList.remove('right', 'wrong');
+      opt.classList.remove('correct', 'wrong');
       opt.querySelector('.mark').textContent = '';
     });
     answer.classList.add('hidden');
