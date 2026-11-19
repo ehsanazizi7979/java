@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Head First Design Patterns · Chapters 1–4 — Strategy, Observer, Decorator &amp; Factory Patterns · Summaries, Book Figures, Code and Live Demos</title>
-<meta name="description" content="Visual summaries of chapters 1–4 of Head First Design Patterns (2nd edition): SimUDuck and the Strategy Pattern, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, then Objectville PizzaStore and the factory patterns — with the book's figures (and the text inside them), the full Java code, and live demos of all four chapters.">
+<title>Head First Design Patterns · Chapters 1–5 — Strategy, Observer, Decorator, Factory &amp; Singleton Patterns · Summaries, Book Figures, Code and Live Demos</title>
+<meta name="description" content="Visual summaries of chapters 1–5 of Head First Design Patterns (2nd edition): SimUDuck and the Strategy Pattern, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, then the ChocolateBoiler and the Singleton Pattern — with the book's figures (and the text inside them), the full Java code, and live demos of all five chapters.">
 <style>
 /* ---------------------------------------------------------------- tokens */
 :root{
@@ -518,6 +518,41 @@ footer.site strong{color:#4a4560}
   .duck .label{font-size:.56rem;padding:1px 6px}
   .duck .bubble{font-size:.64rem;top:-28px}
 }
+/* ------------------------------------------- ch.5 Choc-O-Holic demo */
+.cg-modes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.cg-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.cg-grid{grid-template-columns:1fr}}
+.cg-panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+.cg-panel h4{margin:0 0 10px;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--purple-2)}
+.cg-code{
+  margin:0;background:var(--code-bg);color:#e6e1f5;border-radius:12px;padding:14px;overflow:auto;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.76rem;line-height:1.6
+}
+.cg-code .kw{color:#c792ea;font-weight:700}
+.cg-code .cm{color:#7f8ba3}
+.cg-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.cg-table th{
+  text-align:left;font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:#7a7290;
+  padding:6px 8px;border-bottom:1.5px solid var(--line)
+}
+.cg-table td{padding:7px 8px;border-bottom:1px solid #f0eadd;vertical-align:top;line-height:1.45}
+.cg-table tr:last-child td{border-bottom:0}
+.cg-table td.step{color:#a49cba;font-weight:800;width:26px}
+.cg-table td.ok{color:var(--green);font-weight:800;background:#eefaf3}
+.cg-table td.bad{color:var(--red);font-weight:800;background:#fdeef0}
+.cg-empty{color:#9d95b3;font-style:italic;text-align:center;padding:16px 8px!important}
+.cg-verdict{margin-top:14px;border-radius:12px;padding:12px 14px;font-size:.86rem;line-height:1.5}
+.cg-verdict.ok{background:#eaf7f0;border:1px solid #bfe6d1;color:#14603f}
+.cg-verdict.bad{background:#fdeef0;border:1px solid #f6c9ce;color:#8f1f2a}
+.cg-boiler{border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;background:#fdfbff;margin-bottom:10px}
+.cg-boiler.bad{border-color:#f0a9b2;background:#fff7f8}
+.cg-boiler h5{margin:0 0 4px;display:flex;justify-content:space-between;gap:10px;font-size:.86rem}
+.cg-boiler h5 span:last-child{color:var(--purple-2);font-weight:800;font-size:.78rem}
+.cg-boiler .state{margin-top:0;background:transparent;border:0;padding:0;font-size:.74rem;color:#5b5470}
+.cg-shot{height:12px;border-radius:999px;background:#efe9f8;overflow:hidden;margin-top:8px}
+.cg-shot i{display:block;height:100%;width:0;background:linear-gradient(90deg,#8a5a2b,#c98b3e);transition:width .3s}
+.cg-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+
 @media print{
   .topbar,.pond,.console,.demo-wrap{display:none!important}
   body{background:#fff}
@@ -531,7 +566,7 @@ footer.site strong{color:#4a4560}
 
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–4</a>
+    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–5</a>
     <nav class="navlinks">
       <a href="#story">SimUDuck</a>
       <a href="#principles">Principles</a>
@@ -565,6 +600,14 @@ footer.site strong{color:#4a4560}
       <a href="#f-abstract">Abstract Factory</a>
       <a href="#f-demo">Pizza demo</a>
       <a href="#f-cheatsheet">Ch. 4 recap</a>
+      <span class="navsep" aria-hidden="true">Ch.&nbsp;5</span>
+      <a href="#s-story">One object</a>
+      <a href="#s-classic">Classic Singleton</a>
+      <a href="#s-chocolate">Choc-O-Holic</a>
+      <a href="#s-threads">Two threads</a>
+      <a href="#s-enum">Enum</a>
+      <a href="#s-demo">Boiler demo</a>
+      <a href="#s-cheatsheet">Ch. 5 recap</a>
     </nav>
   </div>
 </div>
@@ -1324,11 +1367,13 @@ model.performFly();</pre>
 
 {{CHAPTER4}}
 
+{{CHAPTER5}}
+
 <footer class="site">
   <div class="wrap">
-    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168).</div>
-    <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and the four interactive simulators are written for this page.</div>
-    <div><strong>Built:</strong> four chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz and Objectville Pizza Kitchen demos (no external assets, works offline).</div>
+    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168) and Chapter 5, “One-of-a-Kind Objects” (pages 169–190).</div>
+    <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and the five interactive simulators are written for this page.</div>
+    <div><strong>Built:</strong> five chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen and Choc-O-Holic boiler demos (no external assets, works offline).</div>
     <a class="totop" href="#top">↑ back to top</a>
   </div>
 </footer>

@@ -1,9 +1,9 @@
 # java
 
-## Head First Design Patterns (2nd ed.) — study pages, chapters 1–4
+## Head First Design Patterns (2nd ed.) — study pages, chapters 1–5
 
 `head-first-ch1-design-patterns.html` is one self-contained page (no external assets,
-works offline) that summarizes the first four chapters of *Head First Design Patterns*:
+works offline) that summarizes the first five chapters of *Head First Design Patterns*:
 
 **Chapter 1 — Welcome to Design Patterns / Strategy** (book pages 1–36)
 the SimUDuck story, the three OO design principles, the Strategy Pattern, the diner-talk
@@ -50,6 +50,21 @@ Kitchen**: three eras of the same shop (dependent store → Factory Method → A
 any store × any pizza, the book's own console strings, and a live dependency/ingredient
 readout for whatever you order.
 
+**Chapter 5 — One-of-a-Kind Objects / Singleton** (book pages 169–190)
+"an entire chapter about how to instantiate just ONE object?" — yes: thread pools, caches,
+registries, drivers, the chocolate boiler. The Socratic *Little Singleton* dialogue builds the
+pattern out of a private constructor plus a static method; then the chapter dissects the
+classic lazy implementation line by line (the Code Up Close box, the "Watch it!" warning), the
+interview with the Singleton itself, Choc-O-Holic's `ChocolateBoiler` and the two-boiler
+exercise, the 500-gallons-of-spilled-milk thread bug with the "BE the JVM" interleaving
+exercise and its solution table, the three fixes (synchronized, eager static initializer,
+double-checked locking with `volatile`, plus the Java-5 caveat), the one-constant enum
+shortcut, the "Dubious Questions" fine print (static methods, class loaders, reflection,
+serialization, loose coupling, subclassing), the toolbox, the chapter 5 crossword with its
+solution, and a live **Choc-O-Holic boiler plant**: pick one of the five implementations,
+run the two threads and watch `uniqueInstance` at every step of the trace, then fill/boil/drain
+the boiler and see which plant ends up with two of them.
+
 ### Build
 
 ```bash
@@ -57,6 +72,7 @@ python tools/crop_ch1.py     # chapter 1 figures  -> assets/ch1/*.jpg
 python tools/crop_ch2.py     # chapter 2 figures  -> assets/ch2/*.jpg
 python tools/crop_ch3.py     # chapter 3 figures  -> assets/ch3/*.jpg
 python tools/crop_ch4.py     # chapter 4 figures  -> assets/ch4/*.jpg
+python tools/crop_ch5.py     # chapter 5 figures  -> assets/ch5/*.jpg
 python tools/build_page.py   # inlines all chapters + base64 images -> head-first-ch1-design-patterns.html
 ```
 
@@ -69,19 +85,21 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   (`{{IMG3:name}}`, plus its own `<script>` block for the coffee builder)
 * `site_src/chapter4.template.html` — chapter 4, spliced in at `{{CHAPTER4}}`
   (`{{IMG4:name}}`, plus its own `<script>` block for the pizza kitchen and quiz)
-* `site_src/figure-text-ch1.json`, `-ch2.json`, `-ch3.json`, `-ch4.json` — curated
+* `site_src/chapter5.template.html` — chapter 5, spliced in at the `{{CHAPTER5}}` marker
+  (`{{IMG5:name}}`, plus its own `<script>` block for the boiler plant and quiz)
+* `site_src/figure-text-ch1.json`, `-ch2.json`, `-ch3.json`, `-ch4.json`, `-ch5.json` — curated
   transcripts of the text printed inside each figure; `tools/figure_text.py` dumps the raw
   PDF text layer per crop to help edit them. Each chapter's markers are resolved against its
   own table, so a repeated figure name (`opener`, `crossword`, `toolbox`) never picks up
   another chapter's text.
-* `tools/crop_ch1.py`, `tools/crop_ch2.py`, `tools/crop_ch3.py`, `tools/crop_ch4.py` — crop
+* `tools/crop_ch1.py` … `tools/crop_ch5.py` — crop
   boxes in PDF points (the page is 576 × 666 pt)
 * `index.html` — meta-refresh to the page (handy when serving the folder)
 
 ### Notes
 
 * The figures are book excerpts, © O'Reilly Media — study material, not for redistribution.
-  The Java listings are the book's code; the JavaScript ports and the four interactive
+  The Java listings are the book's code; the JavaScript ports and the five interactive
   simulators are written for this page.
 * The heat index demo uses the formula exactly as printed in the book; it computes in
   doubles where the book uses `float`, so one value differs in the fifth decimal
@@ -91,3 +109,7 @@ Needs `pymupdf` and `pillow`. Sources of truth:
 * The pizza kitchen reproduces the book's console strings verbatim; the California store is
   the chapter's own design-puzzle extension (the book writes the class but never runs it),
   and its ingredient family is the one on page 145.
+* The boiler demo is a JavaScript port of the book's two-thread trace, not a real JVM: the
+  interleavings it shows are the ones on pages 182–183 and 188, and the `synchronized` /
+  `volatile` / enum panels state the same guarantees the book states rather than simulating
+  a memory model. The double-checked-locking verdict repeats the book's Java-5 caveat.
