@@ -1,0 +1,608 @@
+{
+ "opener": [
+  "12 compound patterns",
+  "Patterns of Patterns Who would have ever guessed that Patterns could work together?",
+  "You’ve already witnessed the acrimonious Fireside Chats (and you haven’t even seen the Pattern Death Match pages that the editor forced us to remove from the book), so who would have thought patterns can actually get along well together? Well, believe it or not, some of the most",
+  "powerful OO designs use several patterns together. Get ready to take your pattern skills to the next level; it’s time for compound patterns."
+ ],
+ "working-together": [
+  "Working together One of the best ways to use patterns is to get them out of the house so they can interact with other patterns. The more you use patterns the more you’re going to see them showing up together in your designs. We have a special name for a set of patterns that work together in a design that can be applied over many problems: a compound pattern. That’s right, we are now talking about patterns made of patterns!",
+  "You’ll find a lot of compound patterns in use in the real world. Now that you’ve got patterns in your brain, you’ll see that they are really just patterns working together, and that makes them easier to understand.",
+  "We’re going to start this chapter by revisiting our friendly ducks in the SimUDuck duck simulator. It’s only fitting that the ducks should be here when we combine patterns; after all, they’ve been with us throughout the entire book and they’ve been good sports about taking part in lots of patterns.",
+  "The ducks are going to help you understand how patterns can work together in the same solution. But just because we’ve combined some patterns doesn’t mean we have a solution that qualifies as a compound pattern. For that, it has to be a general-purpose solution that can be applied to many problems.",
+  "So, in the second half of the chapter we’ll visit a real compound pattern: the Model-View-Controller, otherwise known as MVC. If you haven’t heard of MVC, you will, and you’ll find MVC is one of the most powerful compound patterns in your design toolbox.",
+  "Patterns are often used together and combined within the same design solution.",
+  "A compound pattern combines two or more patterns into a solution that solves a recurring or general problem."
+ ],
+ "quackable": [
+  "Duck reunion As you’ve already heard, we’re going to get to work with the ducks again. This time the ducks are going to show you how patterns can coexist and even cooperate within the same solution.",
+  "We’re going to rebuild our duck simulator from scratch and give it some interesting capabilities by using a bunch of patterns. Okay, let’s get started...",
+  "1 First, we’ll create a Quackable interface.",
+  "Like we said, we’re starting from scratch. This time around, the Ducks are going to implement a Quackable interface. That way we’ll know what things in the simulator can quack()—like Mallard Ducks, Redhead Ducks, Duck Calls, and we might even see the Rubber Duck sneak back in.",
+  "Quackables only need to do public interface Quackable { one thing well: Quack!",
+  "public void quack(); 2 Now, some Ducks that implement Quackable What good is an interface without some classes to implement it? Time to create some concrete ducks (but not the “lawn art” kind, if you know what we mean).",
+  "Your standard",
+  "Mallard duck."
+ ],
+ "duck-simulator": [
+  "This wouldn’t be much fun if we didn’t add other kinds of Ducks too.",
+  "Remember last time? We had duck calls (those things hunters use—they are definitely quackable) and rubber ducks.",
+  "public class DuckCall implements Quackable { public void quack() {",
+  "A DuckCall that quacks but",
+  "System.out.println(\"Kwak\"); doesn’t sound quite like the real thing.",
+  "public class RubberDuck implements Quackable { public void quack() {",
+  "A RubberDuck that makes a",
+  "System.out.println(\"Squeak\"); squeak when it quacks.",
+  "3 Okay, we’ve got our ducks; now all we need is a simulator.",
+  "Let’s cook up a simulator that creates a few ducks and makes sure their quackers are working..."
+ ],
+ "goose": [
+  "Not too exciting yet, but we haven’t added patterns!",
+  "File Edit Window Help ItBetterGetBetterThanThis % java DuckSimulator",
+  "Duck Simulator",
+  "Quack",
+  "Kwak",
+  "Squeak",
+  "They all implement the same Quackable interface, but their implementations allow them to quack in their own way.",
+  "It looks like everything is working; so far, so good.",
+  "4 When ducks are around, geese can’t be far.",
+  "Where there is one waterfowl, there are probably two. Here’s a Goose class that has been hanging around the simulator.",
+  "public class Goose {",
+  "A Goose is a honker,"
+ ],
+ "goose-adapter": [
+  "5 We need a goose adapter.",
+  "Our simulator expects to see Quackable interfaces. Since geese aren’t quackers (they’re honkers), we can use an adapter to adapt a goose to a duck.",
+  "Remember, an Adapter implements the target interface, public class GooseAdapter implements Quackable { Goose goose; public GooseAdapter(Goose goose) { this.goose = goose; } public void quack() { goose.honk(); } }",
+  "which in this case is Quackable.",
+  "The constructor takes the goose we are going to adapt.",
+  "When quack is called, the call is delegated to the goose’s honk() method.",
+  "6 Now geese should be able to play in the simulator, too.",
+  "All we need to do is create a Goose and wrap it in an adapter that implements Quackable, and we should be good to go.",
+  "public class DuckSimulator { public static void main(String[] args) { DuckSimulator simulator = new DuckSimulator(); simulator.simulate(); }",
+  "We make a Goose that acts"
+ ],
+ "goose-output": [
+  "7 Now let’s give this a quick run...",
+  "This time when we run the simulator, the list of objects passed to the simulate() method includes a Goose wrapped in a duck adapter. The result? We should see some honking!",
+  "File Edit Window Help GoldenEggs % java DuckSimulator",
+  "Duck Simulator: With Goose Adapter",
+  "Quack",
+  "There’s the goose! Now the",
+  "Kwak Goose can quack with the rest of the Ducks.",
+  "Squeak",
+  "Honk",
+  "Quackology Quackologists are fascinated by all aspects of Quackable behavior. One thing Quackologists have always wanted to study is the total number of quacks made by a flock of ducks."
+ ],
+ "quack-counter": [
+  "8 We’re going to make those Quackologists happy and give them some quack counts.",
+  "How? Let’s create a decorator that gives the ducks some new behavior (the behavior of counting) by wrapping them with a decorator object. We won’t have to change the Duck code at all.",
+  "As with Adapter, we need to",
+  "QuackCounter is a decorator.",
+  "implement the target interface.",
+  "We’ve got an instance variable to hold on to the quacker we’re decorating.",
+  "public class QuackCounter implements Quackable { And we’re counting ALL quacks, so we’ll use a static variable to keep track.",
+  "Quackable duck; static int numberOfQuacks; public QuackCounter (Quackable duck) { We get the reference to the Quackable we’re decorating in the constructor.",
+  "this.duck = duck; public void quack() {"
+ ],
+ "decorator-simulator": [
+  "9 We need to update the simulator to create decorated ducks.",
+  "Now, we must wrap each Quackable object we instantiate in a QuackCounter decorator. If we don’t, we’ll have ducks running around making uncounted quacks.",
+  "public class DuckSimulator { public static void main(String[] args) { DuckSimulator simulator = new DuckSimulator(); simulator.simulate(); }",
+  "Each time we create a Quackable, we wrap it with a new decorator.",
+  "void simulate() { Quackable mallardDuck = new QuackCounter(new MallardDuck()); Quackable redheadDuck = new QuackCounter(new RedheadDuck()); Quackable duckCall = new QuackCounter(new DuckCall()); Quackable rubberDuck = new QuackCounter(new RubberDuck()); Quackable gooseDuck = new GooseAdapter(new Goose());",
+  "System.out.println(\"\\nDuck Simulator: With Decorator\");",
+  "The park ranger told us he simulate(mallardDuck); simulate(redheadDuck); simulate(duckCall); simulate(rubberDuck); simulate(gooseDuck); didn’t want to count geese honks, so we don’t decorate it.",
+  "Here’s where we gather the quacking behavior for the Quackologists.",
+  "System.out.println(\"The ducks quacked \" + QuackCounter.getQuacks() + \" times\"); } void simulate(Quackable duck) { duck.quack(); } }"
+ ],
+ "abstract-factory": [
+  "This quack counting is great. We’re learning things we never knew about the little quackers. But we’re finding that too many quacks aren’t being counted. Can you help?",
+  "You have to decorate objects to get decorated behavior.",
+  "He’s right, that’s the problem with wrapping objects: you have to make sure they get wrapped or they don’t get the decorated behavior.",
+  "Why don’t we take the creation of ducks and localize it in one place; in other words, let’s take the duck creation and decorating and encapsulate it.",
+  "What pattern does that sound like?",
+  "10 We need a factory to produce ducks! Okay, we need some quality control to make sure our ducks get wrapped. We’re going to build an entire factory just to produce them. The factory should produce a family of products that consists of different types of ducks, so we’re going to use the Abstract Factory Pattern.",
+  "Let’s start with the definition of the AbstractDuckFactory class:",
+  "We’re defining an abstract factory that subclasses will implement to create different families.",
+  "public abstract class AbstractDuckFactory { public abstract Quackable createMallardDuck(); public abstract Quackable createRedheadDuck();"
+ ],
+ "counting-factory": [
+  "Next we’ll create a factory that creates ducks without decorators, just to get the hang of the factory:",
+  "public class DuckFactory extends AbstractDuckFactory { public Quackable createMallardDuck() { return new MallardDuck(); } public Quackable createRedheadDuck() { return new RedheadDuck(); } public Quackable createDuckCall() { return new DuckCall(); } public Quackable createRubberDuck() { return new RubberDuck(); } }",
+  "DuckFactory extends the abstract factory.",
+  "Each method creates a product:",
+  "a particular kind of Quackable. The actual product is unknown to the simulator — it just knows it’s getting a Quackable.",
+  "CountingDuckFactory also extends the Now let’s create the factory we really want, the CountingDuckFactory:",
+  "abstract factory.",
+  "public class CountingDuckFactory extends AbstractDuckFactory { public Quackable createMallardDuck() { return new QuackCounter(new MallardDuck()); } public Quackable createRedheadDuck() { return new QuackCounter(new RedheadDuck()); } public Quackable createDuckCall() { return new QuackCounter(new DuckCall()); } public Quackable createRubberDuck() { return new QuackCounter(new RubberDuck()); } }",
+  "Each method wraps the Quackable with the quack counting decorator. The simulator will never know the difference; it just gets back a Quackable. But now our rangers can be sure that all quacks are being counted."
+ ],
+ "factory-simulator": [
+  "11 Let’s set up the simulator to use the factory.",
+  "Remember how Abstract Factory works? We create a polymorphic method that takes a factory and uses it to create objects. By passing in different factories, we get to use different product families in the method.",
+  "We’re going to alter the simulate() method so that it takes a factory and uses it to create ducks.",
+  "First we create the factory that we’re going public class DuckSimulator { to pass into public static void main(String[] args) { the simulate()",
+  "DuckSimulator simulator = new DuckSimulator(); method.",
+  "AbstractDuckFactory duckFactory = new CountingDuckFactory();"
+ ],
+ "factory-output": [
+  "Here’s the output using the factory...",
+  "File Edit Window Help EggFactory % java DuckSimulator",
+  "Same as last time,",
+  "Duck Simulator: With Abstract Factory but this time",
+  "Quack we’re ensuring that",
+  "Quack the ducks are all",
+  "Kwak decorated because we are using the",
+  "Squeak"
+ ],
+ "flock-puzzle": [
+  "It’s getting a little difficult to manage all these different ducks separately. Is there any way you can help us manage ducks as a whole, and perhaps even allow us to manage a few duck “families” that we’d like to keep track of?",
+  "Ah, he wants to manage a flock of ducks.",
+  "Here’s another good question from Ranger Brewer: Why are we managing ducks individually?",
+  "Quackable mallardDuck = duckFactory.createMallardDuck();",
+  "This isn’t very Quackable redheadDuck = duckFactory.createRedheadDuck(); manageable!",
+  "Quackable duckCall = duckFactory.createDuckCall(); Quackable rubberDuck = duckFactory.createRubberDuck(); Quackable gooseDuck = new GooseAdapter(new Goose()); simulate(mallardDuck); simulate(redheadDuck);",
+  "simulate(duckCall);"
+ ],
+ "flock-code": [
+  "12 Let’s create a flock of ducks (well, actually a flock of Quackables).",
+  "Remember the Composite Pattern that allows us to treat a collection of objects in the same way as individual objects? What better composite than a flock of Quackables!",
+  "Let’s step through how this is going to work:",
+  "Remember, the composite needs to implement the same interface as the leaf elements. Our leaf elements are Quackables.",
+  "We’re using an ArrayList inside each Flock to hold the Quackables that belong to the Flock.",
+  "public class Flock implements Quackable { List<Quackable> quackers = new ArrayList<Quackable>();",
+  "The add() method adds a public void add(Quackable quacker) {",
+  "Quackable to the Flock.",
+  "quackers.add(quacker); public void quack() { Iterator<Quackable> iterator = quackers.iterator();"
+ ],
+ "composite-simulator": [
+  "13 Now we need to alter the simulator.",
+  "Our composite is ready; we just need some code to round up the ducks into the composite structure.",
+  "public class DuckSimulator { // main method here void simulate(AbstractDuckFactory duckFactory) { Quackable redheadDuck = duckFactory.createRedheadDuck(); Quackable duckCall = duckFactory.createDuckCall(); Quackable rubberDuck = duckFactory.createRubberDuck(); Quackable gooseDuck = new GooseAdapter(new Goose());",
+  "Create all the Quackables, just like before.",
+  "System.out.println(\"\\nDuck Simulator: With Composite - Flocks\");",
+  "Flock flockOfDucks = new Flock(); First we create a Flock and load it up with Quackables.",
+  "flockOfDucks.add(redheadDuck); flockOfDucks.add(duckCall); flockOfDucks.add(rubberDuck); flockOfDucks.add(gooseDuck);",
+  "Then we create a new",
+  "Flock of mallards.",
+  "Flock flockOfMallards = new Flock(); Here we’re creating a little family of mallards...",
+  "Quackable mallardOne = duckFactory.createMallardDuck(); Quackable mallardTwo = duckFactory.createMallardDuck(); Quackable mallardThree = duckFactory.createMallardDuck(); Quackable mallardFour = duckFactory.createMallardDuck();",
+  "flockOfMallards.add(mallardOne); flockOfMallards.add(mallardTwo); flockOfMallards.add(mallardThree); flockOfMallards.add(mallardFour);"
+ ],
+ "composite-output": [
+  "Let’s give it a spin...",
+  "File Edit Window Help FlockADuck % java DuckSimulator",
+  "Duck Simulator: With Composite - Flocks",
+  "Duck Simulator: Whole Flock Simulation",
+  "Quack",
+  "Here’s the first flock.",
+  "Kwak",
+  "Squeak",
+  "Honk",
+  "Quack",
+  "Duck Simulator: Mallard Flock Simulation",
+  "And now the mallards.",
+  "Quack"
+ ],
+ "observer-intro": [
+  "The Composite is working great! Thanks! Now we have the opposite request: we also need to track individual ducks. Can you give us a way to keep track of individual duck quacking in real time?",
+  "Can you say “observer”?",
+  "It sounds like the Quackologist would like to observe individual duck behavior. That leads us right to a pattern made for observing the behavior of objects: the Observer Pattern.",
+  "14 First we need an interface for our Subject.",
+  "Remember that the Subject is the object being observed. Let’s call it something more memorable—how about Observable? An Observable needs methods for registering and notifying observers. We could also have a method for removing observers, but we’ll keep the implementation simple here and leave that out.",
+  "QuackObservable is the interface that Quackables should implement if they want to be observed.",
+  "public interface QuackObservable { public void registerObserver(Observer observer); It has a method for registering Observers. Any object implementing the Observer interface can listen to quacks. We’ll define the Observer interface in a sec.",
+  "public void notifyObservers(); It also has a method for notifying the observers.",
+  "Now we need to make sure all Quackables implement this interface..."
+ ],
+ "observable-helper": [
+  "Stop looking at me.",
+  "Now, we need to make sure all the concrete classes that implement Quackable can handle being a QuackObservable.",
+  "You’re making me nervous!",
+  "We could approach this by implementing registration and notification in each and every class (like we did in Chapter 2). But we’re going to do it a little differently this time: we’re going to encapsulate the registration and notification code in another class, call it Observable, and compose it with QuackObservable. That way, we only write the real code once and QuackObservable just needs enough code to delegate to the helper class Observable.",
+  "Let’s begin with the Observable helper class.",
+  "QuackObserverable Observable implements all the functionality a Quackable needs to be an observable. We just need to plug it into a class and have",
+  "Observable must implement QuackObservable because these are the same method calls that are going to be delegated to it.",
+  "that class delegate to Observable.",
+  "In the constructor we get passed the QuackObservable that is using this object"
+ ],
+ "duck-observable": [
+  "16 Integrate the helper Observable with the Quackable classes.",
+  "This shouldn’t be too bad. All we need to do is make sure the Quackable classes are composed with an Observable and that they know how to delegate to it. After that, they’re ready to be Observables. Here’s the implementation of MallardDuck; the other ducks are the same.",
+  "Each Quackable has an Observable instance variable.",
+  "public class MallardDuck implements Quackable { Observable observable; public MallardDuck() { observable = new Observable(this); } public void quack() { System.out.println(\"Quack\"); notifyObservers(); } public void registerObserver(Observer observer) { observable.registerObserver(observer); } public void notifyObservers() { observable.notifyObservers(); } }",
+  "In the constructor, we create an Observable and pass it a reference to the MallardDuck object.",
+  "When we quack, we need to let the observers know about it.",
+  "Here are our two QuackObservable methods. Notice that we just delegate to the helper.",
+  "We haven’t changed the implementation of one Quackable, the QuackCounter decorator. We need to make it an Observable too. Why don’t you write that one:"
+ ],
+ "observer-interface": [
+  "17 We’re almost there! We just need to work on the Observer side of the pattern.",
+  "We’ve implemented everything we need for the Observables; now we need some Observers. We’ll start with the Observer interface:",
+  "The Observer interface just has one method, update(), which is passed the QuackObservable that is quacking.",
+  "public interface Observer { public void update(QuackObservable duck); Now we need an Observer: where are those Quackologists?!",
+  "We need to implement the Observer interface or else we won’t be able to register with a QuackObservable.",
+  "public class Quackologist implements Observer { public void update(QuackObservable duck) { System.out.println(\"Quackologist: \" + duck + \" just quacked.\");",
+  "The Quackologist is simple; it just has one method, update(), which prints out the Quackable that just quacked."
+ ],
+ "flock-observable-exercise": [
+  "What if a Quackologist wants to observe an entire flock? What does that mean anyway? Think about it like this: if we observe a composite, then we’re observing everything in the composite. So, when you register with a flock, the flock composite makes sure you get registered with all its children (sorry, all its little quackers), which may include other flocks.",
+  "Go ahead and write the Flock observer code before we go any further."
+ ],
+ "flock-observer-impl": [
+  "18 We’re ready to observe. Let’s update the simulator and give it a try:",
+  "public class DuckSimulator { public static void main(String[] args) { DuckSimulator simulator = new DuckSimulator(); AbstractDuckFactory duckFactory = new CountingDuckFactory(); simulator.simulate(duckFactory);",
+  "void simulate(AbstractDuckFactory duckFactory) { // create duck factories and ducks here // create flocks here System.out.println(\"\\nDuck Simulator: With Observer\");",
+  "All we do here is create a Quackologist and set Quackologist quackologist = new Quackologist(); him as an observer of the flock."
+ ],
+ "duck-finale": [
+  "This is the big finale. Five—no, six—patterns have come together to create this amazing Duck Simulator. Without further ado, we present DuckSimulator!",
+  "File Edit Window Help DucksAreEverywhere % java DuckSimulator",
+  "After each quack, no Duck Simulator: With Observer Quack Quackologist: Redhead Duck just quacked. Kwak Quackologist: Duck Call just quacked. Squeak Quackologist: Rubber Duck just quacked. Honk Quackologist: Goose pretending to be a Duck just quacked. Quack Quackologist: Mallard Duck just quacked.",
+  "Quack Quackologist: Mallard Duck just quacked. Quack Quackologist: Mallard Duck just quacked. Quack Quackologist: Mallard Duck just quacked. The Ducks quacked 7 times.",
+  "matter what kind of quack it was, the observer gets a notification.",
+  "And the quackologist still gets his counts."
+ ],
+ "what-we-did": [
+  "What did we do?",
+  "We started with a bunch of Quackables...",
+  "A goose came along and wanted to act like a Quackable too. So we used the Adapter Pattern to adapt the goose to a Quackable. Now, you can call quack() on a goose wrapped in the adapter and it will honk!",
+  "Then, the Quackologists decided they wanted to count quacks. So we used the Decorator Pattern to add a QuackCounter decorator that keeps track of the number of times quack() is called, and then delegates the quack to the Quackable it’s wrapping.",
+  "But the Quackologists were worried they’d forget to add the QuackCounter decorator. So we used the Abstract Factory Pattern to create ducks for them. Now, whenever they want a duck, they ask the factory for one, and it hands back a decorated duck. (And don’t forget, they can also use another duck factory if they want an undecorated duck!)",
+  "We had management problems keeping track of all those ducks and geese and quackables. So we used the Composite Pattern to group Quackables into Flocks. The pattern also allows the Quackologist to create subFlocks to manage duck families. We used the Iterator Pattern in our implementation by using java.util’s iterator in ArrayList.",
+  "The Quackologists also wanted to be notified when any Quackable quacked. So we used the Observer Pattern to let the Quackologists register as Quackable Observers. Now they’re notified every time any Quackable quacks. We used iterator again in this implementation. The Quackologists can even use the Observer Pattern with their composites.",
+  "That was quite a Design Pattern workout. You should study the class diagram on the next page and then take a relaxing break before continuing on with Model-View-Controller."
+ ],
+ "duck-class-diagram-1": [
+  "A bird’s duck’s-eye view: the class diagram We’ve packed a lot of patterns into one small duck simulator! Here’s the big picture of what we did:",
+  "DuckSimulator DuckSimulator uses a factory to create Ducks.",
+  "AbstractDuckFactory createMallardDuck()",
+  "createRedheadDuck()",
+  "createDuckCall()",
+  "createRubberDuck()",
+  "DuckFactory",
+  "CountingDuckFactory createMallardDuck()",
+  "createRedheadDuck()",
+  "createDuckCall()"
+ ],
+ "duck-class-diagram-2": [
+  "The QuackObservable interface gives us a set of methods that any Observable must implement.",
+  "Each Quackable has an instance of Observable to keep track of their Quackable is the interface that all classes that have quacking behavior implement.",
+  "<<interface>> QuackObservable observers and notify them when the Quackable quacks.",
+  "registerObserver(Observer)",
+  "notifyObservers()",
+  "Observable <<interface>>",
+  "List observers",
+  "Quackable",
+  "QuackObservable duck"
+ ],
+ "mvc-song-1": [
+  "The King of Compound Patterns If Elvis were a compound pattern, his name would be Model-View-Controller, and he’d be singing a little song like this...",
+  "Model, View, Controller Model a bottle of fine Chardonnay Model all the glottal stops people say Model the coddling of boiling eggs You can model the waddle in Hexley’s legs",
+  "Lyrics and music by James Dempsey.",
+  "MVC’s a paradigm for factoring your code into functional segments, so your brain does not explode. To achieve reusability, you gotta keep those boundaries",
+  "Model View, you can model all the models that pose for GQ Model View Controller clean Model on the one side, View on the other, the Controller’s",
+  "So does Java!",
+  "in between.",
+  "View objects tend to be controls used to display and edit Cocoa’s got a lot of those, well written to its credit. Take an NSTextView, hand it any old Unicode string The user can interact with it, it can hold most anything",
+  "View",
+  "Creamy",
+  "Controller"
+ ],
+ "mvc-song-2": [
+  "How we gonna deep six all that glue Model View Controller Model View, it’s pronounced Oh Oh not Ooo Ooo Model View Controller",
+  "Controllers know the Model and View very intimately They often use hardcoding which can be foreboding for",
+  "There’s a little left to this story reusability But now you can connect each model key that you select to any view property",
+  "A few more miles upon this road Nobody seems to get much glory From writing the controller code And once you start binding I think you’ll be finding less code in your source tree",
+  "Well, the model’s mission critical And gorgeous is the view I might be lazy, but sometimes it’s just crazy How much code I write is just glue And it wouldn’t be so tragic",
+  "Yeah, I know I was elated by the stuff they’ve automated and the things you get for free But the code ain’t doing magic It’s just moving values through",
+  "And I think it bears repeating all the code you won’t be needing when you hook it up in IB.",
+  "And I don’t mean to be vicious"
+ ],
+ "mvc-named": [
+  "Cute song, but is that really supposed to teach me what Model-View- Controller is? I’ve tried learning MVC before and it made my brain hurt.",
+  "Design Patterns are your key to understanding MVC.",
+  "We were just trying to whet your appetite with the song. Tell you what, after you finish reading this chapter, go back and listen to the song again—you’ll have more fun.",
+  "It sounds like you’ve had a bad run-in with MVC before? Most of us have. You’ve probably had other developers tell you it’s changed their lives and could possibly create world peace. It’s a powerful compound pattern, for sure, and while we can’t claim it will create world peace, it will save you hours of writing code once you know it.",
+  "But first you have to learn it, right? Well, there’s going to be a big difference this time around because now you know patterns!",
+  "That’s right, patterns are the key to MVC. Learning MVC from the top down is difficult; not many developers succeed. Here’s the secret to learning MVC: it’s just a few patterns put together. When you approach learning MVC by looking at the patterns, all of a sudden it starts to make sense.",
+  "Let’s get started. This time around, you’re going to nail MVC!"
+ ],
+ "mvc-meet": [
+  "Meet Model-View-Controller Imagine you’re using your favorite music player, like iTunes. You can use its interface to add new songs, manage playlists, and rename tracks. The player takes care of maintaining a little database of all your songs along with their associated names and data. It also takes care of playing the songs and, as it does, the user interface is constantly updated with the current song title, the running time, and so on.",
+  "Well, underneath it all sits Model-View-Controller...",
+  "you use the you use the the view display is updated for interface and interface and your actions your actions go to the go to the",
+  "You see the song you controller controller display update and hear the new song",
+  "“Play new song”"
+ ],
+ "mvc-close-look": [
+  "A closer look...",
+  "The music player description gives us a high-level view of MVC, but it really doesn’t help you understand the nitty-gritty of how the compound pattern works, how you’d build one yourself, or why it’s such a good thing. Let’s start by stepping through the relationships among the model, view, and controller, and then we’ll take second look from the perspective of Design Patterns.",
+  "CONTROLLER",
+  "Takes user input and figures out what it means to the model.",
+  "MODEL",
+  "The model holds all",
+  "VIEW",
+  "Here’s the creamy the data, state, and application logic. The model is oblivious to the view and controller, although it provides an interface to manipulate and retrieve its state and it can send notifications of state changes to observers.",
+  "Gives you a presentation of the model. The view usually gets the state and data it needs to display directly from the model.",
+  "controller; it lives in the middle.",
+  "Change your"
+ ],
+ "mvc-roles": [
+  "1 You’re the user—you interact with the view.",
+  "The view is your window to the model. When you do something to the view (like click the Play button), then the view tells the controller what you did. It’s the controller’s job to handle that.",
+  "2 The controller asks the model to change its state.",
+  "The controller takes your actions and interprets them. If you click a button, it’s the controller’s job to figure out what that means and how the model should be manipulated based on that action.",
+  "3 The controller may also ask the view to change.",
+  "When the controller receives an action from the view, it may need to tell the view to change as a result. For example, the controller could enable or disable certain buttons or menu items in the interface.",
+  "4 The model notifies the view when its state has changed.",
+  "When something changes in the model, based either on some action you took (like clicking a button) or some other internal change (like the next song in the playlist has started), the model notifies the view that its state has changed.",
+  "5 The view asks the model for state.",
+  "The view gets the state it displays directly from the model. For instance, when the"
+ ],
+ "mvc-patterns": [
+  "Understanding MVC as a set of Patterns We’ve already suggested that the best path to learning MVC is to see it for what it is: a set of patterns working together in the same design.",
+  "Let’s start with the model: the model uses Observer to keep the views and controllers updated on the latest state changes. The view and the controller, on the other hand, implement the Strategy Pattern.",
+  "The controller is the strategy of the view, and it can be easily exchanged with another controller if you want different behavior. The view itself also uses a pattern internally to manage the windows, buttons, and other components of the display: the Composite Pattern.",
+  "Let’s take a closer look:",
+  "Strategy The view and controller implement the classic Strategy Pattern: the view is an object that is configured with a strategy. The controller provides the strategy.",
+  "The view is concerned only with the visual aspects of the application, and delegates to the controller any decisions about the interface behavior.",
+  "Using the Strategy Pattern also keeps the view decoupled from the model because it is the controller that is responsible for interacting with the model to carry out user requests. The view knows nothing about how this gets done.",
+  "The user did",
+  "Change your something",
+  "Controller"
+ ],
+ "mvc-trio": [
+  "Observer",
+  "All these observers will be",
+  "Observers notified whenever state changes in the model.",
+  "Observable",
+  "My state has changed!",
+  "class Foo { void bar() {",
+  "View doBar(); } }",
+  "View",
+  "Model",
+  "Controller",
+  "Any object that’s"
+ ],
+ "dj-intro": [
+  "Using MVC to control the beat...",
+  "It’s your time to be the DJ. When you’re a DJ it’s all about the beat. You might start your mix with a slowed, down-tempo groove at 95 beats per minute (BPM) and then bring the crowd up to a frenzied 140 BPM of trance techno. You’ll finish off your set with a mellow 80 BPM ambient mix.",
+  "How are you going to do that? You have to control the beat, and you’re going to build the tool to get you there.",
+  "Meet the Java DJ View Let’s start with the view of the tool. The view allows you to create a driving drumbeat and tune its beats per minute...",
+  "A pulsing bar shows the beat in real time.",
+  "A display shows the current BPMs and is automatically set whenever the BPM changes.",
+  "The view has two parts, the part for viewing the state of the model and the part for controlling things."
+ ],
+ "dj-model": [
+  "You can start the",
+  "You use the Stop beat kicking by button to shut down the beat generation.",
+  "choosing the Start menu item in the “DJ",
+  "Control” menu.",
+  "Notice Stop is disabled until you start the beat.",
+  "Notice Start is disabled after the beat has started.",
+  "All user actions are sent to the controller.",
+  "The controller is in the middle...",
+  "The controller sits between the view and"
+ ],
+ "dj-pieces": [
+  "Putting the pieces together",
+  "The beat is set at 119 BPM and you would like to increase it to 120.",
+  "Click the increase beat button...",
+  "View ...which results in the controller being invoked.",
+  "The controller asks the model to update its BPM by one.",
+  "Controller",
+  "You see the beat bar pulse every 1/2 second.",
+  "Because the BPM is 120, the view gets a beat notification every 1/2 second."
+ ],
+ "beat-model-interface": [
+  "Building the pieces Okay, you know the model is responsible for maintaining all the data, state, and any application logic. So what’s the BeatModel got in it? Its main job is managing the beat, so it has state that maintains the current beats per minute and code to play an audio clip to create the beat that we hear.",
+  "It also exposes an interface that lets the controller manipulate the beat and lets the view and controller obtain the model’s state. Also, don’t forget that the model uses the Observer Pattern, so we also need some methods to let objects register as observers and send out notifications.",
+  "Let’s check out the BeatModelInterface before looking at the implementation:",
+  "This gets called after",
+  "BeatModel is instantiated.",
+  "public interface BeatModelInterface { void initialize();",
+  "These are the methods",
+  "These methods turn the the controller will void on(); beat generator on and off."
+ ],
+ "beat-model-class": [
+  "Now let’s have a look at the concrete BeatModel class We implement the BeatModeIInterface and Runnable.",
+  "public class BeatModel implements BeatModelInterface, Runnable { List<BeatObserver> beatObservers = new ArrayList<BeatObserver>(); List<BPMObserver> bpmObservers = new ArrayList<BPMObserver>(); int bpm = 90; Thread thread; boolean stop = false; Clip clip;",
+  "These Lists hold the two kinds of We use these to start and stop the beat thread.",
+  "observers (Beat and BPM observers). The bpm variable holds the frequency This is the audio clip we play for the beat.",
+  "of beats — by default, 90 BPM.",
+  "public void initialize() { try { File resource = new File(\"clap.wav\"); clip = (Clip) AudioSystem.getLine(new Line.Info(Clip.class)); clip.open(AudioSystem.getAudioInputStream(resource)); } catch(Exception ex) { /* ... */} } public void on() { bpm = 90; notifyBPMObservers(); thread = new Thread(this); stop = false; thread.start(); } public void off() { stopBeat(); stop = true; } public void run() { while (!stop) { playBeat(); notifyBeatObservers(); try { Thread.sleep(60000/getBPM()); } catch (Exception e) {} } } public void setBPM(int bpm) { this.bpm = bpm; notifyBPMObservers(); } public int getBPM() { return bpm; }",
+  "This method does setup for the beat track.",
+  "The on() method sets the BPMs to the default, and starts the thread to play the beat.",
+  "And off() shuts it down by setting BPMs to 0 and stopping the thread playing the beat."
+ ],
+ "view-intro": [
+  "The View Now the fun starts; we get to hook up a view and visualize the BeatModel!",
+  "The first thing to notice about the view is that we’ve implemented it so that it is displayed in two separate windows. One window contains the current BPM and the pulse; the other contains the interface controls. Why? We wanted to emphasize the difference between the interface that contains the view of the model and the rest of the interface that contains the set of user controls. Let’s take a closer look at the two parts of the view:",
+  "We’ve separated the view of the model from the view with the controls.",
+  "The DJ view displays two aspects of the BeatModel...",
+  "...and a “beat bar”",
+  "...the current that pulses in sync with the beat, driven beats per minute, from the BPMObserver by the BeatObserver notifications."
+ ],
+ "view-impl": [
+  "Implementing the View",
+  "The code on these two pages is just an outline!",
+  "The two parts of the view—the view of the model, and the view with the user interface controls—are displayed in two windows, but live together in one Java class. We’ll first show you just the code that creates the view of the model, which displays the current BPM and the beat bar. Then we’ll come back on the next page and show you just",
+  "What we’ve done here is split ONE class into TWO, showing you one part of the view on this page, and the other part on the next page. All this code is really in ONE class—DJView.java. It’s all listed at the end of the chapter.",
+  "the code that creates the user interface controls, which displays the BPM text entry field, and the buttons.",
+  "DJView is an observer for both real-time beats and BPM changes.",
+  "public class DJView implements ActionListener, BeatObserver, BPMObserver { BeatModelInterface model; ControllerInterface controller; JFrame viewFrame; JPanel viewPanel; BeatBar beatBar; JLabel bpmOutputLabel; public DJView(ControllerInterface controller, BeatModelInterface model) { this.controller = controller; this.model = model; model.registerObserver((BeatObserver)this); model.registerObserver((BPMObserver)this); } public void createView() { // Create all Swing components here } public void updateBPM() { int bpm = model.getBPM(); if (bpm == 0) { bpmOutputLabel.setText(\"offline\"); } else { bpmOutputLabel.setText(\"Current BPM: \" + model.getBPM()); } } public void updateBeat() { beatBar.setValue(100); } }",
+  "The view holds a reference to both the model and the controller. The controller is only used by the control interface, which we’ll go over in a sec...",
+  "Here, we create a few components for the display.",
+  "The constructor gets a reference to the controller and the model,"
+ ],
+ "view-impl-2": [
+  "Implementing the View, continued...",
+  "Now, we’ll look at the code for the user interface controls part of the view. This view lets you control the model by telling the controller what to do, which in turn, tells the model what to do. Remember, this code is in the same class file as the other view code.",
+  "public class DJView implements ActionListener, BeatObserver, BPMObserver { BeatModelInterface model; ControllerInterface controller; JLabel bpmLabel; JTextField bpmTextField; JButton setBPMButton; JButton increaseBPMButton; JButton decreaseBPMButton; JMenuBar menuBar; JMenu menu; JMenuItem startMenuItem; JMenuItem stopMenuItem; public void createControls() { // Create all Swing components here }",
+  "This method creates all the controls and places them in the interface. It also takes care of the menu. When the stop or start items are chosen, the corresponding methods are called on the controller.",
+  "public void enableStopMenuItem() { stopMenuItem.setEnabled(true); } All these methods allow the start and stop items in the menu to be enabled and disabled. We’ll see that the controller uses these to change the interface.",
+  "public void disableStopMenuItem() { stopMenuItem.setEnabled(false); } public void enableStartMenuItem() { startMenuItem.setEnabled(true); }",
+  "This method is called when a button is clicked.",
+  "public void disableStartMenuItem() { startMenuItem.setEnabled(false); } If the Set button is clicked, then it is passed on to the controller along with the new bpm.",
+  "public void actionPerformed(ActionEvent event) { if (event.getSource() == setBPMButton) { int bpm = Integer.parseInt(bpmTextField.getText()); controller.setBPM(bpm); } else if (event.getSource() == increaseBPMButton) { controller.increaseBPM(); } else if (event.getSource() == decreaseBPMButton) { controller.decreaseBPM(); } } }",
+  "Likewise, if the increase or decrease button is clicked, this information is passed on to the controller."
+ ],
+ "controller-interface": [
+  "Now for the Controller It’s time to write the missing piece: the controller. Remember the controller is the strategy that we plug into the view to give it some smarts.",
+  "Because we are implementing the Strategy Pattern, we need to start with an interface for any Strategy that might be plugged into the DJ View. We’re going to call it ControllerInterface.",
+  "Here are all the methods the view can call on the controller.",
+  "public interface ControllerInterface { void start(); These should look familiar to you after seeing void stop(); the model’s interface. You can stop and start the beat generation and change the BPM. This interface is “richer” than the BeatModel",
+  "void increaseBPM(); void decreaseBPM(); interface because you can adjust the BPMs with increase and decrease.",
+  "void setBPM(int bpm); Pattern. Can you draw a class diagram of the two that represents this pattern? Design Puzzle"
+ ],
+ "controller-impl": [
+  "And here’s the implementation of the controller: The controller implements the ControllerInterface.",
+  "public class BeatController implements ControllerInterface { BeatModelInterface model; DJView view; public BeatController(BeatModelInterface model) { this.model = model; view = new DJView(this, model); view.createView(); view.createControls(); view.disableStopMenuItem(); view.enableStartMenuItem(); model.initialize(); } public void start() { model.on(); view.disableStartMenuItem(); view.enableStopMenuItem(); } public void stop() { model.off(); view.disableStopMenuItem(); view.enableStartMenuItem(); } public void increaseBPM() { int bpm = model.getBPM(); model.setBPM(bpm + 1); } public void decreaseBPM() { int bpm = model.getBPM(); model.setBPM(bpm - 1); } public void setBPM(int bpm) { model.setBPM(bpm); } }",
+  "The controller is the creamy stuff in the middle of the MVC Oreo cookie, so it is the object that gets to hold on to the view and the model and glues it all together. The controller is passed the model in the constructor and then creates the view.",
+  "When you choose Start from the user interface menu, the controller turns the model on and then alters the user interface so that the Start menu item is disabled and the Stop menu item is enabled.",
+  "Likewise, when you choose Stop from the menu, the controller turns the model off and alters the user interface so that the Stop menu item is disabled and the Start menu item is enabled.",
+  "NOTE: the controller is making the intelligent decisions for the view. The view just knows how If the increase button is clicked, the controller gets the current",
+  "BPM from the model, adds one, and then sets a new BPM."
+ ],
+ "dj-testdrive": [
+  "Putting it all together...",
+  "We’ve got everything we need: a model, a view, and a controller. Now it’s time to put them all together! We’re going to see and hear how well they work together.",
+  "All we need is a little code to get things started; it won’t take much:",
+  "public class DJTestDrive { public static void main (String[] args) {",
+  "First create a model...",
+  "BeatModelInterface model = new BeatModel(); ControllerInterface controller = new BeatController(model); ...then create a controller and pass it the model. Remember, the controller creates the view, so we don’t have to do that. And now for a test run...",
+  "Make sure you have the file clip.wav at",
+  "File Edit Window Help LetTheBassKick the top level of the"
+ ],
+ "exploring-strategy": [
+  "Exploring Strategy Let’s take the Strategy Pattern just a little further to get a better feel for how it is used in MVC. We’re going to see another friendly pattern pop up too—a pattern you’ll often see hanging around the MVC trio: the Adapter Pattern.",
+  "Think for a second about what the DJ View does: it displays a beat rate and a pulse. Does that sound like something else? How about a heartbeat? It just so happens that we have a heart monitor class; here’s the class diagram:",
+  "We’ve got a method for getting the current heart rate.",
+  "HeartModel getHeartRate()",
+  "registerBeatObserver()",
+  "And luckily, its developers knew about the registerBPMObserver()",
+  "Beat and BPM Observer interfaces!",
+  "// other heart methods It certainly would be nice to reuse our current view with the HeartModel, but we need a controller that works with this model. Also, the interface of the HeartModel doesn’t match what the view expects because it has a getHeartRate() method rather than a getBPM(). How would you design a set of classes to allow the view to be reused with the new model? Jot down your class design ideas below."
+ ],
+ "heart-adapter": [
+  "Adapting the Model For starters, we’re going to need to adapt the HeartModel to a BeatModel. If we don’t, the view won’t be able to work with the model, because the view only knows how to getBPM(), and the equivalent heart model method is getHeartRate(). How are we going to do this?",
+  "We’re going to use the Adapter Pattern, of course! It turns out that this is a common technique when working with MVC: use an adapter to adapt a model to work with existing controllers and views.",
+  "Here’s the code to adapt a HeartModel to a BeatModel: We need to implement the target interface — in this case, BeatModelInterface.",
+  "public class HeartAdapter implements BeatModelInterface { HeartModelInterface heart; public HeartAdapter(HeartModelInterface heart) { this.heart = heart; }",
+  "Here, we store a reference to the heart model.",
+  "public void initialize() {} public void on() {} public void off() {} public int getBPM() { return heart.getHeartRate(); } public void setBPM(int bpm) {} public void registerObserver(BeatObserver o) { heart.registerObserver(o); } public void removeObserver(BeatObserver o) { heart.removeObserver(o); } public void registerObserver(BPMObserver o) { heart.registerObserver(o); } public void removeObserver(BPMObserver o) { heart.removeObserver(o); } }",
+  "We don’t know what these would do to a heart, but it sounds scary. So we’ll just leave them as “no ops.”",
+  "When getBPM() is called, we’ll just translate it to a getHeartRate()",
+  "call on the heart model.",
+  "We don’t want to do this on a heart! Again, let’s leave it as a “no op.”",
+  "Here are our observer methods.",
+  "We just delegate them to the wrapped heart model."
+ ],
+ "heart-testdrive": [
+  "Now we’re ready for a HeartController With our HeartAdapter in hand, we should be ready to create a controller and get the view running with the HeartModel. Talk about reuse!",
+  "The HeartController implements the ControllerInterface, just like the BeatController did.",
+  "public class HeartController implements ControllerInterface { HeartModelInterface model; DJView view; public HeartController(HeartModelInterface model) { this.model = model; view = new DJView(this, new HeartAdapter(model)); view.createView(); view.createControls(); view.disableStopMenuItem(); view.disableStartMenuItem(); } public void start() {} public void stop() {} public void increaseBPM() {} public void decreaseBPM() {} public void setBPM(int bpm) {} }",
+  "Like before, the controller creates the view and gets everything glued together.",
+  "There is one change: we are passed a HeartModel, not a BeatModel...",
+  "...and we need to wrap that model with an adapter before we hand it to the view.",
+  "Finally, the HeartController disables the menu items because they aren’t needed.",
+  "There’s not a lot to do here; after all, we can’t really control hearts like we"
+ ],
+ "heart-testrun": [
+  "And now for a test run...",
+  "File Edit Window Help CheckMyPulse % java HeartTestDrive",
+  "Run this...",
+  "...and you’ll see this.",
+  "Things to try Notice that the display works great with a heart! The beat bar looks just like a pulse. Because the HeartModel also supports BPM and Beat Observers, we can get beat updates just like with the DJ beats.",
+  "As the heartbeat has natural variation, notice the display is updated with the new beats per minute.",
+  "Nice healthy heart rate.",
+  "Each time we get a BPM update, the adapter is doing its job of translating getBPM() calls to getHeartRate() calls.",
+  "The Start and Stop menu items are not enabled because the controller disabled them.",
+  "The other buttons still work but have no effect"
+ ],
+ "mvc-qa": [
+  "Q: It seems like you are really hand-",
+  "A: When MVC was named they needed a Q: Does the view always have to ask the model for its state? Couldn’t we use the push model and send the model’s state with the update notification? A: Yes, the model could certainly send",
+  "waving the fact that the Composite Pattern is really in MVC. Is it really there? A: Yes, Virginia, there really is a word that began with a “M” or otherwise they couldn’t have called it MVC.",
+  "But seriously, we agree with you. Everyone scratches their head and wonders what a model is. But then everyone comes to the realization that they can’t think of a better word either. Q: You’ve talked a lot about the state of the model. Does this mean it has the State Pattern in it? A: No, we mean the general idea of state.",
+  "Composite Pattern in MVC. But, actually, this is a very good question. Today GUI packages, like Swing, have become so sophisticated that we hardly notice the internal structure and the use of Composite in the building and update of the display. It’s even harder to see when we have web browsers that can take markup language and convert it into a user interface.",
+  "its state with the notification, and we could do something similar with the BeatModel by sending just the state that the view is interested in. If you remember the Observer Pattern chapter, however, you’ll also remember that there are a couple of disadvantages to this.",
+  "If you don’t, go back to Chapter 2 and have a second look. The MVC model has been adapted to a number of similar models—in particular, for the web’s browser/server environment—so you’ll find a lot of exceptions to the rule out there.",
+  "Q: If I have more than one view, do I always need more than one controller? A: Typically, you need one controller Back when MVC was first discovered, creating GUIs required a lot more manual intervention and the pattern was more obviously part of the MVC. Q: Does the controller ever implement any application logic? A: No, the controller implements behavior",
+  "But certainly some models do use the State Pattern to manage their internal states. Q: I’ve seen descriptions of MVC where the controller is described as a “mediator” between the view and the model. Is the controller implementing the Mediator Pattern? A: We haven’t covered the Mediator",
+  "per view at runtime; however, the same controller class can easily manage many views. Q: The view is not supposed to manipulate the model; however, I noticed in your implementation that the view has full access to the methods that change the model’s state. Is this dangerous? A: You are correct; we gave the view full",
+  "for the view. It is the smarts that translates the actions from the view to actions on the model. The model takes those actions and implements the application logic to decide what to do in response to those actions. The controller might have to do a little work to determine what method calls to make on the model, but that’s not considered the “application logic.” The application logic is the"
+ ],
+ "mvc-web": [
+  "Most of my user interfaces are actually browser-based. Is any of this going to help me?",
+  "Yes!",
+  "MVC is so useful that it has been adapted to many web frameworks. Of course, the web works differently than your standard application, so there are several different approaches to applying the MVC Pattern to the web.",
+  "Web applications have a client side (the browser) and a server side. Given that, we can make different design tradeoffs based on where the model, the view, and the controller reside.",
+  "In thin client approaches, the model, most of the view, and the controller all reside in the server, with the browser providing a way to display the view, and to get input from the browser to the controller.",
+  "Another approach is the single page application, where almost all of the model, view, and controller reside on the client side.",
+  "Those are the two ends of the spectrum, and you’ll find frameworks that vary the extent to which each component—that is the model, the view, and the controller— reside on the client or the server, along with hybrid models where some components are shared across the client and server.",
+  "There are many popular web MVC frameworks, like Spring Web MVC, Django, ASP.NET MVC, AngularJS, EmberJS, JavaScriptMVC, Backbone, and no doubt more on the way. For the most part each framework has its own unique way it maps the model, the view, and the controller across the client and the server.",
+  "Now that you know the MVC Pattern, you will have no problem adapting your knowledge to whatever framework you choose to use."
+ ],
+ "toolbox12": [
+  "Tools for your Design Toolbox You could impress anyone with your design toolbox. Wow, look at all those principles, patterns, and now, compound patterns!",
+  " The Model View Controller (MVC) Pattern is a compound pattern consisting of the Observer, Strategy, and Composite Patterns.",
+  "OO Principles",
+  "OO Basics",
+  "Encapsulate what varies.",
+  " The model makes use of the Observer Pattern so that it can keep observers updated yet stay decoupled from them.",
+  "Favor composition over inheritance.",
+  "Abstraction",
+  "Program to interfaces, not",
+  "Encapsulation implementations.",
+  "Polymorphism"
+ ],
+ "exercise-solutions": [
+  "Exercise Solutions The QuackCounter is a Quackable too. When we change Quackable to extend QuackObservable, we have to change every class that implements Quackable, including QuackCounter:",
+  "QuackCounter is a Quackable, so now it’s a QuackObservable too.",
+  "public class QuackCounter implements Quackable {",
+  "Quackable duck; static int numberOfQuacks; Here’s the duck that QuackCounter is decorating. It’s this duck that really needs to handle the observable methods.",
+  "public QuackCounter(Quackable duck) { this.duck = duck; public void quack() {",
+  "All of this code is the same as the previous duck.quack();"
+ ],
+ "flock-solution": [
+  "What if our Quackologist wants to observe an entire flock? What does that mean anyway? Think about it like this: if we observe a composite, then we’re observing everything in the composite. So, when you register with a flock, the flock composite makes sure you get registered with all its children, which may include other flocks.",
+  "Flock is a Quackable, so now it’s a QuackObservable too.",
+  "public class Flock implements Quackable { List<Quackable> quackers = new ArrayList<Quackable>(); Here are the Quackables that are in the Flock.",
+  "public void add(Quackable duck) { ducks.add(duck); public void quack() { Iterator<Quackable> iterator = quackers.iterator(); while (iterator.hasNext()) {",
+  "Quackable duck = iterator.next(); When you register as an Observer with the Flock, you actually duck.quack();"
+ ],
+ "design-puzzle-solution": [
+  "We’re still directly instantiating Geese by relying on concrete classes. Can you write an Abstract Factory for Geese? How should it handle creating “goose ducks”?",
+  "You could add a createGooseDuck() method to the existing Duck Factories. Or, you could create a completely separate Factory for creating families of Geese.",
+  "Pattern. Can you draw a class diagram of the two that represents this pattern? Design Puzzle Solution You’ve seen that the view and controller together make use of the Strategy",
+  "The",
+  "The view delegates",
+  "ControllerInterface behavior to the controller. The behavior it delegates is how to control the model based on user input.",
+  "DJView <<interface>> ControllerInterface is the interface that all concrete controller setBPM()",
+  "controllers"
+ ],
+ "beat-model-code": [
+  "Ready Bake Here’s the complete implementation of the DJView. It shows all the MIDI code to generate the sound, and all the Swing components to create the view. You can also download this code at https://www.wickedlysmart.com. Have fun!",
+  "Code package headfirst.designpatterns.combined.djview; public class DJTestDrive { public static void main (String[] args) {",
+  "BeatModelInterface model = new BeatModel(); ControllerInterface controller = new BeatController(model);",
+  "The Beat Model package headfirst.designpatterns.combined.djview; public interface BeatModelInterface { void initialize(); void on(); void off();"
+ ],
+ "beat-controller-code": [
+  "Ready Bake",
+  "Code package headfirst.designpatterns.combined.djview; public class BeatController implements ControllerInterface { BeatModelInterface model; DJView view; public BeatController(BeatModelInterface model) { this.model = model; view = new DJView(this, model); view.createView(); view.createControls(); view.disableStopMenuItem(); view.enableStartMenuItem(); model.initialize(); } public void start() { model.on(); view.disableStartMenuItem(); view.enableStopMenuItem(); } public void stop() { model.off(); view.disableStopMenuItem(); view.enableStartMenuItem(); } public void increaseBPM() { int bpm = model.getBPM(); model.setBPM(bpm + 1); } public void decreaseBPM() { int bpm = model.getBPM(); model.setBPM(bpm - 1); } public void setBPM(int bpm) { model.setBPM(bpm); } }"
+ ],
+ "heart-adapter-code": [
+  "The Heart Adapter package headfirst.designpatterns.combined.djview; public class HeartAdapter implements BeatModelInterface { HeartModelInterface heart; public HeartAdapter(HeartModelInterface heart) { this.heart = heart; }",
+  "public void initialize() {} public void on() {} public void off() {} public int getBPM() { return heart.getHeartRate(); } public void setBPM(int bpm) {} public void registerObserver(BeatObserver o) { heart.registerObserver(o); } public void removeObserver(BeatObserver o) { heart.removeObserver(o); } public void registerObserver(BPMObserver o) { heart.registerObserver(o); } public void removeObserver(BPMObserver o) { heart.removeObserver(o); } }"
+ ],
+ "heart-controller-code": [
+  "The Controller Ready Bake",
+  "Code package headfirst.designpatterns.combined.djview; public class HeartController implements ControllerInterface {",
+  "HeartModelInterface model;",
+  "DJView view; public HeartController(HeartModelInterface model) { this.model = model; view = new DJView(this, new HeartAdapter(model)); view.createView(); view.createControls(); view.disableStopMenuItem();",
+  "view.disableStartMenuItem(); public void start() {}"
+ ]
+}

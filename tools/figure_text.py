@@ -30,6 +30,7 @@ SOURCES = {
     "ch9": ("tools/crop_ch9.py", 9),
     "ch10": ("tools/crop_ch10.py", 10),
     "ch11": ("tools/crop_ch11.py", 11),
+    "ch12": ("tools/crop_ch12.py", 12),
 }
 
 

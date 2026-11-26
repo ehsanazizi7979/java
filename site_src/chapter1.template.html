@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Head First Design Patterns · Chapters 1–11 — Strategy, Observer, Decorator, Factory, Singleton, Command, Adapter, Facade, Template Method, Iterator, Composite, State &amp; Proxy · Summaries, Book Figures, Code and Live Demos</title>
-<meta name="description" content="Visual summaries of chapters 1–11 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, the seven-slot Home Automation remote and the Command Pattern, the turkey that quacks (Adapter), the one-button home theater (Facade), then coffee and tea, hooks and the Hollywood Principle (Template Method), then the Objectville menu merger — encapsulation of iteration (Iterator), the Single Responsibility Principle, and menu trees (Composite) — and finally Mighty Gumball's gumball machine, where a five-state controller replaces a nest of conditionals (State), and then Mighty Gumball's machines go remote: Java RMI, a stub that acts as a remote proxy, an album-cover virtual proxy that loads itself, and a runtime-generated protection proxy that keeps Elroy's profile safe (Proxy) — with the book's figures (and the text inside them), the full Java code, and live demos of all eleven chapters.">
+<title>Head First Design Patterns · Chapters 1–12 — Strategy, Observer, Decorator, Factory, Singleton, Command, Adapter, Facade, Template Method, Iterator, Composite, State, Proxy &amp; Compound Patterns · Summaries, Book Figures, Code and Live Demos</title>
+<meta name="description" content="Visual summaries of chapters 1–12 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, the seven-slot Home Automation remote and the Command Pattern, the turkey that quacks (Adapter), the one-button home theater (Facade), then coffee and tea, hooks and the Hollywood Principle (Template Method), then the Objectville menu merger — encapsulation of iteration (Iterator), the Single Responsibility Principle, and menu trees (Composite) — and finally Mighty Gumball's gumball machine, where a five-state controller replaces a nest of conditionals (State), and then Mighty Gumball's machines go remote: Java RMI, a stub that acts as a remote proxy, an album-cover virtual proxy that loads itself, and a runtime-generated protection proxy that keeps Elroy's profile safe (Proxy), then the Duck Simulator where adapter, decorator, factory, composite and observer all cooperate, and Model-View-Controller — a compound pattern built from Observer, Strategy and Composite, driven by a DJ beat machine and a heart monitor (Compound Patterns) — with the book's figures (and the text inside them), the full Java code, and live demos of all twelve chapters.">
 <style>
 /* ---------------------------------------------------------------- tokens */
 :root{
@@ -709,6 +709,31 @@ footer.site strong{color:#4a4560}
 #px-log div{margin:1px 0}
 #px-quiz .opt code{font-size:.94em}
 
+/* ------------------------------------------- ch.12 compound demo */
+.cp-panel[hidden]{display:none!important}
+.cp-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:18px;align-items:start}
+@media (max-width:900px){.cp-grid{grid-template-columns:1fr}}
+.cp-pond{display:grid;gap:6px}
+.cp-duck{display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+  background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:.78rem}
+.cp-duck b{font-weight:800;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.74rem;color:var(--purple)}
+.cp-duck .tag{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:#8d84a8;white-space:nowrap}
+.cp-patterns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.cp-patterns span{font-size:.62rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;
+  border-radius:999px;padding:4px 9px;border:1px solid var(--line);background:#f7f5fb;color:#9a93ad}
+.cp-patterns span[data-on="true"]{background:var(--purple-soft);border-color:#cdbdf3;color:var(--purple)}
+.cp-bpm{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:2.4rem;font-weight:900;line-height:1.1;color:var(--purple)}
+.cp-beatbar{height:14px;border-radius:999px;background:#efe9f8;overflow:hidden;margin-top:8px}
+.cp-beatbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--purple-2),var(--yellow));transition:width .16s}
+.cp-beatbar.hit i{width:100%}
+#cp-bpm{width:100%;accent-color:var(--purple-2)}
+#cp-log .out{color:#e9e4f7}
+#cp-log .dim{color:#8d84a8}
+#cp-log .call{color:var(--yellow);font-weight:700}
+#cp-log .err{color:#ff9aa8}
+#cp-log div{margin:1px 0}
+#cp-quiz .opt code{font-size:.94em}
+
 @media print{
   .topbar,.pond,.console,.demo-wrap{display:none!important}
   body{background:#fff}
@@ -722,7 +747,7 @@ footer.site strong{color:#4a4560}
 
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–11</a>
+    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–12</a>
     <nav class="navlinks">
       <a href="#story">SimUDuck</a>
       <a href="#principles">Principles</a>
@@ -802,6 +827,12 @@ footer.site strong{color:#4a4560}
       <a href="#px-protection">Protection proxy</a>
       <a href="#px-demo">Proxy demo</a>
       <a href="#px-cheatsheet">Ch. 11 recap</a>
+      <span class="navsep" aria-hidden="true">Ch.&nbsp;12</span>
+      <a href="#cp-story">Duck Simulator</a>
+      <a href="#cp-compound">Compound patterns</a>
+      <a href="#cp-dj">MVC</a>
+      <a href="#cp-demo">Compound demo</a>
+      <a href="#cp-cheatsheet">Ch. 12 recap</a>
     </nav>
   </div>
 </div>
@@ -1575,11 +1606,13 @@ model.performFly();</pre>
 
 {{CHAPTER11}}
 
+{{CHAPTER12}}
+
 <footer class="site">
   <div class="wrap">
-    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168) and Chapter 5, “One-of-a-Kind Objects” (pages 169–190) and Chapter 6, “Encapsulating Invocation” (pages 191–236), Chapter 8, “Encapsulating Algorithms” (pages 277–316) Chapter 9, “Well-Managed Collections” (pages 316–380) Chapter 10, “The State of Things” (pages 381–424) and Chapter 11, “Controlling Object Access” (pages 425–492).</div>
+    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168) and Chapter 5, “One-of-a-Kind Objects” (pages 169–190) and Chapter 6, “Encapsulating Invocation” (pages 191–236), Chapter 8, “Encapsulating Algorithms” (pages 277–316) Chapter 9, “Well-Managed Collections” (pages 316–380) Chapter 10, “The State of Things” (pages 381–424) Chapter 11, “Controlling Object Access” (pages 425–492) and Chapter 12, “Patterns of Patterns” (pages 493–562).</div>
     <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and the eight interactive simulators are written for this page.</div>
-    <div><strong>Built:</strong> eleven chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler, Objectville Remote Control, Turkey Adapter, Home Theater Facade, CaffeineBeverage and DuckSort demos, the Objectville menu merger and composite menu tree, Mighty Gumball’s gumball machine with its five state objects, and the proxy playground — remote monitor, virtual album covers and the protection proxy (no external assets, works offline).</div>
+    <div><strong>Built:</strong> twelve chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler, Objectville Remote Control, Turkey Adapter, Home Theater Facade, CaffeineBeverage and DuckSort demos, the Objectville menu merger and composite menu tree, Mighty Gumball’s gumball machine with its five state objects, the proxy playground — remote monitor, virtual album covers and the protection proxy, and the compound playground — a Duck Simulator that assembles six patterns and a DJ View beat machine running on MVC (no external assets, works offline).</div>
     <a class="totop" href="#top">↑ back to top</a>
   </div>
 </footer>

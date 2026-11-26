@@ -856,7 +856,7 @@ Rating is 5</pre>
   const tabs = $$('#px-tabs .tab');
   tabs.forEach(tab => tab.addEventListener('click', () => {
     tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
-    $$('.px-panel').forEach(p => { p.hidden = p.id !== `px-panel-${tab.dataset.panel}`; });
+    $$('#px-demo .px-panel').forEach(p => { p.hidden = p.id !== `px-panel-${tab.dataset.panel}`; });
   }));
 
   $('#px-clear').addEventListener('click', () => { logBox.innerHTML = ''; });

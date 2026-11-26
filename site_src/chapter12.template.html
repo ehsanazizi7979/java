@@ -1,0 +1,1246 @@
+<!-- ==================================================== CHAPTER 12 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 12</b> compound patterns</div>
+  <h2>Patterns of <span style="color:var(--purple)">Patterns</span></h2>
+  <p>Eight ducks, one goose in disguise, a decorator that counts quacks, two factories, a flock, and a quackologist — the Duck Simulator is the whole book in one program. Then the book does it for real: Model-View-Controller, the compound pattern hiding in every framework you have ever used.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Objectville</span>
+    <span class="chip">1 compound pattern</span>
+    <span class="chip">60 book figures</span>
+    <span class="chip">7 ducks · 1 goose · 1 DJ</span>
+    <span class="chip">1 live duck pond &amp; beat machine</span>
+  </div>
+</div>
+
+<!-- ========================================================== 1. THE DUCKS -->
+<section id="cp-story">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>one simulator, six patterns</span></div>
+    <h2>The Duck Simulator grows up</h2>
+    <p class="sub">It starts as a clean little program: a <code>Quackable</code> interface and four classes that quack. Then a goose wants in, the quackologist wants a quack count, marketing wants duck families, the pond wants flocks, and somebody wants to watch. Every request is answered by a pattern you already know.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG12:opener}}" alt="Chapter 12 opener: a photograph of an old gas station with the title Patterns of Patterns, and a note that who would have guessed patterns work together.">
+      <figcaption>Chapter 12 opens with the question the previous eleven chapters have been building toward: what happens when patterns work <em>together</em>?</figcaption>
+      {{SAYS:opener}}
+    </figure>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG12:working-together}}" alt="Working together: two ducks explain that patterns are often used together and combined within the same design solution, and that a compound pattern combines two or more patterns into a solution to a recurring or general problem.">
+      <figcaption>The definition the chapter is named for: <strong>a compound pattern combines two or more patterns into a solution that solves a recurring or general problem.</strong></figcaption>
+      {{SAYS:working-together}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:quackable}}" alt="Quack realism: the Quackable interface, MallardDuck, RedheadDuck and RubberDuck each implementing quack(), and a DuckCall class.">
+        <figcaption>SimUDuck, the sequel. Four <code>Quackable</code>s with the same one-method interface — the perfect substrate for composition.</figcaption>
+        {{SAYS:quackable}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:duck-simulator}}" alt="Adding more ducks: DuckSimulator with a simulate(Quackable duck) helper and a main that instantiates four ducks and one duck call.">
+        <figcaption>The simulator: <code>simulate(Quackable duck)</code> calls <code>quack()</code>, and <code>main()</code> builds the cast. Nothing here knows which concrete duck it holds.</figcaption>
+        {{SAYS:duck-simulator}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:goose}}" alt="Goose: the Goose class with a honk() method, plus the question of how to get a goose to act like a duck without changing the goose or the simulator.">
+        <figcaption>A goose that honks. It cannot be a <code>Quackable</code>, and the simulator only knows <code>Quackable</code> — that is an Adapter problem, not a duck problem.</figcaption>
+        {{SAYS:goose}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:goose-adapter}}" alt="Goose adapter: GooseAdapter implements Quackable, holds a Goose and forwards quack() to honk().">
+        <figcaption><code>GooseAdapter</code>: implements <code>Quackable</code>, holds a <code>Goose</code>, and turns <code>quack()</code> into <code>honk()</code>. One class, zero changes to the goose.</figcaption>
+        {{SAYS:goose-adapter}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:goose-output}}" alt="The simulator’s console with the goose adapter: Duck Simulator: With Goose Adapter, then Quack, Quack, Kwak, Squeak and Honk.">
+        <figcaption>The first mixed run: “Duck Simulator: With Goose Adapter” and five lines, ending in <code>Honk</code>. The quackologist at the bottom of the page is already asking the next question.</figcaption>
+        {{SAYS:goose-output}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:quack-counter}}" alt="QuackCounter, the duck decorator: it implements Quackable, wraps a Quackable, delegates quack() and increments a static counter.">
+        <figcaption>Next requirement: <em>count the quacks without touching the duck classes</em>. The Decorator answer: wrap every quacker, delegate, and count.</figcaption>
+        {{SAYS:quack-counter}}
+      </figure>
+    </div>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <div class="code">
+        <header><span class="fname">GooseAdapter.java</span><span class="tagline">Adapter — p. 498</span></header>
+<pre><span class="kw">public class</span> <span class="type">GooseAdapter</span> <span class="kw">implements</span> Quackable {
+  Goose goose;
+
+  <span class="kw">public</span> GooseAdapter(Goose goose) {
+    <span class="kw">this</span>.goose = goose;
+  }
+
+  <span class="kw">public void</span> quack() { goose.honk(); }
+}</pre>
+      </div>
+      <div class="code">
+        <header><span class="fname">QuackCounter.java</span><span class="tagline">Decorator — p. 500</span></header>
+<pre><span class="kw">public class</span> <span class="type">QuackCounter</span> <span class="kw">implements</span> Quackable {
+  Quackable duck;
+  <span class="kw">static int</span> numberOfQuacks;
+
+  <span class="kw">public</span> QuackCounter(Quackable duck) {
+    <span class="kw">this</span>.duck = duck;
+  }
+
+  <span class="kw">public void</span> quack() {
+    duck.quack();
+    numberOfQuacks++;
+  }
+
+  <span class="kw">public static int</span> getQuacks() {
+    <span class="kw">return</span> numberOfQuacks;
+  }
+}</pre>
+      </div>
+    </div>
+
+    <div class="note warn" style="margin-top:22px">
+      <strong>What just went wrong.</strong> The counter only counts the ducks that are wrapped, so <code>main()</code> now has to remember to wrap every single duck — and the simulator has an awful lot of <code>new</code> calls. Encouraging a client to decorate correctly is a creation problem. Enter the factory.
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:decorator-simulator}}" alt="The simulator updated with decorated ducks, including the goose wrapped in an adapter wrapped in a counter, plus the Design Puzzle asking where the QuackCounter should go.">
+        <figcaption>Version two: every duck is wrapped in <code>new QuackCounter(...)</code>, and the goose becomes <code>new QuackCounter(new GooseAdapter(new Goose()))</code>.</figcaption>
+        {{SAYS:decorator-simulator}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:abstract-factory}}" alt="AbstractDuckFactory with createMallardDuck, createRedheadDuck, createDuckCall and createRubberDuck, and a DuckFactory that returns plain ducks.">
+        <figcaption>The Abstract Factory: one interface for creating a <em>family</em> of ducks. <code>DuckFactory</code> returns them undecorated.</figcaption>
+        {{SAYS:abstract-factory}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:counting-factory}}" alt="CountingDuckFactory: the same four create methods, each returning the duck wrapped in a QuackCounter.">
+        <figcaption><code>CountingDuckFactory</code>: identical methods, every duck comes back decorated. The client asks for a duck; the factory decides whether it is counted.</figcaption>
+        {{SAYS:counting-factory}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:factory-simulator}}" alt="DuckSimulator updated to take an AbstractDuckFactory and create every duck through it, with the goose still created directly.">
+        <figcaption>The simulator now takes an <code>AbstractDuckFactory</code> and never calls <code>new</code> on a duck again — except the goose, which is still concrete.</figcaption>
+        {{SAYS:factory-simulator}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:factory-output}}" alt="The factory run’s console: Duck Simulator: With Abstract Factory, five quacks, and 4 quacks were counted.">
+        <figcaption>“4 quacks were counted.” The goose honks but is not wrapped, so the count is four — the book is careful about that detail.</figcaption>
+        {{SAYS:factory-output}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:flock-puzzle}}" alt="A flock of ducks: the team realises a pond full of ducks needs to be managed as a group, with a Design Puzzle asking how to implement a flock.">
+        <figcaption>New requirement: manage a <em>flock</em> of ducks with the same call the simulator already uses. That is Composite, and the Design Puzzle asks you to draw it.</figcaption>
+        {{SAYS:flock-puzzle}}
+      </figure>
+    </div>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <div class="code">
+        <header><span class="fname">Flock.java</span><span class="tagline">Composite — p. 507</span></header>
+<pre><span class="kw">public class</span> <span class="type">Flock</span> <span class="kw">implements</span> Quackable {
+  List&lt;Quackable&gt; quackers = <span class="kw">new</span> ArrayList&lt;Quackable&gt;();
+
+  <span class="kw">public void</span> add(Quackable quacker) {
+    quackers.add(quacker);
+  }
+
+  <span class="kw">public void</span> quack() {
+    Iterator&lt;Quackable&gt; iterator = quackers.iterator();
+    <span class="kw">while</span> (iterator.hasNext()) {
+      Quackable quacker = iterator.next();
+      quacker.quack();
+    }
+  }
+
+  <span class="kw">public void</span> registerObserver(Observer observer) { … }
+  <span class="kw">public void</span> notifyObservers() { }
+}</pre>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Safety vs. transparency</h3>
+        <p>Chapter 9’s menus gave <code>add()</code> to leaves as well as composites so the client never had to know the difference. Here the book makes the opposite trade: <strong>only <code>Flock</code> has <code>add()</code></strong>.</p>
+        <ul class="bullets">
+          <li><strong>Safer:</strong> you cannot call <code>add()</code> on a duck, because ducks do not have it.</li>
+          <li><strong>Less transparent:</strong> the client must know it is holding a <code>Flock</code> before it can add anything to it.</li>
+          <li><strong>Same rule as ever:</strong> composition choices have costs; pick the trade you can live with.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:flock-code}}" alt="The Flock class in full, with annotations pointing out that Flock implements Quackable and holds a list of quackers.">
+        <figcaption>The flock is a <code>Quackable</code> that is made of <code>Quackable</code>s. One <code>quack()</code> becomes many.</figcaption>
+        {{SAYS:flock-code}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:composite-simulator}}" alt="DuckSimulator creating a mallard flock and a whole flock, then simulating each.">
+        <figcaption>The simulator builds a mallard flock, drops it into a bigger flock with the other ducks, and simulates both.</figcaption>
+        {{SAYS:composite-simulator}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG12:composite-output}}" alt="The composite run’s console: Duck Simulator: With Composite - Flocks, the whole flock simulation, the mallard flock simulation, and The ducks quacked 11 times.">
+      <figcaption>“The ducks quacked 11 times.” Seven decorated ducks in the whole flock plus four mallards on the second pass — and the goose, still unwrapped, does not count.</figcaption>
+      {{SAYS:composite-output}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:observer-intro}}" alt="Can you say observer? A quackologist wants to be notified of every quack, and the QuackObservable interface is introduced.">
+        <figcaption>Last requirement: the quackologist wants to know <em>who</em> quacked, as it happens. That is Observer — and the subject is a duck.</figcaption>
+        {{SAYS:observer-intro}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:observable-helper}}" alt="The Observable helper class implementing QuackObservable, holding a list of observers and forwarding notifications to the duck that owns it.">
+        <figcaption>The helper: one <code>Observable</code> per duck, holding the observer list and forwarding <code>notifyObservers()</code> with <code>this</code> — the duck that quacked.</figcaption>
+        {{SAYS:observable-helper}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:duck-observable}}" alt="Integrating the helper: MallardDuck keeps an Observable, delegates registerObserver and notifyObservers to it, and calls notifyObservers() after each quack.">
+        <figcaption>Every duck gets an <code>Observable</code> field, delegates the two registration methods, and calls <code>notifyObservers()</code> at the end of <code>quack()</code>.</figcaption>
+        {{SAYS:duck-observable}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:observer-interface}}" alt="The Observer interface and the Quackologist class whose update method prints the duck that just quacked.">
+        <figcaption>The observer side: <code>Observer.update(QuackObservable duck)</code>, and a <code>Quackologist</code> that prints “Quackologist: <em>duck</em> just quacked.”</figcaption>
+        {{SAYS:observer-interface}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:flock-observable-exercise}}" alt="The Flock exercise: what happens if the quackologist wants to observe a whole flock, and how should Flock register observers?">
+        <figcaption>The exercise the book leaves to you: how does a <em>flock</em> register an observer? Answer: it hands the observer to every duck it contains.</figcaption>
+        {{SAYS:flock-observable-exercise}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:flock-observer-impl}}" alt="The Flock's registerObserver implementation looping over its quackers, plus the simulator registering a Quackologist with every duck.">
+        <figcaption><code>Flock.registerObserver()</code> forwards to every duck; <code>notifyObservers()</code> does nothing, because the ducks announce themselves.</figcaption>
+        {{SAYS:flock-observer-impl}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG12:duck-finale}}" alt="The duck finale: Duck Simulator: With Observer, alternating quacks and Quackologist notifications, ending with The Ducks quacked 7 times, plus Dumb Questions on compound patterns.">
+      <figcaption>The finale: six patterns, one simulator. Every quack is now narrated by the quackologist — and the count still works, because the decorator is still in place.</figcaption>
+      {{SAYS:duck-finale}}
+    </figure>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG12:what-we-did}}" alt="What did we do? A recap of each requirement the duck simulator answered with a pattern: adapter, decorator, factory, composite, observer.">
+      <figcaption>What did we do? Five requirements, five patterns, and a program that never had to be rewritten to accept them.</figcaption>
+      {{SAYS:what-we-did}}
+    </figure>
+
+    <div class="note" style="margin-top:26px">
+      <strong>Read the Dumb Questions on the finale page.</strong> The book is emphatic: you do <em>not</em> design by “applying patterns until one fits”. The Duck Simulator is a demonstration of cooperation, not a recipe — and some of those solutions were overkill for the problem they solved.
+    </div>
+  </div>
+</section>
+<!-- ==================================================== 2. THE COMPOUND IDEA -->
+<section id="cp-compound">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>from a duck pond to a paradigm</span></div>
+    <h2>What a compound pattern actually is</h2>
+    <p class="sub">The duck simulator is <em>patterns working together</em>, not a compound pattern: nobody named it, nobody reuses it. A compound pattern is a set of patterns that has been combined, named and used over and over to solve a general problem. There is one you already use every day — Model-View-Controller.</p>
+
+    <div class="note ok" style="margin-top:22px">
+      <strong>The definition:</strong> a compound pattern combines two or more patterns into a solution that solves a recurring or general problem. Ordinary code can use several patterns at once — a compound pattern is the one that has been <em>named</em>, reused and written down.
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:duck-class-diagram-1}}" alt="A Duck’s-eye view: the class diagram of the final Duck Simulator, showing DuckSimulator, AbstractDuckFactory, the ducks, Gooses, the adapter and the decorator.">
+        <figcaption>The duck’s-eye view, left half: the simulator, the factories, the ducks, the goose adapter and the counter, all hanging off <code>Quackable</code>.</figcaption>
+        {{SAYS:duck-class-diagram-1}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:duck-class-diagram-2}}" alt="The right half of the Duck Simulator class diagram: Quackable, QuackObservable, Observable, Observer, Flock and Quackologist.">
+        <figcaption>Right half: <code>Quackable</code> extends <code>QuackObservable</code>, every duck owns an <code>Observable</code>, and the <code>Flock</code> is both a <code>Quackable</code> and a list of them.</figcaption>
+        {{SAYS:duck-class-diagram-2}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG12:mvc-song-1}}" alt="The King of Compound Patterns: if Elvis were a compound pattern his name would be Model-View-Controller, followed by the opening verses of the Model, View, Controller song by James Dempsey.">
+      <figcaption>“If Elvis were a compound pattern, his name would be Model-View-Controller.” The chapter’s tribute to the pattern that runs half the software you use.</figcaption>
+      {{SAYS:mvc-song-1}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:mvc-song-2}}" alt="The Model, View, Controller song continued, with verses about controllers, binding, glue code and the model’s mission-critical role.">
+        <figcaption>The rest of the song — about glue code, binding and why nobody gets glory for writing the controller. Worth a re-read after the chapter.</figcaption>
+        {{SAYS:mvc-song-2}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:mvc-named}}" alt="MVC is patterns put together: the book explains that the secret to learning MVC is seeing it as a few patterns combined, not as an architecture handed down from above.">
+        <figcaption>The secret, stated plainly: <em>“Learning MVC from the top down is difficult… it’s just a few patterns put together.”</em></figcaption>
+        {{SAYS:mvc-named}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:mvc-meet}}" alt="Meet Model-View-Controller: a three-part diagram with the view on the left, the controller in the middle and the model holding the data.">
+        <figcaption>Meet MVC: the <strong>model</strong> holds the data and the rules, the <strong>view</strong> draws it, and the <strong>controller</strong> turns user input into calls on the model.</figcaption>
+        {{SAYS:mvc-meet}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:mvc-close-look}}" alt="A closer look at MVC: the model, the view and the controller with the arrows between them, including the controller’s reference to the view.">
+        <figcaption>A closer look. The arrows matter: the controller knows both the model and the view, and the view knows the model — but the model knows neither.</figcaption>
+        {{SAYS:mvc-close-look}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG12:mvc-roles}}" alt="The roles explained: the view is your window to the model, the controller takes input and translates it into actions on the model, and the model notifies observers when its state changes.">
+      <figcaption>The three roles in the book’s own words — including the sentence that gives the whole pattern away: the view and controller are <em>decoupled</em>, and the model notifies whoever is interested.</figcaption>
+      {{SAYS:mvc-roles}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:mvc-patterns}}" alt="Understanding MVC as a set of Patterns: the model uses Observer, the view and controller use Strategy, and the view’s display uses Composite.">
+        <figcaption>The key page. MVC is not a new mechanism — it is <strong>Observer + Strategy + Composite</strong> arranged so that each part can change without the others.</figcaption>
+        {{SAYS:mvc-patterns}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:mvc-trio}}" alt="Three diagrams unpacking MVC: the Observer relationship between model and view, the Strategy relationship between view and controller, and the Composite structure of the view.">
+        <figcaption>Unpacked: the model is the subject and the view an observer; the controller is the view’s strategy; the view’s widgets form a composite.</figcaption>
+        {{SAYS:mvc-trio}}
+      </figure>
+    </div>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <table class="compare">
+        <thead><tr><th>MVC part</th><th>Pattern</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Model → View</td><td><strong>Observer</strong></td><td>the model announces state changes; any number of views and controllers can listen</td></tr>
+          <tr><td>View ↔ Controller</td><td><strong>Strategy</strong></td><td>the controller is the view’s interchangeable behaviour; swap it for a different one</td></tr>
+          <tr><td>Inside the View</td><td><strong>Composite</strong></td><td>windows, panels and buttons form a tree; one <code>update()</code> on the top redraws all</td></tr>
+        </tbody>
+      </table>
+      <div class="note ok" style="margin-top:0">
+        <strong>Why this matters more than the diagram.</strong> Once you see MVC as three familiar patterns, the “architecture” stops being a rule you memorise and becomes a consequence you can derive. That is the whole point of the chapter: compound patterns are patterns you already know, combined in a way that turned out to be reusable enough to deserve a name.
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ========================================================== 3. THE DJ APP -->
+<section id="cp-dj">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>MVC you can hear</span></div>
+    <h2>Building a beat machine with MVC</h2>
+    <p class="sub">The book’s “DJ View” is a drum machine: a model that plays a beat at a given BPM, a view with a slider and a beat bar, and a controller that wires them together. Build it once and every MVC diagram you have ever squinted at becomes obvious.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:dj-intro}}" alt="Using MVC to control the beat: a paraphrasing of the DJ application, with a window called BeatBlaster and a note that a BPM controller and a beat bar are all you need.">
+        <figcaption>The brief: a window with a BPM display, a slider, an increase/decrease pair and a beat bar. You are the DJ; the model keeps the beat.</figcaption>
+        {{SAYS:dj-intro}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:dj-model}}" alt="The model underneath it all: the beat model plays the audio and holds the BPM; you cannot see it, but you can hear it.">
+        <figcaption>The model: you cannot see it, but you can hear it. It owns the BPM, the beat thread and the observers.</figcaption>
+        {{SAYS:dj-model}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG12:dj-pieces}}" alt="Putting the pieces together: the model, view and controller of the DJ application, with notes on who creates whom and who talks to whom.">
+      <figcaption>Who creates whom: <code>DJTestDrive</code> makes the model, the model's controller is created with the model, and the controller creates the view. That single line of wiring is the whole assembly.</figcaption>
+      {{SAYS:dj-pieces}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:beat-model-interface}}" alt="Building the pieces: BeatModelInterface with initialize, on, off, setBPM, getBPM, registerObserver and removeObserver, plus ControllerInterface and the two observer interfaces.">
+        <figcaption>The interfaces first: <code>BeatModelInterface</code> (with both observer kinds), <code>ControllerInterface</code>, <code>BeatObserver</code> and <code>BPMObserver</code>.</figcaption>
+        {{SAYS:beat-model-interface}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:beat-model-class}}" alt="The concrete BeatModel class: two observer lists, a BPM of 90, a sequencer, a beat thread, and the on/off/setBPM methods that notify observers.">
+        <figcaption><code>BeatModel</code>: <code>bpm = 90</code>, two observer lists, a beat thread, and the rule that every change ends in <code>notifyBPMObservers()</code>.</figcaption>
+        {{SAYS:beat-model-class}}
+      </figure>
+    </div>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <div class="code">
+        <header><span class="fname">BeatModel.java</span><span class="tagline">the model — p. 532</span></header>
+<pre><span class="kw">public void</span> initialize() {
+  sequencer = <span class="kw">new</span> Sequencer();
+  sequencer.open();
+  sequencer.setTempoInBPM(getBPM());
+  sequencer.addMetaEventListener(<span class="kw">new</span> MetaEventListener() {
+    <span class="kw">public void</span> meta(MetaMessage event) {
+      <span class="kw">if</span> (event.getType() == <span class="num">47</span>) {
+        beat();
+      }
+    }
+  });
+}
+
+<span class="kw">public void</span> on() {
+  sequencer.start();
+  setBPM(<span class="num">90</span>);
+}
+
+<span class="kw">public void</span> off() {
+  sequencer.stop();
+  setBPM(<span class="num">0</span>);
+}
+
+<span class="kw">public void</span> setBPM(<span class="kw">int</span> bpm) {
+  <span class="kw">this</span>.bpm = bpm;
+  sequencer.setTempoInBPM(<span class="kw">this</span>.bpm);
+  notifyBPMObservers();
+}</pre>
+      </div>
+      <div class="code">
+        <header><span class="fname">BeatController.java</span><span class="tagline">the controller — p. 537</span></header>
+<pre><span class="kw">public class</span> <span class="type">BeatController</span> <span class="kw">implements</span> ControllerInterface {
+  BeatModelInterface model;
+  DJView view;
+
+  <span class="kw">public</span> BeatController(BeatModelInterface model) {
+    <span class="kw">this</span>.model = model;
+    view = <span class="kw">new</span> DJView(model, <span class="kw">this</span>);
+    view.createView();
+    view.createControls();
+    view.disableStopMenuItem();
+    view.enableStartMenuItem();
+    model.initialize();
+  }
+
+  <span class="kw">public void</span> start() {
+    model.on();
+    view.disableStartMenuItem();
+    view.enableStopMenuItem();
+  }
+
+  <span class="kw">public void</span> stop() {
+    model.off();
+    view.disableStopMenuItem();
+    view.enableStartMenuItem();
+  }
+
+  <span class="kw">public void</span> setBPM(<span class="kw">int</span> bpm) { model.setBPM(bpm); }
+  <span class="kw">public void</span> increaseBPM() { model.setBPM(model.getBPM() + <span class="num">1</span>); }
+  <span class="kw">public void</span> decreaseBPM() { model.setBPM(model.getBPM() - <span class="num">1</span>); }
+}</pre>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:view-intro}}" alt="The View: a description of what the DJ view needs — a BPM display, a slider, increase and decrease buttons, a beat bar and a menu.">
+        <figcaption>The view’s job: display the BPM, draw the beat bar, offer the controls — and never talk to the model to make something <em>happen</em>.</figcaption>
+        {{SAYS:view-intro}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:view-impl}}" alt="Implementing the View: DJView implements ActionListener, BeatObserver and BPMObserver, holds a model, a controller and the Swing components.">
+        <figcaption><code>DJView implements ActionListener, BeatObserver, BPMObserver</code>. It listens to its own buttons <em>and</em> to the model — the Observer wiring from Chapter 2.</figcaption>
+        {{SAYS:view-impl}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:view-impl-2}}" alt="Implementing the View, continued: the updateBPM and updateBeat callbacks, the actionPerformed method that delegates every button to the controller, and the start/stop menu enabling.">
+        <figcaption>The other half of the view: <code>actionPerformed()</code> delegates every click to <code>controller.setBPM()</code>, and <code>updateBPM()</code> refreshes the label when the model changes.</figcaption>
+        {{SAYS:view-impl-2}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:controller-interface}}" alt="The controller: ControllerInterface with start, stop, increaseBPM, decreaseBPM and setBPM, plus the Design Puzzle asking you to draw the Strategy diagram of view and controller.">
+        <figcaption><code>ControllerInterface</code> is the Strategy interface: five methods, no knowledge of Swing. The Design Puzzle at the bottom asks you to draw exactly that.</figcaption>
+        {{SAYS:controller-interface}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:controller-impl}}" alt="And here’s the implementation of the controller: BeatController creates the view, enables and disables the menu items, and forwards every call to the model.">
+        <figcaption>The controller in full: it creates the view, owns the menu state, and forwards <code>start()</code>, <code>stop()</code> and <code>setBPM()</code> to the model.</figcaption>
+        {{SAYS:controller-impl}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:dj-testdrive}}" alt="Putting it all together: the four-line DJTestDrive, and the running application with a BPM display and its menu.">
+        <figcaption>Four lines to assemble the whole pattern: make the model, make the controller with the model, and let the controller create the view.</figcaption>
+        {{SAYS:dj-testdrive}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:exploring-strategy}}" alt="Exploring Strategy: the view delegates its behaviour to the controller, so replacing the controller changes the view’s behaviour without touching the view.">
+        <figcaption>Where is Strategy, exactly? The view holds a <code>ControllerInterface</code> and delegates to it. Swap the object and the view behaves differently — no view code changes.</figcaption>
+        {{SAYS:exploring-strategy}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:heart-adapter}}" alt="Adapting the Model: HeartModel with getHeartRate, and HeartAdapter implementing BeatModelInterface over a HeartModelInterface.">
+        <figcaption>Now the payoff: a <code>HeartModel</code> that has nothing to do with beats, and a <code>HeartAdapter</code> that makes it a <code>BeatModelInterface</code>. The view and controller do not change.</figcaption>
+        {{SAYS:heart-adapter}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:heart-testdrive}}" alt="Now we’re ready for a HeartController and the HeartTestDrive that builds a HeartModel and its controller.">
+        <figcaption><code>HeartController</code> implements the same interface but no-ops the start and stop calls — so those menu items are disabled while the rest still works.</figcaption>
+        {{SAYS:heart-testdrive}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:heart-testrun}}" alt="Testing the heart model: the running app shows a healthy heart rate and notes that the beat bar looks like a pulse, with the adapter translating getBPM into getHeartRate.">
+        <figcaption>The heart run: the same view now shows a pulse, because the adapter translates every <code>getBPM()</code> into <code>getHeartRate()</code>. One new class, zero changes to the view.</figcaption>
+        {{SAYS:heart-testrun}}
+      </figure>
+    </div>
+
+    <div class="note" style="margin-top:26px">
+      <strong>Count the patterns.</strong> In this one small program: <em>Observer</em> (model notifies view and controller), <em>Strategy</em> (view delegates to a controller interface), <em>Composite</em> (the Swing component tree), <em>Adapter</em> (HeartAdapter), <em>Factory</em>-style assembly in <code>DJTestDrive</code>, and the MVC compound pattern holding them together. That is what “patterns of patterns” means.
+    </div>
+  </div>
+</section>
+<!-- ============================================================ 4. DEMO -->
+<section id="cp-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>live demo</span></div>
+    <h2>One duck pond, one beat machine</h2>
+    <p class="sub">Two programs, seven patterns, one console. Run the Duck Simulator scene by scene — adapter, decorator, factory, composite, observer — then drive the DJ View, swap its controller, and hand the beat bar to a heart.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>Objectville Compound Playground</h3>
+        <div class="actions">
+          <button class="btn ghost" id="cp-clear">Clear console</button>
+        </div>
+      </div>
+
+      <div class="cg-modes" id="cp-tabs" role="tablist">
+        <button class="tab" role="tab" data-panel="ducks" aria-selected="true">duck simulator</button>
+        <button class="tab" role="tab" data-panel="dj" aria-selected="false">beat machine</button>
+      </div>
+
+      <!-- ------------------------------------------------------- ducks -->
+      <div class="cp-panel" id="cp-panel-ducks">
+        <div class="cp-grid">
+          <div>
+            <div class="ad-card" style="margin-top:0">
+              <h4>The pond — eight quackers</h4>
+              <div class="cp-pond" id="cp-pond"></div>
+              <div class="cp-patterns" id="cp-patterns"></div>
+            </div>
+          </div>
+          <div>
+            <div class="ad-card" style="margin-top:0">
+              <h4>Run a scene</h4>
+              <div class="ad-choices">
+                <button class="btn primary small" id="cp-run-goose">goose adapter</button>
+                <button class="btn small" id="cp-run-factory">abstract factory</button>
+                <button class="btn small" id="cp-run-composite">composite flocks</button>
+                <button class="btn small" id="cp-run-observer">observer</button>
+              </div>
+              <h4 style="margin-top:14px">…or assemble your own</h4>
+              <div class="ad-choices">
+                <label class="switch"><input type="checkbox" id="cp-count" checked><span>CountingDuckFactory (decorator)</span></label>
+                <label class="switch"><input type="checkbox" id="cp-flock"><span>wrap the ducks in a Flock</span></label>
+                <label class="switch"><input type="checkbox" id="cp-observer-on"><span>register a Quackologist</span></label>
+              </div>
+              <div class="ad-choices" style="margin-top:12px">
+                <button class="btn primary small" id="cp-simulate">simulate()</button>
+              </div>
+              <p class="wx-hint" style="margin:10px 0 0">The pond never changes: <code>simulate()</code> only ever calls <code>quack()</code> on a <code>Quackable</code>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------------------------------------------------------- dj -->
+      <div class="cp-panel" id="cp-panel-dj" hidden>
+        <div class="cp-grid">
+          <div>
+            <div class="ad-card" style="margin-top:0">
+              <h4>BeatModel · the model</h4>
+              <div class="cp-bpm" id="cp-bpm-value">90</div>
+              <div class="dx-label" style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:#8d84a8">beats per minute</div>
+              <div class="cp-beatbar" id="cp-beatbar"><i></i></div>
+              <div class="rc-dev" style="margin-top:10px"><span>state</span><b id="cp-dj-state">off</b></div>
+              <div class="rc-dev" style="margin-top:6px"><span>beats played</span><b id="cp-dj-beats">0</b></div>
+              <div class="rc-dev" style="margin-top:6px"><span>model class</span><b id="cp-dj-model">BeatModel</b></div>
+            </div>
+            <div class="ad-card" style="margin-top:12px">
+              <h4>Controller · the view’s strategy</h4>
+              <div class="ad-choices">
+                <button class="btn small" id="cp-swap-controller">setController(HeartController)</button>
+                <button class="btn ghost small" id="cp-reset-dj">DJTestDrive again</button>
+              </div>
+              <p class="wx-hint" style="margin:8px 0 0" id="cp-controller-note">BeatController: start(), stop(), increaseBPM(), decreaseBPM(), setBPM().</p>
+            </div>
+          </div>
+          <div>
+            <div class="ad-card" style="margin-top:0">
+              <h4>DJView · the view</h4>
+              <div class="ad-choices">
+                <button class="btn primary small" id="cp-start">start()</button>
+                <button class="btn small" id="cp-stop">stop()</button>
+                <button class="btn small" id="cp-step">fire one beat</button>
+              </div>
+              <div style="margin-top:12px">
+                <label class="dx-label" style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:#8d84a8">BPM slider</label>
+                <input type="range" id="cp-bpm" min="60" max="160" step="1" value="90">
+                <div class="ad-choices" style="margin-top:8px">
+                  <button class="btn small" id="cp-bpm-down">decreaseBPM()</button>
+                  <button class="btn small" id="cp-bpm-up">increaseBPM()</button>
+                </div>
+              </div>
+              <div class="rc-dev" style="margin-top:10px"><span>label shows</span><b id="cp-view-bpm">90 BPM</b></div>
+              <p class="wx-hint" style="margin:8px 0 0">The view never calls the model to change anything: every button goes to the controller.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">console</span>
+        </header>
+        <div class="body" id="cp-log"></div>
+        <footer><button class="btn small" id="cp-clear2">Clear console</button></footer>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>Try this:</strong> turn the Quackologist on and run the composite scene. The observer is registered with the <em>flock</em>, which hands it to every duck inside — so the notifications arrive from the ducks, not from the flock.
+      </div>
+      <div class="note warn">
+        <strong>And this:</strong> press <code>setController(HeartController)</code>. The view keeps working, the slider still moves, but start and stop become no-ops — because the controller is the view’s strategy, and this one has nothing to start.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 5. CHEAT SHEET -->
+<section id="cp-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 12 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Start with a clean simulator</h4><p><code>Quackable</code> with one method, four ducks and a duck call. It compiles, it quacks, it is boringly good design.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>A goose wants in → Adapter</h4><p><code>GooseAdapter</code> implements <code>Quackable</code> and turns <code>quack()</code> into <code>honk()</code>. The goose and the simulator are untouched.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Count the quacks → Decorator</h4><p><code>QuackCounter</code> wraps a duck, delegates <code>quack()</code> and counts. Only wrapped ducks count — which is the flaw the factory fixes.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Never miss a wrap → Abstract Factory</h4><p><code>DuckFactory</code> returns plain ducks, <code>CountingDuckFactory</code> returns decorated ones. The client asks for a duck and gets the right family.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>A pond of ducks → Composite</h4><p><code>Flock</code> is a <code>Quackable</code> made of <code>Quackable</code>s. Only flocks have <code>add()</code>, trading transparency for safety.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Who quacked? → Observer</h4><p>Every duck owns an <code>Observable</code>, notifies after <code>quack()</code>, and a <code>Quackologist</code> prints the culprit.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Patterns together ≠ compound pattern</h4><p>Six patterns cooperating is just good design. A <em>compound</em> pattern is a named, reusable combination that solves a general problem.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>MVC is Observer + Strategy + Composite</h4><p>The model notifies, the controller is the view’s strategy, the view is a composite of widgets. Swap the model with an adapter and nothing else changes.</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The book’s bullet points</h3>
+        <ul class="bullets">
+          <li>A compound pattern combines two or more patterns into a solution that solves a recurring or general problem.</li>
+          <li>Patterns are often used together and combined within the same design solution.</li>
+          <li>The Model-View-Controller Pattern is a compound pattern consisting of the Observer, Strategy and Composite Patterns.</li>
+          <li>The model uses Observer to keep the views and controllers updated on the latest state changes.</li>
+          <li>The controller implements the behaviour of the view; it is the view’s strategy.</li>
+          <li>The view uses Composite to manage its display components.</li>
+          <li>You do not design by applying patterns to a problem until one fits — that is how you get over-engineered code.</li>
+          <li>Sometimes good OO principles solve the problem without any pattern at all.</li>
+          <li>MVC has been adapted to the web: thin client, single page applications, and everything in between.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Who plays which part</h3>
+        <table class="compare">
+          <thead><tr><th>Duck Simulator</th><th>MVC</th><th>Pattern</th></tr></thead>
+          <tbody>
+            <tr><td><code>GooseAdapter</code></td><td><code>HeartAdapter</code></td><td>Adapter</td></tr>
+            <tr><td><code>QuackCounter</code></td><td>—</td><td>Decorator</td></tr>
+            <tr><td><code>CountingDuckFactory</code></td><td>the assembly in <code>DJTestDrive</code></td><td>Factory</td></tr>
+            <tr><td><code>Flock</code></td><td>the view’s widget tree</td><td>Composite</td></tr>
+            <tr><td><code>Quackologist</code></td><td>view and controller listening to the model</td><td>Observer</td></tr>
+            <tr><td>—</td><td><code>ControllerInterface</code></td><td>Strategy</td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:14px">
+          <strong>The one-sentence test:</strong> if you cannot name the patterns it is made of, it is not a compound pattern — it is just a program that happens to use several.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:34px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:mvc-qa}}" alt="Dumb Questions about MVC: is the Composite really in MVC, does the controller always create the view, and who owns the model.">
+        <figcaption>The Q&amp;A that settles the arguments: yes, Composite really is in MVC; the controller usually creates the view; and the model owns its data.</figcaption>
+        {{SAYS:mvc-qa}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:mvc-web}}" alt="MVC on the web: thin client, single page applications and hybrid approaches, with the model, view and controller split across browser and server.">
+        <figcaption>MVC after the book: thin client, single-page apps, and everything between. The pattern did not change — the <em>placement</em> of the three parts did.</figcaption>
+        {{SAYS:mvc-web}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG12:toolbox12}}" alt="Tools for your Design Toolbox: thirteen patterns plus the Model-View-Controller compound pattern, the OO basics and the principles.">
+      <figcaption>The toolbox at the end: twelve classic patterns, the compound pattern on top, and the note that you now have more tools than most working programmers.</figcaption>
+      {{SAYS:toolbox12}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:exercise-solutions}}" alt="Exercise solutions: the QuackCounter class and the count-the-quacks experiment, with the answers marked in.">
+        <figcaption>Exercise solution one: the counter, and the answer to how many quacks a decorated flock produces.</figcaption>
+        {{SAYS:exercise-solutions}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:flock-solution}}" alt="Exercise solution two: the Flock class with add, quack and registerObserver forwarding to every duck.">
+        <figcaption>Solution two: the flock. Its <code>registerObserver()</code> loops over the ducks, and its <code>notifyObservers()</code> is deliberately empty.</figcaption>
+        {{SAYS:flock-solution}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG12:design-puzzle-solution}}" alt="Design Puzzle solution: the Strategy diagram of DJView and ControllerInterface, plus the answer to the goose-factory question.">
+      <figcaption>The Design Puzzle answer: <code>DJView</code> holds a <code>ControllerInterface</code> and delegates to it — Strategy, drawn. The same page answers the goose-factory question.</figcaption>
+      {{SAYS:design-puzzle-solution}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:beat-model-code}}" alt="Ready-bake code: the BeatModel class with its sequencer, beat thread and observer lists.">
+        <figcaption>Ready-bake: the model. The real thing talks to a MIDI sequencer; the demo on this page keeps the same interface and the same notifications.</figcaption>
+        {{SAYS:beat-model-code}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:beat-controller-code}}" alt="Ready-bake code: the BeatController class implementing ControllerInterface.">
+        <figcaption>Ready-bake: the controller, complete with the menu enabling the book’s design puzzle asks you to reason about.</figcaption>
+        {{SAYS:beat-controller-code}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:heart-adapter-code}}" alt="Ready-bake code: the HeartAdapter implementing BeatModelInterface over a HeartModelInterface.">
+        <figcaption>Ready-bake: the heart adapter. Every beat-model call becomes a heart-model call — including the two <code>registerObserver</code> overloads.</figcaption>
+        {{SAYS:heart-adapter-code}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG12:heart-controller-code}}" alt="Ready-bake code: the HeartController with no-op start and stop methods.">
+        <figcaption>Ready-bake: the heart controller. <code>start()</code> and <code>stop()</code> do nothing on purpose, so the view disables those menu items.</figcaption>
+        {{SAYS:heart-controller-code}}
+      </figure>
+    </div>
+
+    <div class="quiz" style="margin-top:34px" id="cp-quiz">
+      <h3 style="margin-top:0">Check yourself: compound patterns</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="cp-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. A compound pattern combines two or more patterns into a solution that solves a recurring or general problem.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="B"><span class="txt">B. MVC is a compound pattern built from Observer, Strategy and Composite.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="C"><span class="txt">C. The right way to design is to keep applying patterns to a problem until one of them fits.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="D"><span class="txt">D. The controller is the view’s strategy, so you can swap controllers without changing the view.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="E"><span class="txt">E. A compound pattern is a brand-new pattern that has nothing to do with the patterns you already know.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="F"><span class="txt">F. In the Duck Simulator, the flock is a Composite and the Quackologist is an Observer.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="cp-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="cp-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="cp-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>The chapter in one sentence:</strong> patterns are designed to be combined, a few combinations are so useful they earn a name, and the most famous of those names is Model-View-Controller.
+    </div>
+
+    <p style="margin-top:22px;font-size:.92rem;color:var(--ink-soft)">Next in the book: <strong>Chapter 13, Better Living with Patterns</strong> — the pattern catalog, anti-patterns, and how to keep using all of this after the book is closed.</p>
+  </div>
+</section>
+<script>
+/* =========================================================== chapter 12 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#cp-log');
+  if (!logBox) return;
+
+  const log = (text, cls = 'out') => {
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = text;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  const say = t => log(t, 'out');
+  const dim = t => log(t, 'dim');
+  const call = t => log(t, 'call');
+  const err = t => log(t, 'err');
+
+  /* ---------------------------------------------------------------- tabs */
+  const tabs = $$('#cp-tabs .tab');
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+    $$('#cp-demo .cp-panel').forEach(p => { p.hidden = p.id !== `cp-panel-${tab.dataset.panel}`; });
+  }));
+
+  $('#cp-clear').addEventListener('click', () => { logBox.innerHTML = ''; });
+  $('#cp-clear2').addEventListener('click', () => { logBox.innerHTML = ''; });
+
+  /* =============================================================== DUCKS */
+  const DESC = {
+    mallard: 'Mallard Duck',
+    redhead: 'Redhead Duck',
+    duckcall: 'Duck Call',
+    rubber: 'Rubber Duck',
+    goose: 'Goose pretending to be a Duck'
+  };
+  const NOISE = { mallard: 'Quack', redhead: 'Quack', duckcall: 'Kwak', rubber: 'Squeak' };
+
+  class Duck {
+    constructor(kind) { this.kind = kind; this.observers = []; }
+    quack() { say(NOISE[this.kind]); this.notifyObservers(); }
+    registerObserver(o) { this.observers.push(o); }
+    removeObserver(o) { this.observers = this.observers.filter(x => x !== o); }
+    notifyObservers() { this.observers.forEach(o => o.update(this)); }
+    toString() { return DESC[this.kind]; }
+  }
+
+  class Goose {
+    honk() { say('Honk'); }
+  }
+
+  class GooseAdapter {
+    constructor(goose) { this.goose = goose; this.observers = []; }
+    quack() { this.goose.honk(); this.notifyObservers(); }
+    registerObserver(o) { this.observers.push(o); }
+    removeObserver(o) { this.observers = this.observers.filter(x => x !== o); }
+    notifyObservers() { this.observers.forEach(o => o.update(this)); }
+    toString() { return DESC.goose; }
+  }
+
+  class QuackCounter {
+    constructor(duck) { this.duck = duck; }
+    quack() { this.duck.quack(); QuackCounter.count += 1; }
+    registerObserver(o) { this.duck.registerObserver(o); }
+    removeObserver(o) { this.duck.removeObserver(o); }
+    notifyObservers() { this.duck.notifyObservers(); }
+    toString() { return this.duck.toString(); }
+  }
+  QuackCounter.count = 0;
+
+  class Flock {
+    constructor() { this.quackers = []; }
+    add(quacker) { this.quackers.push(quacker); }
+    quack() { this.quackers.forEach(q => q.quack()); }
+    registerObserver(o) { this.quackers.forEach(q => q.registerObserver(o)); }
+    removeObserver(o) { this.quackers.forEach(q => q.removeObserver(o)); }
+    notifyObservers() { /* the ducks do the notifying */ }
+    toString() { return 'Flock'; }
+  }
+
+  class DuckFactory {
+    createMallardDuck() { return new Duck('mallard'); }
+    createRedheadDuck() { return new Duck('redhead'); }
+    createDuckCall() { return new Duck('duckcall'); }
+    createRubberDuck() { return new Duck('rubber'); }
+  }
+
+  class CountingDuckFactory extends DuckFactory {
+    createMallardDuck() { return new QuackCounter(new Duck('mallard')); }
+    createRedheadDuck() { return new QuackCounter(new Duck('redhead')); }
+    createDuckCall() { return new QuackCounter(new Duck('duckcall')); }
+    createRubberDuck() { return new QuackCounter(new Duck('rubber')); }
+  }
+
+  class Quackologist {
+    update(duck) { say(`Quackologist: ${duck.toString()} just quacked.`); }
+  }
+
+  const simulate = duck => duck.quack();
+
+  const fire = (id, checked) => {
+    const el = $('#' + id);
+    el.checked = checked;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  $('#cp-patterns').innerHTML = [
+    ['adapter', 'Adapter'], ['decorator', 'Decorator'], ['factory', 'Abstract Factory'],
+    ['composite', 'Composite'], ['observer', 'Observer']
+  ].map(([key, label]) => `<span data-p="${key}" data-on="false">${label}</span>`).join('');
+
+  const markPatterns = on => {
+    $$('#cp-patterns span').forEach(chip => {
+      chip.dataset.on = String(on.includes(chip.dataset.p));
+    });
+  };
+
+  const renderPond = () => {
+    const counting = $('#cp-count').checked;
+    const flocked = $('#cp-flock').checked;
+    const rows = [
+      ['MallardDuck(x4)', 'mallard', 4],
+      ['RedheadDuck', 'redhead', 1],
+      ['DuckCall', 'duckcall', 1],
+      ['RubberDuck', 'rubber', 1],
+      ['GooseAdapter(Goose)', 'goose', 1]
+    ];
+    $('#cp-pond').innerHTML = rows.map(([label, kind, n]) => {
+      const wrapped = counting && kind !== 'goose';
+      const name = wrapped ? `QuackCounter(${label})` : label;
+      return `<div class="cp-duck" data-kind="${kind}">
+        <b>${n > 1 ? n + ' × ' : ''}${name}</b>
+        <span class="tag">${DESC[kind]}</span></div>`;
+    }).join('') + (flocked ? '<div class="cp-duck"><b>Flock</b><span class="tag">composite of the rest</span></div>' : '');
+  };
+
+  ['cp-count', 'cp-flock', 'cp-observer-on'].forEach(id => {
+    $('#' + id).addEventListener('change', () => {
+      renderPond();
+      dim(`// Quackable cast reconfigured — still no client code to change`);
+    });
+  });
+  renderPond();
+  markPatterns([]);
+
+  const cast = factory => ([
+    factory.createMallardDuck(),
+    factory.createRedheadDuck(),
+    factory.createDuckCall(),
+    factory.createRubberDuck()
+  ]);
+
+  const sceneGoose = () => {
+    fire('cp-count', false); fire('cp-flock', false); fire('cp-observer-on', false);
+    QuackCounter.count = 0;
+    markPatterns(['adapter']);
+    call('%java DuckSimulator   // with the goose adapter');
+    say('Duck Simulator: With Goose Adapter');
+    const f = new DuckFactory();
+    [...cast(f), new GooseAdapter(new Goose())].forEach(simulate);
+  };
+
+  const sceneFactory = () => {
+    fire('cp-count', true); fire('cp-flock', false); fire('cp-observer-on', false);
+    QuackCounter.count = 0;
+    markPatterns(['adapter', 'decorator', 'factory']);
+    call('%java DuckSimulator   // CountingDuckFactory');
+    say('Duck Simulator: With Abstract Factory');
+    const f = new CountingDuckFactory();
+    [...cast(f), new GooseAdapter(new Goose())].forEach(simulate);
+    say(`${QuackCounter.count} quacks were counted`);
+  };
+
+  const buildFlock = counting => {
+    const f = counting ? new CountingDuckFactory() : new DuckFactory();
+    const mallards = [0, 1, 2, 3].map(() => f.createMallardDuck());
+    const mallardFlock = new Flock();
+    mallards.forEach(d => mallardFlock.add(d));
+    const rest = [f.createRedheadDuck(), f.createDuckCall(), f.createRubberDuck()];
+    const whole = new Flock();
+    whole.add(mallardFlock);
+    rest.forEach(d => whole.add(d));
+    whole.add(new GooseAdapter(new Goose()));
+    return { mallardFlock, whole };
+  };
+
+  const sceneComposite = () => {
+    fire('cp-count', true); fire('cp-flock', true); fire('cp-observer-on', false);
+    QuackCounter.count = 0;
+    markPatterns(['adapter', 'decorator', 'factory', 'composite']);
+    call('%java DuckSimulator   // with flocks');
+    say('Duck Simulator: With Composite - Flocks');
+    const { mallardFlock, whole } = buildFlock(true);
+    say('Duck Simulator: Whole Flock Simulation');
+    simulate(whole);
+    say('Duck Simulator: Mallard Flock Simulation');
+    simulate(mallardFlock);
+    say(`The ducks quacked ${QuackCounter.count} times`);
+  };
+
+  const sceneObserver = () => {
+    fire('cp-count', true); fire('cp-flock', true); fire('cp-observer-on', true);
+    QuackCounter.count = 0;
+    markPatterns(['adapter', 'decorator', 'factory', 'composite', 'observer']);
+    call('%java DuckSimulator   // with the Quackologist');
+    say('Duck Simulator: With Observer');
+    const { whole } = buildFlock(true);
+    whole.registerObserver(new Quackologist());
+    simulate(whole);
+    say(`The Ducks quacked ${QuackCounter.count} times.`);
+  };
+
+  const customRun = () => {
+    const counting = $('#cp-count').checked;
+    const flocked = $('#cp-flock').checked;
+    const observing = $('#cp-observer-on').checked;
+    QuackCounter.count = 0;
+    const on = ['adapter'];
+    if (counting) on.push('decorator', 'factory');
+    if (flocked) on.push('composite');
+    if (observing) on.push('observer');
+    markPatterns(on);
+    call('simulator.simulate(quackable)');
+    say('Duck Simulator: Custom Run');
+    const { mallardFlock, whole } = buildFlock(counting);
+    const target = flocked ? whole : mallardFlock;
+    if (observing) {
+      target.registerObserver(new Quackologist());
+      dim('target.registerObserver(new Quackologist())');
+    }
+    if (!flocked && !counting) {
+      [...cast(new DuckFactory()), new GooseAdapter(new Goose())].forEach(simulate);
+    } else {
+      simulate(target);
+      if (!flocked) simulate(new GooseAdapter(new Goose()));
+    }
+    if (counting) say(`${QuackCounter.count} quacks were counted`);
+  };
+
+  $('#cp-run-goose').addEventListener('click', sceneGoose);
+  $('#cp-run-factory').addEventListener('click', sceneFactory);
+  $('#cp-run-composite').addEventListener('click', sceneComposite);
+  $('#cp-run-observer').addEventListener('click', sceneObserver);
+  $('#cp-simulate').addEventListener('click', customRun);
+
+  /* ================================================================== DJ */
+  const dj = {
+    bpm: 90,
+    playing: false,
+    beats: 0,
+    mode: 'beat',          // 'beat' | 'heart'
+    timer: null,
+    heartRate: 72
+  };
+
+  const NOTIFY = { beat: [], bpm: [] };
+
+  const renderDJ = () => {
+    $('#cp-bpm-value').textContent = String(dj.bpm);
+    $('#cp-view-bpm').textContent = `${dj.bpm} BPM`;
+    $('#cp-bpm').value = String(dj.bpm);
+    $('#cp-dj-state').textContent = dj.mode === 'heart' ? 'adapting' : (dj.playing ? 'playing' : 'off');
+    $('#cp-dj-beats').textContent = String(dj.beats);
+    $('#cp-dj-model').textContent = dj.mode === 'heart' ? 'HeartAdapter(HeartModel)' : 'BeatModel';
+    $('#cp-start').disabled = dj.mode === 'heart';
+    $('#cp-stop').disabled = dj.mode === 'heart';
+  };
+
+  const flash = () => {
+    const bar = $('#cp-beatbar');
+    bar.classList.add('hit');
+    setTimeout(() => bar.classList.remove('hit'), 130);
+  };
+
+  const notifyBPM = () => NOTIFY.bpm.forEach(fn => fn(dj.bpm));
+  const notifyBeat = () => NOTIFY.beat.forEach(fn => fn());
+
+  NOTIFY.beat.push(() => { flash(); dim('DJView.updateBeat(): beat bar pulses   // BeatObserver'); });
+  NOTIFY.bpm.push(bpm => { dim(`DJView.updateBPM(): label reads ${bpm} BPM   // BPMObserver`); renderDJ(); });
+
+  const setBPM = bpm => {
+    dj.bpm = Math.max(0, bpm);
+    call(`model.setBPM(${dj.bpm})`);
+    notifyBPM(dj.bpm);
+  };
+
+  const schedule = () => {
+    if (dj.timer) { clearTimeout(dj.timer); dj.timer = null; }
+    if (!dj.playing) return;
+    const wait = Math.max(120, Math.round(60000 / Math.max(1, dj.bpm)));
+    dj.timer = setTimeout(() => {
+      if (!dj.playing) return;
+      dj.beats += 1;
+      notifyBeat();
+      renderDJ();
+      schedule();
+    }, wait);
+  };
+
+  const modelOn = () => {
+    dj.mode = 'beat';
+    dj.playing = true;
+    dj.beats = 0;
+    say('Current BPM: 90');
+    setBPM(90);
+    dim('model.on(): sequencer.start()');
+    renderDJ();
+    schedule();
+  };
+
+  const modelOff = () => {
+    dj.playing = false;
+    if (dj.timer) { clearTimeout(dj.timer); dj.timer = null; }
+    setBPM(0);
+    dim('model.off(): sequencer.stop(), BPM set to 0');
+    renderDJ();
+  };
+
+  const heartTick = () => {
+    const drift = Math.round(Math.sin(dj.beats / 2) * 2);
+    const rate = 72 + drift;
+    dj.heartRate = rate;
+    dj.bpm = rate;
+    dj.beats += 1;
+    say(`HeartModel.getHeartRate(): ${rate}`);
+    dim(`HeartAdapter.getBPM() → heart.getHeartRate() = ${rate}   // Adapter`);
+    notifyBPM(rate);
+    notifyBeat();
+    renderDJ();
+  };
+
+  $('#cp-start').addEventListener('click', () => {
+    if (dj.mode === 'heart') { dim('HeartController.start() is a no-op'); return; }
+    call('controller.start()');
+    modelOn();
+  });
+
+  $('#cp-stop').addEventListener('click', () => {
+    if (dj.mode === 'heart') { dim('HeartController.stop() is a no-op'); return; }
+    call('controller.stop()');
+    modelOff();
+  });
+
+  $('#cp-step').addEventListener('click', () => {
+    if (dj.mode === 'heart') { call('heartModel beat'); heartTick(); return; }
+    call('model beat event');
+    dj.beats += 1;
+    notifyBeat();
+    renderDJ();
+  });
+
+  $('#cp-bpm-up').addEventListener('click', () => {
+    if (dj.mode === 'heart') { dim('increaseBPM() is a no-op in HeartController'); return; }
+    call('controller.increaseBPM()');
+    setBPM(dj.bpm + 1);
+    schedule();
+  });
+
+  $('#cp-bpm-down').addEventListener('click', () => {
+    if (dj.mode === 'heart') { dim('decreaseBPM() is a no-op in HeartController'); return; }
+    call('controller.decreaseBPM()');
+    setBPM(Math.max(1, dj.bpm - 1));
+    schedule();
+  });
+
+  $('#cp-bpm').addEventListener('input', e => {
+    if (dj.mode === 'heart') { dim('the slider is a no-op in HeartController'); return; }
+    setBPM(Number(e.target.value));
+    schedule();
+  });
+
+  $('#cp-swap-controller').addEventListener('click', () => {
+    if (dj.mode === 'beat') {
+      dj.mode = 'heart';
+      dj.playing = false;
+      dj.beats = 0;
+      if (dj.timer) { clearTimeout(dj.timer); dj.timer = null; }
+      dj.bpm = 72;
+      call('view.setController(new HeartController(new HeartAdapter(new HeartModel())))');
+      dim('the view does not know it changed strategy');
+      $('#cp-controller-note').textContent = 'HeartController: start() and stop() are no-ops, so those menu items are disabled.';
+      say('Current BPM: 72');
+    } else {
+      dj.mode = 'beat';
+      dj.bpm = 90;
+      dj.beats = 0;
+      call('view.setController(new BeatController(model))');
+      $('#cp-controller-note').textContent = 'BeatController: start(), stop(), increaseBPM(), decreaseBPM(), setBPM().';
+      say('Current BPM: 90');
+    }
+    renderDJ();
+  });
+
+  $('#cp-reset-dj').addEventListener('click', () => {
+    dj.mode = 'beat';
+    dj.playing = false;
+    dj.bpm = 90;
+    dj.beats = 0;
+    if (dj.timer) { clearTimeout(dj.timer); dj.timer = null; }
+    $('#cp-controller-note').textContent = 'BeatController: start(), stop(), increaseBPM(), decreaseBPM(), setBPM().';
+    dim('BeatModelInterface model = new BeatModel();');
+    dim('ControllerInterface controller = new BeatController(model);');
+    renderDJ();
+  });
+
+  renderDJ();
+  dim('Compound playground ready: the pond has eight quackers, the beat machine is at 90 BPM and stopped.');
+})();
+
+/* --------------------------------------------------------------- quiz */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const box = $('#cp-quiz');
+  if (!box) return;
+
+  const opts   = $$('#cp-quiz-opts .opt', box);
+  const answer = $('#cp-quiz-answer', box);
+
+  opts.forEach(opt => {
+    opt.addEventListener('change', () => {
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+  });
+
+  $('#cp-quiz-check', box).addEventListener('click', () => {
+    const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    let right = 0;
+    const wrong = [];
+    opts.forEach(opt => {
+      const ticked  = opt.querySelector('input').checked;
+      const correct = opt.dataset.correct === '1';
+      const mark    = opt.querySelector('.mark');
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
+      else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
+      else { mark.textContent = ''; }
+    });
+    const allFound = right === correctSet.length;
+    answer.classList.remove('hidden');
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, B, D and F. C is the approach the book explicitly warns against on the finale page. E is backwards: a compound pattern is <em>made of</em> patterns you already know.`
+      : `<strong>All ${correctSet.length} correct.</strong> The definition (A), MVC’s three patterns (B), the swappable controller (D) and the duck cast (F).`;
+  });
+
+  $('#cp-quiz-reset', box).addEventListener('click', () => {
+    opts.forEach(opt => {
+      opt.querySelector('input').checked = false;
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+    answer.classList.add('hidden');
+    answer.innerHTML = '';
+  });
+})();
+</script>

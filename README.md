@@ -1,9 +1,9 @@
 # java
 
-## Head First Design Patterns (2nd ed.) — study pages, chapters 1–11
+## Head First Design Patterns (2nd ed.) — study pages, chapters 1–12
 
 `head-first-ch1-design-patterns.html` is one self-contained page (no external assets,
-works offline) that summarizes the first eleven chapters of *Head First Design Patterns*:
+works offline) that summarizes the first twelve chapters of *Head First Design Patterns*:
 
 **Chapter 1 — Welcome to Design Patterns / Strategy** (book pages 1–36)
 the SimUDuck story, the three OO design principles, the Strategy Pattern, the diner-talk
@@ -192,7 +192,31 @@ shows `paintIcon()`, the thread, `c.repaint()` and the delegated paint. *Protect
 `setGeekRating(10)`, the stranger's proxy refuses `setInterests()`, and the "run MatchMakingTestDrive"
 button reproduces the book's output line for line.
 
+**Chapter 12 — Patterns of Patterns / Compound Patterns** (book pages 493–562)
+the Duck Simulator, grown one requirement at a time: `Quackable` and four ducks, then a goose (Adapter), a
+quack counter (Decorator), `AbstractDuckFactory`/`CountingDuckFactory` (Abstract Factory), `Flock`
+(Composite) and the Quackologist (Observer) — with every run's console output, the "safety vs.
+transparency" trade-off, and the two-page class diagram of the finished cast. Then the compound-pattern
+idea itself: patterns working together vs. a named compound pattern, the King of Compound Patterns, the
+Model-View-Controller song, "MVC is patterns put together", Meet MVC, the three roles, and the key page —
+MVC as **Observer + Strategy + Composite**. The DJ View follows end to end: `BeatModelInterface`,
+`BeatModel` with its sequencer and two observer lists, `DJView implements ActionListener, BeatObserver,
+BPMObserver`, `ControllerInterface`, `BeatController`, `DJTestDrive` and its test run, then "Exploring
+Strategy" (swap the controller), "Adapting the Model" (`HeartModel` + `HeartAdapter`) and the heart test
+run. Ends with the MVC Q&A, MVC on the web, the toolbox, the exercise solutions (QuackCounter, Flock), the
+Design Puzzle solution (view/controller Strategy) and four Ready-Bake listings.
+
+Plus a **Compound Playground** with two tabs. *Duck Simulator*: the pond renders the eight-quacker cast —
+decorated or not, flocked or not — and four scene buttons replay the book's runs (Goose Adapter, Abstract
+Factory with "4 quacks were counted", Composite Flocks with "The ducks quacked 11 times", Observer with a
+notification per quack), with a live pattern-stack readout; a fifth button assembles your own
+configuration. *Beat machine*: a real `BeatModel`/`DJView`/`BeatController` triad at 90 BPM with a beat
+bar, start/stop, ±1 BPM, slider, observer trace and a "fire one beat" step — and a
+`setController(HeartController)` button that swaps the view's strategy for the heart adapter, disabling
+start/stop exactly as the book describes.
+
 ### Build
+
 
 ```bash
 python tools/crop_ch1.py     # chapter 1 figures  -> assets/ch1/*.jpg
@@ -206,6 +230,7 @@ python tools/crop_ch8.py     # chapter 8 figures  -> assets/ch8/*.jpg
 python tools/crop_ch9.py     # chapter 9 figures  -> assets/ch9/*.jpg
 python tools/crop_ch10.py    # chapter 10 figures -> assets/ch10/*.jpg
 python tools/crop_ch11.py    # chapter 11 figures -> assets/ch11/*.jpg
+python tools/crop_ch12.py    # chapter 12 figures -> assets/ch12/*.jpg
 python tools/build_page.py   # inlines all chapters + base64 images -> head-first-ch1-design-patterns.html
 ```
 
@@ -232,19 +257,21 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   (`{{IMG10:name}}`, plus its own `<script>` block for the gumball machine and quiz)
 * `site_src/chapter11.template.html` — chapter 11, spliced in at the `{{CHAPTER11}}` marker
   (`{{IMG11:name}}`, plus its own `<script>` block for the proxy playground and quiz)
-* `site_src/figure-text-ch1.json` … `-ch11.json` — curated
+* `site_src/chapter12.template.html` — chapter 12, spliced in at the `{{CHAPTER12}}` marker
+  (`{{IMG12:name}}`, plus its own `<script>` block for the compound playground and quiz)
+* `site_src/figure-text-ch1.json` … `-ch12.json` — curated
   transcripts of the text printed inside each figure; `tools/figure_text.py` dumps the raw
   PDF text layer per crop to help edit them. Each chapter's markers are resolved against its
   own table, so a repeated figure name (`opener`, `crossword`, `toolbox`) never picks up
   another chapter's text.
-* `tools/crop_ch1.py` … `tools/crop_ch11.py` — crop
+* `tools/crop_ch1.py` … `tools/crop_ch12.py` — crop
   boxes in PDF points (the page is 576 × 666 pt)
 * `index.html` — meta-refresh to the page (handy when serving the folder)
 
 ### Notes
 
 * The figures are book excerpts, © O'Reilly Media — study material, not for redistribution.
-  The Java listings are the book's code; the JavaScript ports and the eleven interactive
+  The Java listings are the book's code; the JavaScript ports and the twelve interactive
   simulators are written for this page.
 * The heat index demo uses the formula exactly as printed in the book; it computes in
   doubles where the book uses `float`, so one value differs in the fifth decimal
