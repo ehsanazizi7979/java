@@ -1,9 +1,9 @@
 # java
 
-## Head First Design Patterns (2nd ed.) — study pages, chapters 1–13
+## Head First Design Patterns (2nd ed.) — study pages, chapters 1–13 + appendix
 
 `head-first-ch1-design-patterns.html` is one self-contained page (no external assets,
-works offline) that summarizes the first thirteen chapters of *Head First Design Patterns*:
+works offline) that summarizes the thirteen chapters and the appendix of *Head First Design Patterns*:
 
 **Chapter 1 — Welcome to Design Patterns / Strategy** (book pages 1–36)
 the SimUDuck story, the three OO design principles, the Strategy Pattern, the diner-talk
@@ -237,6 +237,27 @@ and a link back to the chapter where you built it. *Catalog sorter*: all fifteen
 MVC) as cards with intent, tagged by purpose and scope, filterable by creational / structural / behavioral /
 compound or by class / object scope, with a live count — which is exactly the index the chapter describes.
 
+**Appendix — Leftover Patterns** (book pages 597–615)
+the nine patterns the book hands you without a chapter of their own, one spread each: **Bridge**
+(vary not only your implementations but also your abstractions — the TV / Sony / RCA hierarchy),
+**Builder** (encapsulate construction in steps — the vacation planner), **Chain of Responsibility**
+(give more than one object a chance to handle a request — the e-mail handler chain), **Flyweight**
+(one instance standing in for many virtual ones — the tree manager), **Interpreter** (build an
+interpreter for a language — the mini golf/duck query language), **Mediator** (centralize complex
+communications — the auto-interface), **Memento** (return an object to a previous state — the game
+save/restore), **Prototype** (when creating an instance is expensive or complicated — the monster),
+and **Visitor** (add capabilities to a composite — the menu calorie counter). Every entry gets the
+book's scenario figure plus its "Uses and Drawbacks" page; the intro sorts all nine by purpose and
+scope and gives a reading guide for skimming.
+
+The **Leftover Patterns Lab** demo has three tabs. *Visitor*: walk the three menus from chapter 9
+with a `CalorieVisitor`, a `VegetarianVisitor` and a `PriceVisitor` — 3500 calories for the diner,
+8550 across all three, 8 of 13 items vegetarian, $47.07 if you ate everything. *Chain of
+Responsibility*: post the five e-mails from the book through FanMail → CEO, Complaint → Legal,
+NewMachine → Business Development and Spam → the bin, including the partnership letter that falls
+off the end of the chain unhandled. *Memento*: damage the character, level up, save, get hurt again,
+then undo back through a caretaker stack of mementos that each hold a full state snapshot.
+
 ### Build
 
 
@@ -255,6 +276,7 @@ python tools/crop_ch10.py    # chapter 10 figures -> assets/ch10/*.jpg
 python tools/crop_ch11.py    # chapter 11 figures -> assets/ch11/*.jpg
 python tools/crop_ch12.py    # chapter 12 figures -> assets/ch12/*.jpg
 python tools/crop_ch13.py    # chapter 13 figures -> assets/ch13/*.jpg
+python tools/crop_ch14.py    # appendix figures   -> assets/ch14/*.jpg
 python tools/build_page.py   # inlines all chapters + base64 images -> head-first-ch1-design-patterns.html
 ```
 
@@ -285,12 +307,14 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   (`{{IMG12:name}}`, plus its own `<script>` block for the compound playground and quiz)
 * `site_src/chapter13.template.html` — chapter 13, spliced in at the `{{CHAPTER13}}` marker
   (`{{IMG13:name}}`, plus its own `<script>` block for the pattern guide and quiz)
-* `site_src/figure-text-ch1.json` … `-ch13.json` — curated
+* `site_src/chapter14.template.html` — the appendix, spliced in at the `{{CHAPTER14}}` marker
+  (`{{IMG14:name}}`, plus its own `<script>` block for the leftover-patterns lab and quiz)
+* `site_src/figure-text-ch1.json` … `-ch14.json` — curated
   transcripts of the text printed inside each figure; `tools/figure_text.py` dumps the raw
   PDF text layer per crop to help edit them. Each chapter's markers are resolved against its
   own table, so a repeated figure name (`opener`, `crossword`, `toolbox`) never picks up
   another chapter's text.
-* `tools/crop_ch1.py` … `tools/crop_ch13.py` — crop
+* `tools/crop_ch1.py` … `tools/crop_ch14.py` — crop
   boxes in PDF points (the page is 576 × 666 pt)
 * `index.html` — meta-refresh to the page (handy when serving the folder)
 
@@ -311,6 +335,10 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   interleavings it shows are the ones on pages 182–183 and 188, and the `synchronized` /
   `volatile` / enum panels state the same guarantees the book states rather than simulating
   a memory model. The double-checked-locking verdict repeats the book's Java-5 caveat.
+* The appendix ships no runnable code in the book, so the Leftover Patterns Lab is written for
+  this page: the menus, e-mail handlers and game state are the appendix's own examples, and the
+  visitor arithmetic is checked against the calories and prices printed on the chapter 9 menu
+  figures.
 * The remote control is a JavaScript port of the book's `RemoteControl` / `RemoteControlWithUndo` /
   `MacroCommand` classes: command objects capture their receiver at "load" time, the invoker only
   stores `Command` references, every slot starts with `NoCommand`, and the undo button holds the
