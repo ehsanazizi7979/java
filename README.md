@@ -1,9 +1,9 @@
 # java
 
-## Head First Design Patterns (2nd ed.) — study pages, chapters 1–10
+## Head First Design Patterns (2nd ed.) — study pages, chapters 1–11
 
 `head-first-ch1-design-patterns.html` is one self-contained page (no external assets,
-works offline) that summarizes the first ten chapters of *Head First Design Patterns*:
+works offline) that summarizes the first eleven chapters of *Head First Design Patterns*:
 
 **Chapter 1 — Welcome to Design Patterns / Strategy** (book pages 1–36)
 the SimUDuck story, the three OO design principles, the Strategy Pattern, the diner-talk
@@ -164,6 +164,34 @@ draw** switch reproduce both of the book's console runs, the state chips show wh
 a delegation trace shows which class answered and which `setState()` call followed. `refill(5)` restores a
 sold-out machine, and the two "run the book's TestDrive" buttons replay pages 389 and 412 line for line.
 
+**Chapter 11 — Controlling Object Access / Proxy** (book pages 425–492)
+the CEO wants to monitor every gumball machine from his desk, so the monitor gains a **remote proxy** — and
+the chapter detours through Java RMI to build one: the remote interface, the implementation that extends
+`UnicastRemoteObject`, `rmiregistry`, `Naming.rebind()`, the six steps of a remote call, the big picture and
+the five-step overview, the complete server and client, the `Naming.lookup()` close-ups, and the "things
+programmers do wrong with RMI" page. Then the machine becomes a service (`GumballMachineRemote`, every
+`State` extends `Serializable`, the `transient` stub reference, the registry loop over Santa Fe, Boulder and
+Austin), the monitor is rewritten against the remote interface, and the CEO's console prints 99 / 44 / 187.
+Behind-the-scenes pages explain what actually crossed the wire, followed by the Proxy definition and class
+diagram and the remote-vs-virtual page. The **virtual proxy** follows: the album-cover browser that freezes
+on `ImageIcon`, the `ImageProxy` design and code, both Code Up Close pages, the two-states Design Puzzle
+(answered with Chapter 10's State Pattern), the test drive, "what did we do", the Dumb Questions page on
+Proxy vs. Decorator vs. Adapter, and the fireside chat. The **protection proxy** closes the chapter: the
+Geeky Matchmaking `Person`/`PersonImpl`, Elroy's complaint, the five-minute drama, the big picture of the
+dynamic proxy, the two `InvocationHandler` implementations, the exercise and its solution, the
+`Proxy.newProxyInstance()` factories, the test drive with its eight-line console run (7 and 3 average to 5),
+the matching exercise, the Proxy Zoo, the crossword and its solution, and the toolbox.
+
+The **Proxy Playground** demo is three proxies in one console. *Remote proxy*: three machines (Santa Fe 99,
+Boulder 44, Austin 187) that you can crank or feed quarters; `monitor.report()` walks the stubs with an
+optional 400 ms of network delay and a "what travels over the wire" trace, and the replay button prints the
+CEO's nine output lines exactly. *Virtual proxy*: six album covers that report 800 × 600 and paint
+"Loading album cover, please wait…" before a retrieval thread delivers the real 400 × 400 cover; the console
+shows `paintIcon()`, the thread, `c.repaint()` and the delegated paint. *Protection proxy*:
+`Proxy.newProxyInstance()`-style proxies built over `PersonImpl`, where the owner proxy refuses
+`setGeekRating(10)`, the stranger's proxy refuses `setInterests()`, and the "run MatchMakingTestDrive"
+button reproduces the book's output line for line.
+
 ### Build
 
 ```bash
@@ -177,6 +205,7 @@ python tools/crop_ch7.py     # chapter 7 figures  -> assets/ch7/*.jpg
 python tools/crop_ch8.py     # chapter 8 figures  -> assets/ch8/*.jpg
 python tools/crop_ch9.py     # chapter 9 figures  -> assets/ch9/*.jpg
 python tools/crop_ch10.py    # chapter 10 figures -> assets/ch10/*.jpg
+python tools/crop_ch11.py    # chapter 11 figures -> assets/ch11/*.jpg
 python tools/build_page.py   # inlines all chapters + base64 images -> head-first-ch1-design-patterns.html
 ```
 
@@ -201,19 +230,21 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   (`{{IMG9:name}}`, plus its own `<script>` block for the waitress/composite demo and quiz)
 * `site_src/chapter10.template.html` — chapter 10, spliced in at the `{{CHAPTER10}}` marker
   (`{{IMG10:name}}`, plus its own `<script>` block for the gumball machine and quiz)
-* `site_src/figure-text-ch1.json` … `-ch10.json` — curated
+* `site_src/chapter11.template.html` — chapter 11, spliced in at the `{{CHAPTER11}}` marker
+  (`{{IMG11:name}}`, plus its own `<script>` block for the proxy playground and quiz)
+* `site_src/figure-text-ch1.json` … `-ch11.json` — curated
   transcripts of the text printed inside each figure; `tools/figure_text.py` dumps the raw
   PDF text layer per crop to help edit them. Each chapter's markers are resolved against its
   own table, so a repeated figure name (`opener`, `crossword`, `toolbox`) never picks up
   another chapter's text.
-* `tools/crop_ch1.py` … `tools/crop_ch10.py` — crop
+* `tools/crop_ch1.py` … `tools/crop_ch11.py` — crop
   boxes in PDF points (the page is 576 × 666 pt)
 * `index.html` — meta-refresh to the page (handy when serving the folder)
 
 ### Notes
 
 * The figures are book excerpts, © O'Reilly Media — study material, not for redistribution.
-  The Java listings are the book's code; the JavaScript ports and the ten interactive
+  The Java listings are the book's code; the JavaScript ports and the eleven interactive
   simulators are written for this page.
 * The heat index demo uses the formula exactly as printed in the book; it computes in
   doubles where the book uses `float`, so one value differs in the fifth decimal

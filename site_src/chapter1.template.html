@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Head First Design Patterns · Chapters 1–10 — Strategy, Observer, Decorator, Factory, Singleton, Command, Adapter, Facade, Template Method, Iterator, Composite &amp; State · Summaries, Book Figures, Code and Live Demos</title>
-<meta name="description" content="Visual summaries of chapters 1–10 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, the seven-slot Home Automation remote and the Command Pattern, the turkey that quacks (Adapter), the one-button home theater (Facade), then coffee and tea, hooks and the Hollywood Principle (Template Method), then the Objectville menu merger — encapsulation of iteration (Iterator), the Single Responsibility Principle, and menu trees (Composite) — and finally Mighty Gumball's gumball machine, where a five-state controller replaces a nest of conditionals (State) — with the book's figures (and the text inside them), the full Java code, and live demos of all ten chapters.">
+<title>Head First Design Patterns · Chapters 1–11 — Strategy, Observer, Decorator, Factory, Singleton, Command, Adapter, Facade, Template Method, Iterator, Composite, State &amp; Proxy · Summaries, Book Figures, Code and Live Demos</title>
+<meta name="description" content="Visual summaries of chapters 1–11 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, the seven-slot Home Automation remote and the Command Pattern, the turkey that quacks (Adapter), the one-button home theater (Facade), then coffee and tea, hooks and the Hollywood Principle (Template Method), then the Objectville menu merger — encapsulation of iteration (Iterator), the Single Responsibility Principle, and menu trees (Composite) — and finally Mighty Gumball's gumball machine, where a five-state controller replaces a nest of conditionals (State), and then Mighty Gumball's machines go remote: Java RMI, a stub that acts as a remote proxy, an album-cover virtual proxy that loads itself, and a runtime-generated protection proxy that keeps Elroy's profile safe (Proxy) — with the book's figures (and the text inside them), the full Java code, and live demos of all eleven chapters.">
 <style>
 /* ---------------------------------------------------------------- tokens */
 :root{
@@ -671,6 +671,44 @@ footer.site strong{color:#4a4560}
 .rc-dev b{font-weight:900;color:#8d849f}
 .rc-dev b[data-on="true"]{color:var(--green)}
 
+/* ------------------------------------------------ ch.11 proxy demo */
+.px-panel[hidden]{display:none!important}
+.px-remote{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;align-items:start}
+@media (max-width:900px){.px-remote{grid-template-columns:1fr}}
+.px-machines{display:grid;gap:10px}
+.px-machine{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:center;box-shadow:var(--shadow)}
+.px-host{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.7rem;font-weight:800;color:var(--purple-2);word-break:break-all}
+.px-count{font-size:2.1rem;font-weight:900;line-height:1.1;color:#3f2a72;margin-top:4px}
+.px-countlabel{font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:#9a93ad}
+.px-state{margin:6px 0 8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.72rem;font-weight:700;color:#1f8a63;background:#eafaf0;border:1px solid #bfe6cf;border-radius:999px;padding:3px 9px;display:inline-block}
+.px-machinebtns{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.px-machinebtns .btn{font-size:.66rem;padding:5px 8px}
+#px-wire{margin:0;max-height:190px}
+.px-covers{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+@media (max-width:760px){.px-covers{grid-template-columns:repeat(2,1fr)}}
+.px-cover{background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:var(--shadow)}
+.px-art{position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--a),var(--b))}
+.px-cover[data-state="idle"] .px-art,.px-cover[data-state="loading"] .px-art{
+  background:repeating-linear-gradient(135deg,#efeaf6 0 12px,#e6dff2 12px 24px)}
+.px-loading{font-size:.72rem;color:#5b5470;text-align:center;padding:0 10px;line-height:1.45}
+.px-cover[data-state="loaded"] .px-loading{display:none}
+.px-title{display:none}
+.px-cover[data-state="loaded"] .px-title{
+  display:block;color:#fff;font-size:.82rem;font-weight:900;line-height:1.25;text-align:center;
+  padding:0 10px;text-shadow:0 2px 8px rgba(0,0,0,.55)}
+.px-dims{margin-top:6px;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.66rem;color:#8d84a8}
+.px-cover[data-state="loaded"] .px-dims{color:var(--green);font-weight:800}
+.px-protect{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;align-items:start}
+@media (max-width:900px){.px-protect{grid-template-columns:1fr}}
+.px-person{display:grid;gap:6px}
+#px-log .out{color:#e9e4f7}
+#px-log .dim{color:#8d84a8}
+#px-log .call{color:var(--yellow);font-weight:700}
+#px-log .err{color:#ff9aa8}
+#px-log div{margin:1px 0}
+#px-quiz .opt code{font-size:.94em}
+
 @media print{
   .topbar,.pond,.console,.demo-wrap{display:none!important}
   body{background:#fff}
@@ -684,7 +722,7 @@ footer.site strong{color:#4a4560}
 
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–10</a>
+    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–11</a>
     <nav class="navlinks">
       <a href="#story">SimUDuck</a>
       <a href="#principles">Principles</a>
@@ -757,6 +795,13 @@ footer.site strong{color:#4a4560}
       <a href="#st-pattern">State</a>
       <a href="#st-demo">Gumball demo</a>
       <a href="#st-cheatsheet">Ch. 10 recap</a>
+      <span class="navsep" aria-hidden="true">Ch.&nbsp;11</span>
+      <a href="#px-story">Object access</a>
+      <a href="#px-pattern">Proxy &amp; RMI</a>
+      <a href="#px-virtual">Virtual proxy</a>
+      <a href="#px-protection">Protection proxy</a>
+      <a href="#px-demo">Proxy demo</a>
+      <a href="#px-cheatsheet">Ch. 11 recap</a>
     </nav>
   </div>
 </div>
@@ -1528,11 +1573,13 @@ model.performFly();</pre>
 
 {{CHAPTER10}}
 
+{{CHAPTER11}}
+
 <footer class="site">
   <div class="wrap">
-    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168) and Chapter 5, “One-of-a-Kind Objects” (pages 169–190) and Chapter 6, “Encapsulating Invocation” (pages 191–236), Chapter 8, “Encapsulating Algorithms” (pages 277–316) Chapter 9, “Well-Managed Collections” (pages 316–380) and Chapter 10, “The State of Things” (pages 381–424).</div>
+    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168) and Chapter 5, “One-of-a-Kind Objects” (pages 169–190) and Chapter 6, “Encapsulating Invocation” (pages 191–236), Chapter 8, “Encapsulating Algorithms” (pages 277–316) Chapter 9, “Well-Managed Collections” (pages 316–380) Chapter 10, “The State of Things” (pages 381–424) and Chapter 11, “Controlling Object Access” (pages 425–492).</div>
     <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and the eight interactive simulators are written for this page.</div>
-    <div><strong>Built:</strong> ten chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler, Objectville Remote Control, Turkey Adapter, Home Theater Facade, CaffeineBeverage and DuckSort demos, the Objectville menu merger and composite menu tree, and Mighty Gumball’s gumball machine with its five state objects (no external assets, works offline).</div>
+    <div><strong>Built:</strong> eleven chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler, Objectville Remote Control, Turkey Adapter, Home Theater Facade, CaffeineBeverage and DuckSort demos, the Objectville menu merger and composite menu tree, Mighty Gumball’s gumball machine with its five state objects, and the proxy playground — remote monitor, virtual album covers and the protection proxy (no external assets, works offline).</div>
     <a class="totop" href="#top">↑ back to top</a>
   </div>
 </footer>
