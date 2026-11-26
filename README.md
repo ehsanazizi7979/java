@@ -1,9 +1,9 @@
 # java
 
-## Head First Design Patterns (2nd ed.) — study pages, chapters 1–8
+## Head First Design Patterns (2nd ed.) — study pages, chapters 1–9
 
 `head-first-ch1-design-patterns.html` is one self-contained page (no external assets,
-works offline) that summarizes the first eight chapters of *Head First Design Patterns*:
+works offline) that summarizes the first nine chapters of *Head First Design Patterns*:
 
 **Chapter 1 — Welcome to Design Patterns / Strategy** (book pages 1–36)
 the SimUDuck story, the three OO design principles, the Strategy Pattern, the diner-talk
@@ -118,6 +118,27 @@ steps run in a fixed order with the class that answered each one, and try to ove
 template method) and **DuckSort** (`Arrays.sort()` on the book's six ducks with the exact before/after
 console output, a `compareTo()` inspector and a comparison counter).
 
+**Chapter 9 — Well-Managed Collections / Iterator & Composite** (book pages 316–380)
+the Diner/Pancake House merger (Mel's array vs. Lou's `ArrayList`, and a waitress written against both),
+`MenuItem`, the two `getMenuItems()` implementations, the Java-Enabled Waitress spec, and the first
+attempt's two loops. Then the fix: encapsulating iteration, `hasNext()`/`next()`, `DinerMenuIterator`
+with its `null` check, `createIterator()` replacing `getMenuItems()`, and one `printMenu(Iterator)`.
+On to `java.util.Iterator` (with optional `remove()`), the `Menu` interface, "what does this get us",
+the definition and structure diagram, and the **Single Responsibility Principle** ("a class should have
+only one reason to change") plus cohesion. Then `Iterable` and the enhanced for loop ("not so fast;
+arrays are not Iterables"), the Café's `HashMap` rework via `menuItems.values().iterator()`, three menus
+printing through one loop, the extensibility/`Collection` pages, the code magnets
+(`AlternatingDinerMenuIterator` with `Calendar.DAY_OF_WEEK % 2`), and the dessert-submenu problem that
+iterator design can't express. That opens the **Composite**: the tree, the definition and class diagram,
+`MenuComponent` with its throwing defaults, `MenuItem` as leaf, the recursive `Menu.print()`, the
+`MenuTestDrive` build and its full console output, the transparency-vs-safety trade-off, the Composite
+interview, the chapter 9 crossword with its verified grid, the matching exercise, and the toolbox. The
+live demo has two tabs: **Waitress** (print three menus backed by `ArrayList`, array and `HashMap`
+through iterators, then flip to the first attempt and watch it become three loops) and **allMenus**
+(click any node of a five-menu/sixteen-item tree to print that subtree, press `allMenus.print()` to
+watch one call recurse through every menu and item with a recursion trace, or add a dessert and see
+`print()` pick it up with no client change).
+
 ### Build
 
 ```bash
@@ -129,6 +150,7 @@ python tools/crop_ch5.py     # chapter 5 figures  -> assets/ch5/*.jpg
 python tools/crop_ch6.py     # chapter 6 figures  -> assets/ch6/*.jpg
 python tools/crop_ch7.py     # chapter 7 figures  -> assets/ch7/*.jpg
 python tools/crop_ch8.py     # chapter 8 figures  -> assets/ch8/*.jpg
+python tools/crop_ch9.py     # chapter 9 figures  -> assets/ch9/*.jpg
 python tools/build_page.py   # inlines all chapters + base64 images -> head-first-ch1-design-patterns.html
 ```
 
@@ -149,19 +171,21 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   (`{{IMG7:name}}`, plus its own `<script>` block for the adapter/facade demo and quiz)
 * `site_src/chapter8.template.html` — chapter 8, spliced in at the `{{CHAPTER8}}` marker
   (`{{IMG8:name}}`, plus its own `<script>` block for the beverage/duck-sort demo and quiz)
-* `site_src/figure-text-ch1.json` … `-ch8.json` — curated
+* `site_src/chapter9.template.html` — chapter 9, spliced in at the `{{CHAPTER9}}` marker
+  (`{{IMG9:name}}`, plus its own `<script>` block for the waitress/composite demo and quiz)
+* `site_src/figure-text-ch1.json` … `-ch9.json` — curated
   transcripts of the text printed inside each figure; `tools/figure_text.py` dumps the raw
   PDF text layer per crop to help edit them. Each chapter's markers are resolved against its
   own table, so a repeated figure name (`opener`, `crossword`, `toolbox`) never picks up
   another chapter's text.
-* `tools/crop_ch1.py` … `tools/crop_ch8.py` — crop
+* `tools/crop_ch1.py` … `tools/crop_ch9.py` — crop
   boxes in PDF points (the page is 576 × 666 pt)
 * `index.html` — meta-refresh to the page (handy when serving the folder)
 
 ### Notes
 
 * The figures are book excerpts, © O'Reilly Media — study material, not for redistribution.
-  The Java listings are the book's code; the JavaScript ports and the eight interactive
+  The Java listings are the book's code; the JavaScript ports and the nine interactive
   simulators are written for this page.
 * The heat index demo uses the formula exactly as printed in the book; it computes in
   doubles where the book uses `float`, so one value differs in the fifth decimal

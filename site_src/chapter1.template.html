@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Head First Design Patterns · Chapters 1–8 — Strategy, Observer, Decorator, Factory, Singleton, Command, Adapter, Facade &amp; Template Method · Summaries, Book Figures, Code and Live Demos</title>
-<meta name="description" content="Visual summaries of chapters 1–8 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, the seven-slot Home Automation remote and the Command Pattern, the turkey that quacks (Adapter), the one-button home theater (Facade), then coffee and tea, hooks and the Hollywood Principle (Template Method) — with the book's figures (and the text inside them), the full Java code, and live demos of all eight chapters.">
+<title>Head First Design Patterns · Chapters 1–9 — Strategy, Observer, Decorator, Factory, Singleton, Command, Adapter, Facade, Template Method, Iterator &amp; Composite · Summaries, Book Figures, Code and Live Demos</title>
+<meta name="description" content="Visual summaries of chapters 1–9 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, the seven-slot Home Automation remote and the Command Pattern, the turkey that quacks (Adapter), the one-button home theater (Facade), then coffee and tea, hooks and the Hollywood Principle (Template Method), and finally the Objectville menu merger — encapsulation of iteration (Iterator), the Single Responsibility Principle, and menu trees (Composite) — with the book's figures (and the text inside them), the full Java code, and live demos of all nine chapters.">
 <style>
 /* ---------------------------------------------------------------- tokens */
 :root{
@@ -455,6 +455,21 @@ input[type=range]{width:100%;accent-color:var(--purple-2);height:22px}
 #t-log .err{color:#ff9aa8}
 #t-log div{margin:1px 0}
 
+/* ------------------------------------------ ch.9 iterator / composite demo */
+#i-log .out{color:#e9e4f7}
+#i-log .dim{color:#8d84a8}
+#i-log .call{color:var(--yellow);font-weight:700}
+#i-log .err{color:#ff9aa8}
+#i-log div{margin:1px 0}
+#i-panel-waitress .ad-card,#i-panel-composite .ad-card{margin-top:0}
+#i-verdict .cg-verdict{margin-top:12px}
+#i-sources .rc-dev,#i-tree .rc-dev{margin:0}
+#i-tree .rc-dev[data-node]:hover{background:#f7f5fb;border-color:var(--purple-2)}
+#i-tree .rc-dev[data-node]>b{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase}
+#i-trace{margin:0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.76rem;line-height:1.6;color:var(--ink-soft);white-space:pre-wrap;max-height:300px;overflow:auto}
+#i-cadd{margin-top:4px}
+#i-quiz .opt code{font-size:.94em}
+
 @media print{.wx,.figsay{display:none!important}}
 
 /* ------------------------------------------------------- starbuzz demo */
@@ -641,7 +656,7 @@ footer.site strong{color:#4a4560}
 
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–8</a>
+    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–9</a>
     <nav class="navlinks">
       <a href="#story">SimUDuck</a>
       <a href="#principles">Principles</a>
@@ -703,6 +718,12 @@ footer.site strong{color:#4a4560}
       <a href="#t-hollywood">Hollywood</a>
       <a href="#t-demo">Beverage demo</a>
       <a href="#t-cheatsheet">Ch. 8 recap</a>
+      <span class="navsep" aria-hidden="true">Ch.&nbsp;9</span>
+      <a href="#i-story">Menu merger</a>
+      <a href="#i-pattern">Iterator</a>
+      <a href="#i-composite">Composite</a>
+      <a href="#i-demo">Menus demo</a>
+      <a href="#i-cheatsheet">Ch. 9 recap</a>
     </nav>
   </div>
 </div>
@@ -1470,11 +1491,13 @@ model.performFly();</pre>
 
 {{CHAPTER8}}
 
+{{CHAPTER9}}
+
 <footer class="site">
   <div class="wrap">
-    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168) and Chapter 5, “One-of-a-Kind Objects” (pages 169–190) and Chapter 6, “Encapsulating Invocation” (pages 191–236).</div>
+    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168) and Chapter 5, “One-of-a-Kind Objects” (pages 169–190) and Chapter 6, “Encapsulating Invocation” (pages 191–236), Chapter 8, “Encapsulating Algorithms” (pages 277–316) and Chapter 9, “Well-Managed Collections” (pages 316–380).</div>
     <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and the eight interactive simulators are written for this page.</div>
-    <div><strong>Built:</strong> eight chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler, Objectville Remote Control, Turkey Adapter, Home Theater Facade, CaffeineBeverage and DuckSort demos (no external assets, works offline).</div>
+    <div><strong>Built:</strong> nine chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler, Objectville Remote Control, Turkey Adapter, Home Theater Facade, CaffeineBeverage and DuckSort demos, plus the Objectville menu merger and composite menu tree (no external assets, works offline).</div>
     <a class="totop" href="#top">↑ back to top</a>
   </div>
 </footer>

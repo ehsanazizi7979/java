@@ -1,0 +1,763 @@
+<!-- ==================================================== CHAPTER 9 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 9</b> the Iterator and Composite Patterns</div>
+  <h2>Well-Managed <span style="color:var(--purple)">Collections</span></h2>
+  <p>Two patterns for the same problem — collections you have to walk through. <b>Iterator</b> gives clients a way to step over your objects without seeing how you store them; <b>Composite</b> lets a menu contain menus, so a whole restaurant can be treated as one object. Along the way, the book hands out its most quotable principle: <em>a class should have only one reason to change</em>.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Diner × Pancake House</span>
+    <span class="chip">2 patterns</span>
+    <span class="chip">38 book figures</span>
+    <span class="chip">+ the Single Responsibility Principle</span>
+    <span class="chip">1 live demo</span>
+  </div>
+</div>
+
+<!-- =========================================================== 1. STORY -->
+<section id="i-story">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>two menus, two loops</span></div>
+    <h2>The merger, and the loop problem</h2>
+    <p class="sub">Objectville’s Diner and Pancake House merge. Mel stores his menu in an array, Lou stores his in an <code>ArrayList</code>, and neither will change — so the waitress is about to be written against both concrete types, with two loops, forever.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG9:opener}}" alt="Chapter 9 opener: a woman holding a tray of jars saying you bet I keep my collections well encapsulated, headed Well-Managed Collections.">
+      <figcaption>“Are you going to show them your implementation? We certainly hope not! That just wouldn’t be professional.”</figcaption>
+      {{SAYS:opener}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:merger}}" alt="Breaking news: the Objectville Diner and Pancake House merge; Mel used an Array and Lou used an ArrayList and neither will change their implementation.">
+        <figcaption>The premise of the whole chapter in two speech bubbles: the menu items are agreed, the menu <em>storage</em> is not.</figcaption>
+        {{SAYS:merger}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:menu-items}}" alt="The MenuItem class with name, description, vegetarian flag and price, next to the printed Diner and Pancake House menus.">
+        <figcaption><code>MenuItem</code> — the one thing everyone agrees on. Note the getters: this is the object the waitress will be handed.</figcaption>
+        {{SAYS:menu-items}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:two-menus}}" alt="Lou’s PancakeHouseMenu storing items in an ArrayList, with getMenuItems() returning the list and a comment about the code that depends on it.">
+        <figcaption>Lou: an <code>ArrayList</code> and a <code>getMenuItems()</code> that hands the whole list to anyone who asks.</figcaption>
+        {{SAYS:two-menus}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:waitress-spec}}" alt="The Java-Enabled Waitress specification with printMenu, printBreakfastMenu, printLunchMenu, printVegetarianMenu and isItemVegetarian, plus the problem of two representations.">
+        <figcaption>The spec: five methods that all need to walk both menus. The question at the top of the page — “what’s the problem with having two different menu representations?” — is the chapter’s engine.</figcaption>
+        {{SAYS:waitress-spec}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:first-attempt}}" alt="The first attempt at printMenu: getMenuItems returns an ArrayList for breakfast and a MenuItem array for lunch, forcing two different loops.">
+        <figcaption>The first attempt. Two <code>getMenuItems()</code> calls, two different return types, two loops — “if another restaurant is acquired, then we’ll have three loops.”</figcaption>
+        {{SAYS:first-attempt}}
+      </figure>
+      <div>
+        <div class="note warn" style="margin-top:0">
+          <strong>The book’s own checklist of what is wrong here:</strong> A — coding to concrete classes; C — a new menu type forces waitress changes; D — the waitress knows each menu’s internal collection, which violates encapsulation; E — duplicate iteration code, one loop per menu type. (B and F are the jokes.)
+        </div>
+        <div class="note" style="margin-top:14px">
+          <strong>The move that fixes it</strong> is the one the whole book keeps making: <em>encapsulate what varies</em>. What varies is the iteration, so put it in its own object.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:two-iterators}}" alt="Encapsulating iteration: createIterator() on the breakfast menu and on the lunch menu, both driven by the same hasNext()/next() loop.">
+        <figcaption>The same three lines of client code for an <code>ArrayList</code> and for an array. “Wow, this code is exactly the same as the breakfastMenu code.”</figcaption>
+        {{SAYS:two-iterators}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:meet-iterator}}" alt="Meet the Iterator Pattern: the Iterator interface with hasNext() and next(), and DinerMenuIterator implementing it over an array of MenuItems.">
+        <figcaption>The pattern in one interface: <code>hasNext()</code> and <code>next()</code>. Everything else is who implements them.</figcaption>
+        {{SAYS:meet-iterator}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:iterator-code}}" alt="The Iterator interface and DinerMenuIterator implementation, with annotations about position, next() and the null check in hasNext().">
+        <figcaption><code>DinerMenuIterator</code>: a position, a <code>next()</code> that hands out the item and increments, and a <code>hasNext()</code> that must also check for <code>null</code> — Mel’s array is pre-allocated.</figcaption>
+        {{SAYS:iterator-code}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:waitress-iterator}}" alt="The Waitress rewritten to take the two menus and print via two iterators and one shared printMenu(Iterator) method.">
+        <figcaption>The waitress, fixed: <code>printMenu(Iterator)</code> replaces both loops. “Note that we’re down to one loop.”</figcaption>
+        {{SAYS:waitress-iterator}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:menu-test}}" alt="MenuTestDrive and the console output printing breakfast items followed by lunch items with one shared iteration method.">
+        <figcaption>The test run — and the point: two completely different data structures, identical output, one loop in the client.</figcaption>
+        {{SAYS:menu-test}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:what-we-done}}" alt="A comparison of the hard-to-maintain waitress implementation against the new waitress powered by Iterator.">
+        <figcaption>What it bought: encapsulation of the menus, one polymorphic loop, and a to-do — the waitress is still bound to two concrete menu classes.</figcaption>
+        {{SAYS:what-we-done}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:improvements}}" alt="Making some improvements: switching to java.util.Iterator with hasNext(), next() and remove(), plus the Q&A about optional remove() and thread behaviour.">
+        <figcaption>The switch to <code>java.util.Iterator</code> — and the honest note that <code>remove()</code> is optional: throw <code>UnsupportedOperationException</code> if you don’t support it.</figcaption>
+        {{SAYS:improvements}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:menu-interface}}" alt="The Menu interface with createIterator(), and the Waitress rewritten to hold two Menu references instead of the concrete menu classes.">
+        <figcaption><code>interface Menu { Iterator&lt;MenuItem&gt; createIterator(); }</code> — one method, and the waitress stops naming concrete menus.</figcaption>
+        {{SAYS:menu-interface}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:gets-us}}" alt="What does this get us: the Menu interface, each concrete menu creating its own iterator, and the PancakeHouseMenuIterator struck out as no longer needed.">
+        <figcaption>“Each concrete Menu is responsible for creating the appropriate concrete Iterator class.” The home-grown ArrayList iterator is deleted at a stroke.</figcaption>
+        {{SAYS:gets-us}}
+      </figure>
+      <div>
+        <div class="note ok" style="margin-top:0">
+          <strong>Two responsibilities, one for each class:</strong> the menu manages menu items, the iterator knows how to walk them. That separation is what makes the client code polymorphic.
+        </div>
+        <div class="note" style="margin-top:14px">
+          <strong>And the leftover smell:</strong> the waitress still calls <code>printMenu()</code> once per menu, so every new restaurant means opening her class. The book fixes that twice: first with a <code>List&lt;Menu&gt;</code>, then with a tree.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= 2. PATTERN -->
+<section id="i-pattern">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>the pattern, and one responsibility</span></div>
+    <h2>Iterator defined</h2>
+    <p class="sub">The definition, the class diagram, and the design principle the pattern is really about: give the traversal its own object, and the aggregate gets to have exactly one reason to change.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:iterator-defined}}" alt="The Iterator Pattern definition box: access the elements of an aggregate sequentially without exposing its underlying representation.">
+        <figcaption>The definition, plus the two consequences the book cares about: polymorphic client code, and iteration moving out of the aggregate.</figcaption>
+        {{SAYS:iterator-defined}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:iterator-diagram}}" alt="The Iterator Pattern structure: Client, Aggregate, ConcreteAggregate, Iterator and ConcreteIterator, with the Brain Power note that it resembles another pattern.">
+        <figcaption>The structure. The Brain Power question is a giveaway: a subclass deciding which object to create is Factory Method.</figcaption>
+        {{SAYS:iterator-diagram}}
+      </figure>
+    </div>
+
+    <div class="principle" style="margin-top:26px">
+      <span class="yy">☯</span>
+      <div><b>The Iterator Pattern</b><p>provides a way to access the elements of an aggregate object sequentially without exposing its underlying representation.</p></div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:srp}}" alt="The Single Responsibility Principle: a class should have only one reason to change, with the explanation of two responsibilities and the cohesion sidebar.">
+        <figcaption>“A class should have only one reason to change.” The test the book applies: how many ways can this class be forced to change?</figcaption>
+        {{SAYS:srp}}
+      </figure>
+      <div>
+        <div class="principle" style="margin-top:0">
+          <span class="yy">☯</span>
+          <div><b>Single Responsibility Principle</b><p>a class should have only one reason to change.</p></div>
+        </div>
+        <p style="font-size:.94rem;margin-top:14px">Applied to the menus: a class that both <em>holds</em> a collection and <em>knows how to walk it</em> changes when the collection changes and again when the traversal changes. Two reasons, two classes.</p>
+        <div class="note" style="margin-top:14px">
+          <strong>Related word to know:</strong> <em>cohesion</em> — high when a class is built around a set of related functions. Classes that follow this principle tend to have high cohesion.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:enhanced-for}}" alt="Java’s enhanced for loop: iterating an ArrayList with an explicit Iterator versus the for-each shorthand, and the warning that arrays are not Iterables.">
+        <figcaption>Syntactic sugar with a catch: <code>for (MenuItem item : menu)</code> works for <code>Iterable</code>s — and Mel’s array isn’t one.</figcaption>
+        {{SAYS:enhanced-for}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">Iterator vs. Iterable</span><span class="tagline">why the for-each loop is a bonus, not a fix</span></header>
+<pre><span class="cmt">// explicit iterator — always works, needs an Iterator</span>
+<span class="type">Iterator</span>&lt;<span class="type">MenuItem</span>&gt; it = menu.createIterator();
+<span class="kw">while</span> (it.hasNext()) {
+    <span class="type">MenuItem</span> item = it.next();
+}
+
+<span class="cmt">// for-each — only for Iterable (Collections), not arrays</span>
+<span class="kw">for</span> (<span class="type">MenuItem</span> item : menu) { ... }</pre>
+        </div>
+        <div class="note warn" style="margin-top:14px">
+          <strong>“Not so fast; Arrays are not Iterables.”</strong> If the waitress takes an <code>Iterable</code>, the Diner’s array cannot be passed in. That is exactly why the pattern’s own interface is <code>Iterator</code> and not <code>Iterable</code>.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:cafe-menu}}" alt="The CafeMenu storing menu items in a HashMap, with the three things to change to fit it into the Menu framework.">
+        <figcaption>Restaurant number three, and a new data structure: a <code>HashMap</code>. The three fixes are listed at the bottom of the page.</figcaption>
+        {{SAYS:cafe-menu}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:cafe-rework}}" alt="Reworking the CafeMenu: implementing Menu, deleting getMenuItems(), and returning an iterator over the HashMap values.">
+        <figcaption>One line does it: <code>menuItems.values().iterator()</code> — an iterator over the values, not the whole map.</figcaption>
+        {{SAYS:cafe-rework}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:three-menus}}" alt="Breakfast, lunch and dinner: the waitress printing a third menu with exactly the same iteration code, and the console output showing the new DINNER section.">
+        <figcaption>Three menus, three data structures, one iteration method — the payoff the chapter has been building toward.</figcaption>
+        {{SAYS:three-menus}}
+      </figure>
+      <div>
+        <div class="note ok" style="margin-top:0">
+          <strong>What the cafeteria bought:</strong> adding the Café cost one new class and three lines in the waitress. That is what “program to an interface” looks like when you measure it.
+        </div>
+        <div class="note warn" style="margin-top:14px">
+          <strong>What it didn’t buy:</strong> the waitress still has three <code>createIterator()</code> calls and three <code>printMenu()</code> calls, so the class still changes every time a restaurant arrives. Hence the next two pages — and then the composite.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG9:magnets}}" alt="Code Magnets: the scrambled AlternatingDinerMenuIterator code, with imported Iterator and Calendar, position set to Calendar.DAY_OF_WEEK % 2 and remove() throwing UnsupportedOperationException.">
+      <figcaption>The code-magnet exercise: an iterator that hands out every other item, starting at an even or odd day of the week.</figcaption>
+      {{SAYS:magnets}}
+    </figure>
+  </div>
+</section>
+
+<!-- ======================================================= 3. COMPOSITE -->
+<section id="i-composite">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>menus within menus</span></div>
+    <h2>The Composite Pattern</h2>
+    <p class="sub">A dessert submenu breaks the iterator design: a <code>Menu</code> cannot be put inside a <code>MenuItem[]</code>. The answer is to make menus and items the same type, and let <code>print()</code> recurse.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:new-design}}" alt="The new Waitress holding a List of Menus and iterating over the menus to print each one — the step before the composite.">
+        <figcaption>The intermediate fix: a <code>List&lt;Menu&gt;</code> and a loop over menus. Good, but it loses the menu names and still can’t nest.</figcaption>
+        {{SAYS:new-design}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:tree}}" alt="The dessert submenu problem: a menu cannot be assigned into a MenuItem array, and the tree that the design really needs.">
+        <figcaption>The wrinkle: a submenu inside a menu. Arrays of <code>MenuItem</code> cannot hold a <code>Menu</code> — “time for a change”.</figcaption>
+        {{SAYS:tree}}
+      </figure>
+    </div>
+
+    <div class="principle" style="margin-top:26px">
+      <span class="yy">☯</span>
+      <div><b>The Composite Pattern</b><p>allows you to compose objects into tree structures to represent part-whole hierarchies. Composite lets clients treat individual objects and compositions of objects uniformly.</p></div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:composite-defined}}" alt="The Composite Pattern defined, with the tree of nodes and leaves and the mapping of menus to nodes and menu items to leaves.">
+        <figcaption>Nodes and leaves. A menu is a node because it holds children; a menu item is a leaf and holds nothing.</figcaption>
+        {{SAYS:composite-defined}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:composite-diagram}}" alt="The Composite class diagram: Component with add, remove, getChild and operation; Composite and Leaf; plus the Q&A about components and trees.">
+        <figcaption>The canonical diagram — including the awkward truth that <code>Leaf</code> inherits <code>add()</code> and <code>remove()</code>, which it cannot sensibly implement.</figcaption>
+        {{SAYS:composite-diagram}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:menu-component}}" alt="The abstract MenuComponent with every method defaulting to UnsupportedOperationException, and the notes about grouping composite and operation methods.">
+        <figcaption><code>MenuComponent</code>: every method throws by default, so each subclass overrides only what it can honour.</figcaption>
+        {{SAYS:menu-component}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:menu-item}}" alt="The MenuItem leaf class extending MenuComponent, with its getters and a print() that adds (v) for vegetarian items.">
+        <figcaption>The leaf. <code>print()</code> is the only operation it overrides — two lines, a price and a <code>(v)</code>.</figcaption>
+        {{SAYS:menu-item}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:menu-print}}" alt="The Menu composite class, whose print() prints its own header and then calls print() on every child, recursing into submenus.">
+        <figcaption>Seven lines that print an entire restaurant: header, separator, then <code>print()</code> on every child — recursion, not iteration.</figcaption>
+        {{SAYS:menu-print}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">Menu.java · the recursive five lines</span><span class="tagline">the whole pattern in one for-each</span></header>
+<pre><span class="kw">public void</span> <span class="fn">print</span>() {
+    System.out.print(<span class="str">"\n"</span> + getName());
+    System.out.println(<span class="str">", "</span> + getDescription());
+    System.out.println(<span class="str">"---------------------"</span>);
+
+    <span class="kw">for</span> (<span class="type">MenuComponent</span> menuComponent : menuComponents) {
+        menuComponent.print();
+    }
+}</pre>
+        </div>
+        <div class="note ok" style="margin-top:14px">
+          <strong>Why this is the payoff:</strong> the loop does not care which kind of component it finds. If it is a <code>MenuItem</code>, <code>print()</code> prints one line; if it is another <code>Menu</code>, <code>print()</code> starts another loop. That is “treat individual objects and compositions uniformly”.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:composite-test}}" alt="MenuTestDrive building five Menu objects, nesting the dessert menu inside the diner menu, and handing the top-level allMenus to the Waitress.">
+        <figcaption>The test drive builds the tree by hand — and <code>dinerMenu.add(dessertMenu)</code> is the line that the iterator design could not express.</figcaption>
+        {{SAYS:composite-test}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:composite-output}}" alt="The console output of MenuTestDrive: ALL MENUS, then pancake, diner (with the dessert submenu nested inside), and café menus with every item.">
+        <figcaption>The output that started the chapter: one <code>print()</code> call on the top-level menu, every menu and item printed, submenu included.</figcaption>
+        {{SAYS:composite-output}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:srp-tradeoff}}" alt="The transparency-versus-safety tradeoff: Composite trades the Single Responsibility Principle for a uniform interface, at the cost of meaningless calls on leaves.">
+        <figcaption>The honest reckoning: Composite trades Single Responsibility for <em>transparency</em>, and the book says so out loud rather than hiding it.</figcaption>
+        {{SAYS:srp-tradeoff}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:interview}}" alt="Patterns Exposed interview with the Composite Pattern about whole-part relationships, GUIs, leaf behaviour and implementation choices.">
+        <figcaption>Patterns Exposed: the composite explains GUIs as its home turf, and why the interface must be uniform for the client.</figcaption>
+        {{SAYS:interview}}
+      </figure>
+    </div>
+  </div>
+</section>
+<!-- ============================================================ 4. DEMO -->
+<section id="i-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>live demo</span></div>
+    <h2>One loop, then one call</h2>
+    <p class="sub">Two tabs, two patterns. First the waitress: print three menus backed by three different data structures, once through iterators and once the way the book’s first attempt did it. Then the composite: walk a real menu tree and print it with a single recursive call.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>The waitress and the menu tree · two patterns, one page</h3>
+        <div class="actions">
+          <button class="btn ghost" id="i-clear">Clear console</button>
+        </div>
+      </div>
+
+      <div class="cg-modes" role="tablist" aria-label="Which demo to run">
+        <button class="tab" role="tab" data-icmode="waitress" aria-selected="true">Waitress · Iterator</button>
+        <button class="tab" role="tab" data-icmode="composite" aria-selected="false">allMenus · Composite</button>
+      </div>
+
+      <div id="i-panel-waitress">
+        <div class="grid2" style="align-items:start">
+          <div class="ad-card">
+            <h4>printMenu()</h4>
+            <p class="wx-hint" style="margin-top:0">Same three menus, two client implementations. Compare what the waitress has to know.</p>
+            <div class="ad-choices">
+              <button class="btn primary small" id="i-print">printMenu() — via iterators</button>
+              <button class="btn ghost small" id="i-hardway">the first attempt — two loops</button>
+            </div>
+            <div id="i-verdict"></div>
+          </div>
+          <div class="ad-card">
+            <h4>Who created the iterator</h4>
+            <div class="rc-devices" id="i-sources"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="i-panel-composite" class="hidden">
+        <div class="grid2" style="align-items:start">
+          <div>
+            <h4 class="rc-h4">The menu tree — click a node to print it</h4>
+            <div class="rc-devices" id="i-tree"></div>
+            <div class="ad-choices" style="margin-top:12px">
+              <button class="btn primary small" id="i-cprint">allMenus.print()</button>
+              <button class="btn ghost small" id="i-cadd">add an item to DESSERT MENU</button>
+            </div>
+          </div>
+          <div class="ad-card">
+            <h4>What print() recursed into</h4>
+            <pre class="rc-tostring" id="i-trace">— nothing yet —</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">console</span>
+        </header>
+        <div class="body" id="i-log"></div>
+        <footer><button class="btn small" id="i-clear2">Clear console</button></footer>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>What to compare in tab 1:</strong> the output is identical. The difference is the client code: with iterators the waitress calls <code>hasNext()</code>/<code>next()</code> and never mentions <code>ArrayList</code> or an array; the first attempt names both, and needs a separate loop for each.
+      </div>
+      <div class="note warn">
+        <strong>What to watch in tab 2:</strong> press <code>allMenus.print()</code> and follow the trace — one call, four menu headers, fourteen items, and the dessert menu printed from inside the diner menu. That nesting is exactly what a <code>MenuItem[]</code> could not hold.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 5. CHEAT SHEET -->
+<section id="i-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 9 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The merger exposes the coupling</h4><p>Mel’s array and Lou’s <code>ArrayList</code> force the waitress into two loops and two concrete types — and she sees how each menu stores its items.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Encapsulate the iteration</h4><p><code>createIterator()</code> returns an object with <code>hasNext()</code>/<code>next()</code>. The client stops caring which structure is underneath.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Iterator moves a responsibility</h4><p>Traversal leaves the aggregate and lives in the iterator, so the aggregate has one job — managing its collection.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Program to the <code>Menu</code> interface</h4><p>One method, <code>createIterator()</code>, is enough to free the waitress from <code>PancakeHouseMenu</code>, <code>DinerMenu</code> and then <code>CafeMenu</code>.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Single Responsibility Principle</h4><p>“A class should have only one reason to change.” Two reasons means two classes, and usually two kinds of change arriving at once.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4><code>remove()</code> is optional</h4><p>If your iterator cannot remove, throw <code>UnsupportedOperationException</code> — that is what the Java API documents and what the code magnets exercise does.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Iterable is a different interface</h4><p><code>Iterable</code> gives you <code>iterator()</code> (and the for-each loop). Arrays implement neither — which is why the pattern is built on <code>Iterator</code>.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Composite makes parts equal wholes</h4><p>Menus (nodes) and menu items (leaves) share <code>MenuComponent</code>, so <code>print()</code> on the root prints the entire tree by recursion.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>And it trades safety for transparency</h4><p>A leaf inherits <code>add()</code>/<code>remove()</code>, which do not make sense; the default implementations throw. That is a deliberate trade, not an accident.</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The book’s bullet points</h3>
+        <ul class="bullets">
+          <li>An Iterator allows access to an aggregate’s elements without exposing its internal structure.</li>
+          <li>An Iterator takes the job of iterating over an aggregate and encapsulates it in another object.</li>
+          <li>When using an Iterator, we relieve the aggregate of the responsibility of supporting operations for traversing its data.</li>
+          <li>An Iterator provides a common interface for traversing the items of an aggregate, allowing you to use polymorphism when writing code that makes use of the items of the aggregate.</li>
+          <li>The Iterable interface provides a means of getting an iterator and enables Java’s enhanced for loop.</li>
+          <li>We should strive to assign only one responsibility to each class.</li>
+          <li>The Composite Pattern allows clients to treat composites and individual objects uniformly.</li>
+          <li>A Component is any object in a Composite structure. Components may be other composites or leaves.</li>
+          <li>There are many design tradeoffs in implementing Composite. You need to balance transparency and safety with your needs.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">The book’s matching exercise</h3>
+        <table class="compare">
+          <thead><tr><th>Pattern</th><th>Intent</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Iterator</strong></td><td>traverse a collection without exposing its implementation</td></tr>
+            <tr><td><strong>Composite</strong></td><td>treat collections of objects and individual objects uniformly</td></tr>
+            <tr><td>Strategy</td><td>encapsulate interchangeable behaviors, pick one by delegation</td></tr>
+            <tr><td>Adapter</td><td>change the interface of one or more classes</td></tr>
+            <tr><td>Facade</td><td>simplify the interface of a group of classes</td></tr>
+            <tr><td>Observer</td><td>notify a group of objects when some state changes</td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:14px">
+          <strong>Iterator and Composite together:</strong> the composite’s <code>print()</code> uses the enhanced for loop, which uses an iterator. The two patterns are not alternatives — the composite leans on the iterator.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:34px">
+      <img src="{{IMG9:toolbox9}}" alt="The design toolbox after chapter 9: nine principles including one reason to change, eleven patterns including Iterator and Composite, and the chapter’s bullets.">
+      <figcaption>The toolbox after Chapter 9: eleven patterns, nine principles. “Two new patterns for your toolbox—two great ways to deal with collections of objects.”</figcaption>
+      {{SAYS:toolbox9}}
+    </figure>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG9:crossword9}}" alt="The chapter 9 crossword with clues about java.util, HashMap, Factory Method, single responsibility, iteration, composite and the dessert menu.">
+        <figcaption>The chapter 9 crossword — every answer is a name from this chapter.</figcaption>
+        {{SAYS:crossword9}}
+      </figure>
+      <div>
+        <figure class="pic" style="margin:0 0 18px">
+          <img src="{{IMG9:crossword-solution9}}" alt="The solved chapter 9 crossword: JAVA.UTIL, HASHMAP, FACTORY METHOD, CHANGE, ITERATION, COMPOSITE, SINGLE RESPONSIBILITY, DESSERT, LEAF, PANCAKE HOUSE, IMPLEMENTATION, ITERATOR, COLLECTION, WAITRESS, LEAF, CHILDREN, CAFE, ARRAYLIST.">
+          <figcaption>The verified solution (page 380), read off the printed grid.</figcaption>
+          {{SAYS:crossword-solution9}}
+        </figure>
+        <div class="note ok" style="margin-top:0">
+          <strong>Answers:</strong> ACROSS 1 JAVA.UTIL · 3 HASHMAP · 8 FACTORY METHOD · 12 CHANGE · 13 ITERATION · 15 COMPOSITE · 16 SINGLE RESPONSIBILITY · 17 DESSERT. DOWN 2 LEAF · 4 PANCAKE HOUSE · 5 IMPLEMENTATION · 6 ITERATOR · 7 COLLECTION · 9 WAITRESS · 10 LEAF · 11 CHILDREN · 12 CAFE · 14 ARRAYLIST.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:34px">
+      <img src="{{IMG9:magnets-solution}}" alt="The code magnets solution: AlternatingDinerMenuIterator using Calendar.DAY_OF_WEEK % 2 for position, stepping by two, and throwing on remove().">
+      <figcaption>The magnets answer: <code>position = Calendar.DAY_OF_WEEK % 2</code>, then <code>position + 2</code> on each <code>next()</code> — and no <code>remove()</code>.</figcaption>
+      {{SAYS:magnets-solution}}
+    </figure>
+
+    <div class="quiz" style="margin-top:34px" id="i-quiz">
+      <h3 style="margin-top:0">Check yourself: Iterator &amp; Composite</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="i-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. The Iterator Pattern lets a client walk an aggregate’s elements without exposing how they are stored.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="B"><span class="txt">B. A class should have only one reason to change.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="C"><span class="txt">C. Composite lets clients treat individual objects and compositions of objects uniformly.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="D"><span class="txt">D. <code>java.util.Iterator.remove()</code> must be implemented by every iterator.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="E"><span class="txt">E. In the menu composite, <code>MenuItem</code> overrides <code>add()</code> and <code>remove()</code> to hold its own children.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="F"><span class="txt">F. With the composite in place, adding a fourth restaurant still means editing the <code>Waitress</code> class.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="i-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="i-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="i-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>The chapter in one sentence:</strong> give traversal its own object so the aggregate keeps one responsibility, then let menus and items share a type so a whole restaurant prints with one call.
+    </div>
+
+    <p style="margin-top:22px;font-size:.92rem;color:var(--ink-soft)">Next in the book: <strong>Chapter 10, the State Pattern</strong> — Objectville’s gumball machine, and a machine that almost implements itself.</p>
+  </div>
+</section>
+
+<script>
+/* ============================================================ chapter 9 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#i-log');
+  if (!logBox) return;
+
+  const log = (html, cls = '') => {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.innerHTML = html;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  const out  = t => `<span class="out">${t}</span>`;
+  const dim  = t => `<span class="dim">${t}</span>`;
+  const call = t => `<span class="call">${t}</span>`;
+  const err  = t => `<span class="err">${t}</span>`;
+
+  /* ============================================================ the data */
+  const item = (name, description, vegetarian, price) => ({ type: 'item', name, description, vegetarian, price });
+
+  const buildMenus = () => ({
+    type: 'menu', name: 'ALL MENUS', desc: 'All menus combined', children: [
+      {
+        type: 'menu', name: 'PANCAKE HOUSE MENU', desc: 'Breakfast', children: [
+          item("K&B's Pancake Breakfast", 'Pancakes with scrambled eggs and toast', true, 2.99),
+          item('Regular Pancake Breakfast', 'Pancakes with fried eggs, sausage', false, 2.99),
+          item('Blueberry Pancakes', 'Pancakes made with fresh blueberries, and blueberry syrup', true, 3.49),
+          item('Waffles', 'Waffles with your choice of blueberries or strawberries', true, 3.59)
+        ]
+      },
+      {
+        type: 'menu', name: 'DINER MENU', desc: 'Lunch', children: [
+          item('Vegetarian BLT', "(Fakin') Bacon with lettuce & tomato on whole wheat", true, 2.99),
+          item('BLT', 'Bacon with lettuce & tomato on whole wheat', false, 2.99),
+          item('Soup of the day', 'A bowl of the soup of the day, with a side of potato salad', false, 3.29),
+          item('Hot Dog', 'A hot dog, with sauerkraut, relish, onions, topped with cheese', false, 3.05),
+          item('Steamed Veggies and Brown Rice', 'Steamed vegetables over brown rice', true, 3.99),
+          item('Pasta', 'Spaghetti with marinara sauce, and a slice of sourdough bread', true, 3.89),
+          {
+            type: 'menu', name: 'DESSERT MENU', desc: 'Dessert of course!', children: [
+              item('Apple Pie', 'Apple pie with a flakey crust, topped with vanilla ice cream', true, 1.59),
+              item('Cheesecake', 'Creamy New York cheesecake, with a chocolate graham crust', true, 1.99),
+              item('Sorbet', 'A scoop of raspberry and a scoop of lime', true, 1.89)
+            ]
+          }
+        ]
+      },
+      {
+        type: 'menu', name: 'CAFE MENU', desc: 'Dinner', children: [
+          item('Veggie Burger and Air Fries', 'Veggie burger on a whole wheat bun, lettuce, tomato, and fries', true, 3.99),
+          item('Soup of the day', 'A cup of the soup of the day, with a side of salad', false, 3.69),
+          item('Burrito', 'A large burrito, with whole pinto beans, salsa, guacamole', true, 4.29)
+        ]
+      }
+    ]
+  });
+
+  let menus = buildMenus();
+  const price = n => n.toFixed(2);
+
+  /* ====================================================== 1. the waitress */
+  const SOURCES = [
+    ['PancakeHouseMenu', 'createIterator() → menuItems.iterator()   (ArrayList)'],
+    ['DinerMenu',        'createIterator() → new DinerMenuIterator(menuItems)   (Array)'],
+    ['CafeMenu',         'createIterator() → menuItems.values().iterator()   (HashMap)']
+  ];
+  $('#i-sources').innerHTML = SOURCES.map(([k, v]) =>
+    `<div class="rc-dev"><span>${k}</span><b data-on="true">${v}</b></div>`).join('');
+
+  const printItem = it => {
+    log(out(`${it.name}, ${price(it.price)} -- ${it.description}`));
+  };
+
+  $('#i-print')?.addEventListener('click', () => {
+    log(call('waitress.printMenu();  // one loop, three different data structures'));
+    menus.children.forEach(menu => {
+      log(dim(`Iterator iterator = ${menu.name === 'PANCAKE HOUSE MENU' ? 'pancakeHouseMenu' :
+        menu.name === 'DINER MENU' ? 'dinerMenu' : 'cafeMenu'}.createIterator();`));
+      log(out(`\n${menu.desc.toUpperCase()}`), '');
+      // before the composite there is no submenu: a MenuItem[] cannot hold a Menu
+      menu.children.forEach(child => {
+        if (child.type === 'item') printItem(child);
+        else log(dim(`// (“${child.name}” does not exist yet — a MenuItem cannot hold a Menu)`));
+      });
+    });
+    log(dim('while (iterator.hasNext()) { MenuItem menuItem = iterator.next(); … }'));
+    $('#i-verdict').innerHTML = '<div class="cg-verdict ok"><strong>One loop.</strong> The waitress never names <code>ArrayList</code>, an array or a <code>HashMap</code> — only <code>Iterator</code>.</div>';
+  });
+
+  $('#i-hardway')?.addEventListener('click', () => {
+    log(call('// the first attempt: the implementation shows through'));
+    log(out('ArrayList&lt;MenuItem&gt; breakfastItems = pancakeHouseMenu.getMenuItems();'));
+    log(out('for (int i = 0; i < breakfastItems.size(); i++) { … }'));
+    log(out('MenuItem[] lunchItems = dinerMenu.getMenuItems();'));
+    log(out('for (int i = 0; i < lunchItems.length; i++) { … }'));
+    log(out('Map&lt;String, MenuItem&gt; dinnerItems = cafeMenu.getMenuItems();'));
+    log(err('// …and a third loop for the HashMap. Every new menu type, another loop.'));
+    $('#i-verdict').innerHTML = '<div class="cg-verdict bad"><strong>Three loops, three concrete types.</strong> The waitress now knows how every menu stores its items, and a fourth restaurant means editing her class again.</div>';
+  });
+
+  /* ====================================================== 2. the composite */
+  const renderTree = (node, path = '0', depth = 0) => {
+    const isMenu = node.type === 'menu';
+    const rows = [`<div class="rc-dev" data-node="${path}" style="cursor:pointer;margin-left:${depth * 14}px">
+        <span>${isMenu ? '▸ ' : '· '}${node.name}${node.vegetarian ? ' (v)' : ''}${isMenu ? '' : ' — ' + price(node.price)}</span>
+        <b data-on="true">${isMenu ? 'Menu' : 'MenuItem'}</b>
+      </div>`];
+    if (isMenu) node.children.forEach((c, i) => rows.push(renderTree(c, `${path}.${i}`, depth + 1)));
+    return rows.join('');
+  };
+
+  function nodeAt(path) {
+    return path.split('.').slice(1).reduce((n, i) => n.children[+i], menus);
+  }
+
+  function renderAll() {
+    $('#i-tree').innerHTML = renderTree(menus);
+    $$('#i-tree .rc-dev').forEach(row => row.addEventListener('click', () => {
+      const node = nodeAt(row.dataset.node);
+      log(call(`${node.name}.print();  // ${node.type === 'menu' ? 'a Menu (node)' : 'a MenuItem (leaf)'}`));
+      printNode(node, true);
+    }));
+  }
+
+  function printNode(node, isRoot = false) {
+    if (node.type === 'menu') {
+      log(out(`${isRoot ? '\n' : '\n'}${node.name}, ${node.desc}`));
+      log(out('---------------------'));
+      node.children.forEach(c => printNode(c));
+    } else {
+      log(out(`  ${node.name}${node.vegetarian ? '(v)' : ''}, ${price(node.price)}`));
+      log(out(`     -- ${node.description}`));
+    }
+  }
+
+  function traceNode(node, depth = 0, lines = []) {
+    const pad = '  '.repeat(depth);
+    if (node.type === 'menu') {
+      lines.push(`${pad}Menu("${node.name}").print()  → ${node.children.length} components`);
+      node.children.forEach(c => traceNode(c, depth + 1, lines));
+    } else {
+      lines.push(`${pad}MenuItem("${node.name}").print()`);
+    }
+    return lines;
+  }
+
+  $('#i-cprint')?.addEventListener('click', () => {
+    log(call('waitress.printMenu();  // waitress holds allMenus and calls print() once'));
+    printNode(menus, true);
+    const trace = traceNode(menus);
+    $('#i-trace').textContent = trace.slice(0, 40).join('\n') +
+      (trace.length > 40 ? `\n… ${trace.length - 40} more calls` : '');
+  });
+
+  $('#i-cadd')?.addEventListener('click', () => {
+    const dessert = nodeAt('0.1.6');
+    dessert.children.push(item('Crème Brûlée', 'Vanilla bean custard with a caramelised sugar crust', true, 2.49));
+    renderAll();
+    log(dim('dessertMenu.add(new MenuItem("Crème Brûlée", …, true, 2.49));'));
+    log(dim('// no client changed: print() simply finds one more component'));
+  });
+
+  /* ============================================================== tabs */
+  $$('.cg-modes .tab').forEach(tab => tab.addEventListener('click', () => {
+    $$('.cg-modes .tab').forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+    const mode = tab.dataset.icmode;
+    $('#i-panel-waitress').classList.toggle('hidden', mode !== 'waitress');
+    $('#i-panel-composite').classList.toggle('hidden', mode !== 'composite');
+    log(dim(`— ${tab.textContent.trim()} —`));
+  }));
+
+  const clear = () => { logBox.innerHTML = ''; };
+  $('#i-clear')?.addEventListener('click', clear);
+  $('#i-clear2')?.addEventListener('click', clear);
+
+  renderAll();
+  log(dim('MenuTestDrive ready. Print with iterators, or walk the composite tree.'));
+})();
+
+/* --------------------------------------------------------------- quiz */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const box = $('#i-quiz');
+  if (!box) return;
+
+  const opts   = $$('#i-quiz-opts .opt', box);
+  const answer = $('#i-quiz-answer', box);
+
+  opts.forEach(opt => {
+    opt.addEventListener('change', () => {
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+  });
+
+  $('#i-quiz-check', box)?.addEventListener('click', () => {
+    let right = 0;
+    const wrong = [];
+    opts.forEach(opt => {
+      const ticked  = opt.querySelector('input').checked;
+      const correct = opt.dataset.correct === '1';
+      const mark    = opt.querySelector('.mark');
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
+      else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
+      else { mark.textContent = ''; }
+    });
+    const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    const allFound = right === correctSet.length;
+    answer.classList.remove('hidden');
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, B and C. D fails because <code>remove()</code> is optional — you throw <code>UnsupportedOperationException</code> if you can’t support it (that is exactly what <code>DinerMenuIterator</code> and the code magnets do). E fails because <code>MenuItem</code> is a leaf: it inherits the default <code>add()</code>/<code>remove()</code>, which throw. F fails because the composite gives the waitress one <code>MenuComponent</code>; a new restaurant is just another <code>add()</code> on a menu.`
+      : `<strong>All ${correctSet.length} correct.</strong> Encapsulated traversal (A), one reason to change (B), and uniform treatment of parts and wholes (C).`;
+  });
+
+  $('#i-quiz-reset', box)?.addEventListener('click', () => {
+    opts.forEach(opt => {
+      opt.querySelector('input').checked = false;
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+    answer.classList.add('hidden');
+    answer.innerHTML = '';
+  });
+})();
+</script>
