@@ -1,9 +1,9 @@
 # java
 
-## Head First Design Patterns (2nd ed.) — study pages, chapters 1–12
+## Head First Design Patterns (2nd ed.) — study pages, chapters 1–13
 
 `head-first-ch1-design-patterns.html` is one self-contained page (no external assets,
-works offline) that summarizes the first twelve chapters of *Head First Design Patterns*:
+works offline) that summarizes the first thirteen chapters of *Head First Design Patterns*:
 
 **Chapter 1 — Welcome to Design Patterns / Strategy** (book pages 1–36)
 the SimUDuck story, the three OO design principles, the Strategy Pattern, the diner-talk
@@ -215,7 +215,30 @@ bar, start/stop, ±1 BPM, slider, observer trace and a "fire one beat" step — 
 `setController(HeartController)` button that swaps the view's strategy for the heart adapter, disabling
 start/stop exactly as the book describes.
 
+**Chapter 13 — Patterns in the Real World / Better Living with Patterns** (book pages 563–596)
+the last chapter, and the one with no new pattern in it. What a pattern really is ("a solution to a problem in a
+context"), the three parts of the definition (problem and forces, solution, consequences), why a one-off
+solution is not a pattern, "Geek Bits" on forces, Frank and Jim on what a catalog is for, the anatomy of a
+catalog entry (name, intent, motivation, applicability, structure, participants, consequences), a filled-in
+Singleton entry, discovering your own patterns, the template for documenting one, and the book's twelve-pattern
+matching exercise. Then the organizing scheme: purpose (creational, structural, behavioral) × scope (class,
+object), the Guru and Student on pattern languages and on why the forces — not the category — pick the pattern,
+"Thinking in Patterns" (keep it simple, patterns are not a magic bullet, refactor to patterns, use one anyway
+when you expect change), patterns emerge naturally, and Zen mind / beginner mind. The last part points outward:
+the overuse warning, the power of shared vocabulary and five ways to spread it, the Gang of Four, the resources
+page, the Patterns Zoo (architectural, application, domain-specific, organisational patterns), business process
+patterns, anti-patterns and the Golden Hammer. Ends with the final toolbox, the closing page, and the matching
+solution.
+
+Plus a **Pattern Guide** demo with two tabs. *Pattern finder*: fourteen plain-English problem statements
+("create objects without naming the concrete class", "control access to an object", "structure an application
+around a model and a UI"…) each returning the recommended pattern(s) with the reasoning, the purpose/scope tags
+and a link back to the chapter where you built it. *Catalog sorter*: all fifteen entries (thirteen patterns plus
+MVC) as cards with intent, tagged by purpose and scope, filterable by creational / structural / behavioral /
+compound or by class / object scope, with a live count — which is exactly the index the chapter describes.
+
 ### Build
+
 
 
 ```bash
@@ -231,6 +254,7 @@ python tools/crop_ch9.py     # chapter 9 figures  -> assets/ch9/*.jpg
 python tools/crop_ch10.py    # chapter 10 figures -> assets/ch10/*.jpg
 python tools/crop_ch11.py    # chapter 11 figures -> assets/ch11/*.jpg
 python tools/crop_ch12.py    # chapter 12 figures -> assets/ch12/*.jpg
+python tools/crop_ch13.py    # chapter 13 figures -> assets/ch13/*.jpg
 python tools/build_page.py   # inlines all chapters + base64 images -> head-first-ch1-design-patterns.html
 ```
 
@@ -259,19 +283,21 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   (`{{IMG11:name}}`, plus its own `<script>` block for the proxy playground and quiz)
 * `site_src/chapter12.template.html` — chapter 12, spliced in at the `{{CHAPTER12}}` marker
   (`{{IMG12:name}}`, plus its own `<script>` block for the compound playground and quiz)
-* `site_src/figure-text-ch1.json` … `-ch12.json` — curated
+* `site_src/chapter13.template.html` — chapter 13, spliced in at the `{{CHAPTER13}}` marker
+  (`{{IMG13:name}}`, plus its own `<script>` block for the pattern guide and quiz)
+* `site_src/figure-text-ch1.json` … `-ch13.json` — curated
   transcripts of the text printed inside each figure; `tools/figure_text.py` dumps the raw
   PDF text layer per crop to help edit them. Each chapter's markers are resolved against its
   own table, so a repeated figure name (`opener`, `crossword`, `toolbox`) never picks up
   another chapter's text.
-* `tools/crop_ch1.py` … `tools/crop_ch12.py` — crop
+* `tools/crop_ch1.py` … `tools/crop_ch13.py` — crop
   boxes in PDF points (the page is 576 × 666 pt)
 * `index.html` — meta-refresh to the page (handy when serving the folder)
 
 ### Notes
 
 * The figures are book excerpts, © O'Reilly Media — study material, not for redistribution.
-  The Java listings are the book's code; the JavaScript ports and the twelve interactive
+  The Java listings are the book's code; the JavaScript ports and the thirteen interactive
   simulators are written for this page.
 * The heat index demo uses the formula exactly as printed in the book; it computes in
   doubles where the book uses `float`, so one value differs in the fifth decimal

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Head First Design Patterns · Chapters 1–12 — Strategy, Observer, Decorator, Factory, Singleton, Command, Adapter, Facade, Template Method, Iterator, Composite, State, Proxy &amp; Compound Patterns · Summaries, Book Figures, Code and Live Demos</title>
-<meta name="description" content="Visual summaries of chapters 1–12 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, the seven-slot Home Automation remote and the Command Pattern, the turkey that quacks (Adapter), the one-button home theater (Facade), then coffee and tea, hooks and the Hollywood Principle (Template Method), then the Objectville menu merger — encapsulation of iteration (Iterator), the Single Responsibility Principle, and menu trees (Composite) — and finally Mighty Gumball's gumball machine, where a five-state controller replaces a nest of conditionals (State), and then Mighty Gumball's machines go remote: Java RMI, a stub that acts as a remote proxy, an album-cover virtual proxy that loads itself, and a runtime-generated protection proxy that keeps Elroy's profile safe (Proxy), then the Duck Simulator where adapter, decorator, factory, composite and observer all cooperate, and Model-View-Controller — a compound pattern built from Observer, Strategy and Composite, driven by a DJ beat machine and a heart monitor (Compound Patterns) — with the book's figures (and the text inside them), the full Java code, and live demos of all twelve chapters.">
+<title>Head First Design Patterns · Chapters 1–13 — Strategy, Observer, Decorator, Factory, Singleton, Command, Adapter, Facade, Template Method, Iterator, Composite, State, Proxy, Compound Patterns &amp; Better Living with Patterns · Summaries, Book Figures, Code and Live Demos</title>
+<meta name="description" content="Visual summaries of chapters 1–13 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, the seven-slot Home Automation remote and the Command Pattern, the turkey that quacks (Adapter), the one-button home theater (Facade), then coffee and tea, hooks and the Hollywood Principle (Template Method), then the Objectville menu merger — encapsulation of iteration (Iterator), the Single Responsibility Principle, and menu trees (Composite) — and finally Mighty Gumball's gumball machine, where a five-state controller replaces a nest of conditionals (State), and then Mighty Gumball's machines go remote: Java RMI, a stub that acts as a remote proxy, an album-cover virtual proxy that loads itself, and a runtime-generated protection proxy that keeps Elroy's profile safe (Proxy), then the Duck Simulator where adapter, decorator, factory, composite and observer all cooperate, and Model-View-Controller — a compound pattern built from Observer, Strategy and Composite, driven by a DJ beat machine and a heart monitor (Compound Patterns) — with the book's figures (and the text inside them), the full Java code, then the last chapter: what a pattern really is, how the catalog is organized by purpose and scope, when not to use one, shared vocabulary and anti-patterns (Better Living with Patterns) — with the book's figures (and the text inside them), the full Java code, and live demos of all thirteen chapters.">
 <style>
 /* ---------------------------------------------------------------- tokens */
 :root{
@@ -734,6 +734,41 @@ footer.site strong{color:#4a4560}
 #cp-log div{margin:1px 0}
 #cp-quiz .opt code{font-size:.94em}
 
+/* --------------------------------------- ch.13 pattern finder demo */
+.bl-panel[hidden]{display:none!important}
+.bl-finder{display:grid;grid-template-columns:1fr 1.05fr;gap:18px;align-items:start}
+@media (max-width:900px){.bl-finder{grid-template-columns:1fr}}
+.bl-chips{display:flex;flex-wrap:wrap;gap:6px}
+.bl-chip{font:inherit;font-size:.72rem;font-weight:700;text-align:left;cursor:pointer;
+  border:1px solid var(--line);background:#fff;color:var(--ink-soft);border-radius:999px;padding:6px 11px;transition:.14s}
+.bl-chip:hover{border-color:var(--purple-2);color:var(--purple)}
+.bl-chip.on{background:var(--purple);border-color:var(--purple);color:#fff}
+.bl-result{background:#fbf9ff;border:1px dashed #d9cdf2;border-radius:14px;padding:14px;min-height:180px}
+.bl-empty{color:#8d84a8;font-style:italic;margin:0}
+.bl-result-card .bl-result-head{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--purple-2);font-weight:900;margin-bottom:6px}
+.bl-result-card p{font-size:.86rem;margin:0 0 10px}
+.bl-picks{margin:0;padding-left:16px;display:grid;gap:10px;font-size:.82rem;line-height:1.5}
+.bl-picks b{color:var(--purple)}
+.bl-mini{font-size:.68rem;font-weight:700;color:#948bab;letter-spacing:.02em}
+.bl-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.bl-filter{font:inherit;font-size:.68rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
+  border:1px solid var(--line);background:#fff;color:#8d84a8;border-radius:999px;padding:5px 11px}
+.bl-filter.on{background:var(--purple-soft);border-color:#cdbdf3;color:var(--purple)}
+.bl-count{font-size:.72rem;color:#8d84a8;margin-bottom:12px}
+.bl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media (max-width:760px){.bl-grid{grid-template-columns:1fr}}
+.bl-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow)}
+.bl-card header{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.bl-card header b{font-size:.92rem;color:var(--purple)}
+.bl-card p{font-size:.78rem;color:var(--ink-soft);margin:8px 0}
+.bl-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.bl-tag{font-size:.58rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:3px 8px;
+  background:#f4f1fa;color:var(--purple-2);border:1px solid #e3d9f7}
+.bl-tag[data-kind="scope"]{background:#f7f7f9;color:#8d84a8;border-color:var(--line)}
+.bl-tag[data-kind="compound"]{background:#fff6d9;color:#8a6a12;border-color:#ecd28a}
+.bl-link{font-size:.72rem;font-weight:800;text-decoration:none}
+#bl-quiz .opt code{font-size:.94em}
+
 @media print{
   .topbar,.pond,.console,.demo-wrap{display:none!important}
   body{background:#fff}
@@ -747,7 +782,7 @@ footer.site strong{color:#4a4560}
 
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–12</a>
+    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–13</a>
     <nav class="navlinks">
       <a href="#story">SimUDuck</a>
       <a href="#principles">Principles</a>
@@ -833,6 +868,12 @@ footer.site strong{color:#4a4560}
       <a href="#cp-dj">MVC</a>
       <a href="#cp-demo">Compound demo</a>
       <a href="#cp-cheatsheet">Ch. 12 recap</a>
+      <span class="navsep" aria-hidden="true">Ch.&nbsp;13</span>
+      <a href="#bl-what">What is a pattern</a>
+      <a href="#bl-organize">Catalog</a>
+      <a href="#bl-wild">Patterns in the wild</a>
+      <a href="#bl-demo">Pattern finder</a>
+      <a href="#bl-cheatsheet">Ch. 13 recap</a>
     </nav>
   </div>
 </div>
@@ -1608,11 +1649,13 @@ model.performFly();</pre>
 
 {{CHAPTER12}}
 
+{{CHAPTER13}}
+
 <footer class="site">
   <div class="wrap">
-    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168) and Chapter 5, “One-of-a-Kind Objects” (pages 169–190) and Chapter 6, “Encapsulating Invocation” (pages 191–236), Chapter 8, “Encapsulating Algorithms” (pages 277–316) Chapter 9, “Well-Managed Collections” (pages 316–380) Chapter 10, “The State of Things” (pages 381–424) Chapter 11, “Controlling Object Access” (pages 425–492) and Chapter 12, “Patterns of Patterns” (pages 493–562).</div>
+    <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168) and Chapter 5, “One-of-a-Kind Objects” (pages 169–190) and Chapter 6, “Encapsulating Invocation” (pages 191–236), Chapter 8, “Encapsulating Algorithms” (pages 277–316) Chapter 9, “Well-Managed Collections” (pages 316–380) Chapter 10, “The State of Things” (pages 381–424) Chapter 11, “Controlling Object Access” (pages 425–492) and Chapter 12, “Patterns of Patterns” (pages 493–562) and Chapter 13, “Better Living with Patterns” (pages 563–596).</div>
     <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and the eight interactive simulators are written for this page.</div>
-    <div><strong>Built:</strong> twelve chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler, Objectville Remote Control, Turkey Adapter, Home Theater Facade, CaffeineBeverage and DuckSort demos, the Objectville menu merger and composite menu tree, Mighty Gumball’s gumball machine with its five state objects, the proxy playground — remote monitor, virtual album covers and the protection proxy, and the compound playground — a Duck Simulator that assembles six patterns and a DJ View beat machine running on MVC (no external assets, works offline).</div>
+    <div><strong>Built:</strong> thirteen chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler, Objectville Remote Control, Turkey Adapter, Home Theater Facade, CaffeineBeverage and DuckSort demos, the Objectville menu merger and composite menu tree, Mighty Gumball’s gumball machine with its five state objects, the proxy playground — remote monitor, virtual album covers and the protection proxy, and the compound playground — a Duck Simulator that assembles six patterns a DJ View beat machine running on MVC, and the pattern guide that finds a pattern from a problem description and sorts the whole catalog by purpose and scope (no external assets, works offline).</div>
     <a class="totop" href="#top">↑ back to top</a>
   </div>
 </footer>

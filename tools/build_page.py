@@ -1,4 +1,4 @@
-"""Assemble the self-contained study page for chapters 1 to 12.
+"""Assemble the self-contained study page for chapters 1 to 13.
 
 Reads the chapter templates from site_src/, splices chapters 2–4 in at their
 markers in the chapter 1 shell, then replaces every figure placeholder with a
@@ -16,6 +16,7 @@ base64 data URI:
     {{IMG10:name}} -> assets/ch10/<name>.jpg    (chapter 10 figures)
     {{IMG11:name}} -> assets/ch11/<name>.jpg    (chapter 11 figures)
     {{IMG12:name}} -> assets/ch12/<name>.jpg    (chapter 12 figures)
+    {{IMG13:name}} -> assets/ch13/<name>.jpg    (chapter 13 figures)
     {{SAYS:name}}  -> a "what the figure says" panel built from the text that
                       is printed inside the artwork (site_src/figure-text-*.json)
 
@@ -43,21 +44,22 @@ CHAPTER9 = ROOT / "site_src" / "chapter9.template.html"
 CHAPTER10 = ROOT / "site_src" / "chapter10.template.html"
 CHAPTER11 = ROOT / "site_src" / "chapter11.template.html"
 CHAPTER12 = ROOT / "site_src" / "chapter12.template.html"
+CHAPTER13 = ROOT / "site_src" / "chapter13.template.html"
 ASSETS = {"": ROOT / "assets" / "ch1", "2": ROOT / "assets" / "ch2", "3": ROOT / "assets" / "ch3",
           "4": ROOT / "assets" / "ch4", "5": ROOT / "assets" / "ch5",
           "6": ROOT / "assets" / "ch6", "7": ROOT / "assets" / "ch7",
           "8": ROOT / "assets" / "ch8", "9": ROOT / "assets" / "ch9",
-          "10": ROOT / "assets" / "ch10", "11": ROOT / "assets" / "ch11", "12": ROOT / "assets" / "ch12"}
-TEXTS = [ROOT / "site_src" / f"figure-text-{c}.json" for c in ("ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7", "ch8", "ch9", "ch10", "ch11", "ch12")]
+          "10": ROOT / "assets" / "ch10", "11": ROOT / "assets" / "ch11", "12": ROOT / "assets" / "ch12", "13": ROOT / "assets" / "ch13"}
+TEXTS = [ROOT / "site_src" / f"figure-text-{c}.json" for c in ("ch1", "ch2", "ch3", "ch4", "ch5", "ch6", "ch7", "ch8", "ch9", "ch10", "ch11", "ch12", "ch13")]
 OUTPUT = ROOT / "head-first-ch1-design-patterns.html"
 
-IMG = re.compile(r"\{\{IMG(2|3|4|5|6|7|8|9|10|11|12)?:([a-z0-9-]+)\}\}")
+IMG = re.compile(r"\{\{IMG(2|3|4|5|6|7|8|9|10|11|12|13)?:([a-z0-9-]+)\}\}")
 SAYS = re.compile(r"\{\{SAYS:([a-z0-9-]+)\}\}")
 MARKER = "{{CHAPTER2}}"
 
 missing = set()
 used = {"": set(), "2": set(), "3": set(), "4": set(), "5": set(), "6": set(),
-        "7": set(), "8": set(), "9": set(), "10": set(), "11": set(), "12": set()}
+        "7": set(), "8": set(), "9": set(), "10": set(), "11": set(), "12": set(), "13": set()}
 
 
 def data_uri(chapter: str, name: str) -> str:
@@ -119,7 +121,8 @@ for marker, key, path in (("{{CHAPTER2}}", "ch2", CHAPTER2),
                           ("{{CHAPTER9}}", "ch9", CHAPTER9),
                           ("{{CHAPTER10}}", "ch10", CHAPTER10),
                           ("{{CHAPTER11}}", "ch11", CHAPTER11),
-                          ("{{CHAPTER12}}", "ch12", CHAPTER12)):
+                          ("{{CHAPTER12}}", "ch12", CHAPTER12),
+                          ("{{CHAPTER13}}", "ch13", CHAPTER13)):
     if marker not in page:
         sys.exit(f"chapter 1 template has no {marker} marker")
     chunk = path.read_text(encoding="utf-8")
@@ -148,6 +151,7 @@ on_disk9 = {p.stem for p in (ROOT / "assets" / "ch9").glob("*.jpg")}
 on_disk10 = {p.stem for p in (ROOT / "assets" / "ch10").glob("*.jpg")}
 on_disk11 = {p.stem for p in (ROOT / "assets" / "ch11").glob("*.jpg")}
 on_disk12 = {p.stem for p in (ROOT / "assets" / "ch12").glob("*.jpg")}
+on_disk13 = {p.stem for p in (ROOT / "assets" / "ch13").glob("*.jpg")}
 print(f"wrote {OUTPUT.relative_to(ROOT)}  ({OUTPUT.stat().st_size / 1024 / 1024:.2f} MB)")
 if GAPS:
     print(f"WARNING: no transcript for {', '.join(GAPS)}")
@@ -156,14 +160,14 @@ print(f"embedded {len(used[''])} chapter-1 figures, {len(used['2'])} chapter-2 f
       f"{len(used['5'])} chapter-5 figures, {len(used['6'])} chapter-6 figures, "
       f"{len(used['7'])} chapter-7 figures, {len(used['8'])} chapter-8 figures, "
       f"{len(used['9'])} chapter-9 figures, {len(used['10'])} chapter-10 figures, "
-      f"{len(used['11'])} chapter-11 figures, {len(used['12'])} chapter-12 figures, "
+      f"{len(used['11'])} chapter-11 figures, {len(used['12'])} chapter-12 figures, {len(used['13'])} chapter-13 figures, "
       f"{len(says)} figure transcripts")
 for label, disk, use in (("ch1", on_disk, used[""]), ("ch2", on_disk2, used["2"]),
                          ("ch3", on_disk3, used["3"]), ("ch4", on_disk4, used["4"]),
                          ("ch5", on_disk5, used["5"]), ("ch6", on_disk6, used["6"]),
                          ("ch7", on_disk7, used["7"]), ("ch8", on_disk8, used["8"]),
                          ("ch9", on_disk9, used["9"]), ("ch10", on_disk10, used["10"]),
-                         ("ch11", on_disk11, used["11"]), ("ch12", on_disk12, used["12"])):
+                         ("ch11", on_disk11, used["11"]), ("ch12", on_disk12, used["12"]), ("ch13", on_disk13, used["13"])):
     unused = sorted(disk - use)
     if unused:
         print(f"unused {label} crops: {', '.join(unused)}")
