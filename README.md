@@ -1,9 +1,9 @@
 # java
 
-## Head First Design Patterns (2nd ed.) — study pages, chapters 1–9
+## Head First Design Patterns (2nd ed.) — study pages, chapters 1–10
 
 `head-first-ch1-design-patterns.html` is one self-contained page (no external assets,
-works offline) that summarizes the first nine chapters of *Head First Design Patterns*:
+works offline) that summarizes the first ten chapters of *Head First Design Patterns*:
 
 **Chapter 1 — Welcome to Design Patterns / Strategy** (book pages 1–36)
 the SimUDuck story, the three OO design principles, the Strategy Pattern, the diner-talk
@@ -139,6 +139,31 @@ through iterators, then flip to the first attempt and watch it become three loop
 watch one call recurse through every menu and item with a recursion trace, or add a dessert and see
 `print()` pick it up with no client change).
 
+**Chapter 10 — The State of Things / State** (book pages 381–424)
+Mighty Gumball's gumball machine: the state diagram on the company stationery (four states, four actions,
+five transitions), the cubicle conversation that walks it through, and State machines 101 (an int per state,
+one variable for the current one). Then version one — `GumballMachine` with four branches per action,
+the `GumballMachineTestDrive` harness that abuses it, and the console run that counts 5 → 4 → 2 → 0
+gumballs. The change request arrives ("10% of the time the crank yields two gumballs"), the Design Puzzle
+asks you to draw the fifth state, and the "messy STATE of things" page shows why the conditionals must go.
+The rework follows: the three-step plan, the `State` interface and five state classes, the behaviour table
+to annotate, `NoQuarterState`, the machine's conversion from ints to state objects, the complete
+`GumballMachine` with its three delegating methods, `HasQuarterState`, `SoldState`, `SoldOutState` (the
+"your turn" class), the delegation diagram, and the self-guided tour. Then the pattern proper: the
+definition, the structure diagram, the Strategy-vs-State page ("this class diagram is EXACTLY the same"),
+the Dumb Questions page on transition placement, shared state objects and interface vs. abstract class,
+`WinnerState`, the `Random` draw in `HasQuarterState`, the CEO demo and its console run with two wins in a
+row, and the sanity check. Ends with the fireside chat between Strategy and State, the refill exercise and
+its solution, the pattern-matching exercise, the toolbox, the check-yourself answer (A, C, D, E, F) and a
+live demo.
+
+The **Gumball Machine** demo is a real five-state controller in JavaScript: `insertQuarter()`,
+`ejectQuarter()` and `turnCrank()` are delegated to the current state object, every message is the book's
+(including the version-one wording without the ellipsis), a **1-in-10 contest** switch and a **rig the
+draw** switch reproduce both of the book's console runs, the state chips show which object is current, and
+a delegation trace shows which class answered and which `setState()` call followed. `refill(5)` restores a
+sold-out machine, and the two "run the book's TestDrive" buttons replay pages 389 and 412 line for line.
+
 ### Build
 
 ```bash
@@ -151,6 +176,7 @@ python tools/crop_ch6.py     # chapter 6 figures  -> assets/ch6/*.jpg
 python tools/crop_ch7.py     # chapter 7 figures  -> assets/ch7/*.jpg
 python tools/crop_ch8.py     # chapter 8 figures  -> assets/ch8/*.jpg
 python tools/crop_ch9.py     # chapter 9 figures  -> assets/ch9/*.jpg
+python tools/crop_ch10.py    # chapter 10 figures -> assets/ch10/*.jpg
 python tools/build_page.py   # inlines all chapters + base64 images -> head-first-ch1-design-patterns.html
 ```
 
@@ -173,19 +199,21 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   (`{{IMG8:name}}`, plus its own `<script>` block for the beverage/duck-sort demo and quiz)
 * `site_src/chapter9.template.html` — chapter 9, spliced in at the `{{CHAPTER9}}` marker
   (`{{IMG9:name}}`, plus its own `<script>` block for the waitress/composite demo and quiz)
-* `site_src/figure-text-ch1.json` … `-ch9.json` — curated
+* `site_src/chapter10.template.html` — chapter 10, spliced in at the `{{CHAPTER10}}` marker
+  (`{{IMG10:name}}`, plus its own `<script>` block for the gumball machine and quiz)
+* `site_src/figure-text-ch1.json` … `-ch10.json` — curated
   transcripts of the text printed inside each figure; `tools/figure_text.py` dumps the raw
   PDF text layer per crop to help edit them. Each chapter's markers are resolved against its
   own table, so a repeated figure name (`opener`, `crossword`, `toolbox`) never picks up
   another chapter's text.
-* `tools/crop_ch1.py` … `tools/crop_ch9.py` — crop
+* `tools/crop_ch1.py` … `tools/crop_ch10.py` — crop
   boxes in PDF points (the page is 576 × 666 pt)
 * `index.html` — meta-refresh to the page (handy when serving the folder)
 
 ### Notes
 
 * The figures are book excerpts, © O'Reilly Media — study material, not for redistribution.
-  The Java listings are the book's code; the JavaScript ports and the nine interactive
+  The Java listings are the book's code; the JavaScript ports and the ten interactive
   simulators are written for this page.
 * The heat index demo uses the formula exactly as printed in the book; it computes in
   doubles where the book uses `float`, so one value differs in the fifth decimal

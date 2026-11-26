@@ -1,0 +1,847 @@
+<!-- ==================================================== CHAPTER 10 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 10</b> the State Pattern</div>
+  <h2>The State of <span style="color:var(--purple)">Things</span></h2>
+  <p>A gumball machine that turns a quarter into a gumball sounds like four <code>if</code> statements. Then Mighty Gumball adds a “one in ten wins two” contest, and the conditional logic starts breeding. The fix is the pattern whose class diagram is <em>identical</em> to Strategy’s — and whose intent could not be more different.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Mighty Gumball, Inc.</span>
+    <span class="chip">1 pattern</span>
+    <span class="chip">46 book figures</span>
+    <span class="chip">5 states · 4 actions</span>
+    <span class="chip">1 live machine</span>
+  </div>
+</div>
+
+<!-- =========================================================== 1. STORY -->
+<section id="st-story">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>four states, then five</span></div>
+    <h2>The gumball machine that worked</h2>
+    <p class="sub">Mighty Gumball has been putting CPUs in candy machines. They hand you a state diagram on their stationery and ask for a flexible, maintainable controller — which is a polite way of saying “we will be back with more states.”</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG10:opener}}" alt="Chapter 10 opener: a woman on the phone saying she is at the breaking point because every time she turns around there’s another change request, headed The State of Things.">
+      <figcaption>“I’m in such a state!” — and the chapter’s premise: Strategy and State are twins separated at birth, but they want different things.</figcaption>
+      {{SAYS:opener}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:gumball-spec}}" alt="Meet mighty gumball: the Jaw Breakers machine and the note that manufacturers are gumball machine experts, not software developers.">
+        <figcaption>Mighty Gumball, “where the gumball machine is never half empty”. They know candy; you know software.</figcaption>
+        {{SAYS:gumball-spec}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:state-diagram}}" alt="The gumball machine state diagram on Mighty Gumball stationery: No Quarter, Has Quarter, Gumball Sold and Out of Gumballs, with insert quarter, eject quarter, turn crank and dispense transitions.">
+        <figcaption>The spec: four states, four actions, five transitions — and the note that “we may be adding more behavior in the future”.</figcaption>
+        {{SAYS:state-diagram}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:cubicle-conversation}}" alt="Cubicle Conversation: Judy, Joe and Frank work out that the diagram has four states, four actions and five transitions, and that nonsense actions must be handled too.">
+        <figcaption>Judy, Joe and Frank read the diagram: circles are states, arrows are transitions, and the awkward cases (eject with no quarter, two quarters) are part of the job.</figcaption>
+        {{SAYS:cubicle-conversation}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:state-machines-101}}" alt="State machines 101: gather the states, create an instance variable with the four int constants, then gather the actions that cause transitions.">
+        <figcaption>The book’s primer: one integer per state, one instance variable for the current state, one method per action.</figcaption>
+        {{SAYS:state-machines-101}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:insert-quarter-code}}" alt="insertQuarter() written with four if/else branches, annotated to show each state being checked and the transition to HAS_QUARTER.">
+        <figcaption>Four branches for one action. Multiply by four actions and you have the code smell the chapter is built on.</figcaption>
+        {{SAYS:insert-quarter-code}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:writing-the-code}}" alt="Writing the code: the four state constants, the state variable, the gumball count, and a constructor that starts in NO_QUARTER when the machine is loaded.">
+        <figcaption>The fields, the constructor, and the detail that matters later: an empty machine starts in <code>SOLD_OUT</code>, not <code>NO_QUARTER</code>.</figcaption>
+        {{SAYS:writing-the-code}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:the-rest-of-the-code}}" alt="ejectQuarter(), turnCrank() and dispense() with every state handled by conditionals, annotated to explain each branch including the out-of-gumballs check.">
+        <figcaption><code>turnCrank()</code> calls <code>dispense()</code> on success; <code>dispense()</code> decides <code>SOLD_OUT</code> vs. <code>NO_QUARTER</code>. Twelve branches, no state named outside the class.</figcaption>
+        {{SAYS:the-rest-of-the-code}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:in-house-testing}}" alt="The GumballMachineTestDrive harness with annotations for each step: five gumballs, quarter, crank, eject, two quarters, stress test.">
+        <figcaption>The test harness — note the deliberate abuse: two quarters in a row, ejecting a quarter that isn’t there, cranking twice.</figcaption>
+        {{SAYS:in-house-testing}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG10:test-drive-output}}" alt="The console output of the first GumballMachineTestDrive: inventories 5, 4, 2 and 0 with the machine’s messages, ending with Oops, out of gumballs and Machine is sold out.">
+      <figcaption>The first version works: inventory counts down 5 → 4 → 2 → 0 and every illegal action gets a sentence instead of a gumball.</figcaption>
+      {{SAYS:test-drive-output}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:change-request}}" alt="A change request from the CEO of Mighty Gumball: a Be a Winner sticker promising one in ten customers a free gumball, with a 10% chance of two gumballs.">
+        <figcaption>The change request: 10% of the time the crank yields two gumballs. “We’re so glad we’ve got Java in the machines because this is going to be easy, right?”</figcaption>
+        {{SAYS:change-request}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:design-puzzle}}" alt="Design Puzzle: draw a state diagram for a Gumball Machine that handles the one-in-ten contest, on Mighty Gumball stationery.">
+        <figcaption>The Design Puzzle asks you to draw the fifth state before the book shows it. (Solution on page 420.)</figcaption>
+        {{SAYS:design-puzzle}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:messy-state}}" alt="The messy state of things: adding a WINNER state would mean a new conditional in every method, and turnCrank() would get especially messy.">
+        <figcaption>Why the conditional design breaks: one new state means a new branch in <em>every</em> method, and <code>turnCrank()</code> takes the worst of it.</figcaption>
+        {{SAYS:messy-state}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:check-question}}" alt="Sharpen your pencil: which of the six statements describe the state of our implementation, from Open Closed Principle to state transitions buried in conditionals.">
+        <figcaption>The book’s own verdict on version one. The answer page ticks <strong>A, C, D, E and F</strong> — B is the joke.</figcaption>
+        {{SAYS:check-question}}
+      </figure>
+    </div>
+
+    <div class="note warn" style="margin-top:26px">
+      <strong>Everything wrong with version one, in one line:</strong> the machine’s behavior is scattered across conditionals, so a new state means editing every method — and the transitions are implicit, buried in the middle of those branches.
+    </div>
+  </div>
+</section>
+<!-- ========================================================= 2. THE REWORK -->
+<section id="st-pattern">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>one class per state</span></div>
+    <h2>Encapsulating what varies: the state</h2>
+    <p class="sub">Judy names the principle out loud — “encapsulate what varies” — and Frank adds the second one: favor composition. The machine keeps a current state object and delegates every action to it.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:new-design}}" alt="The new design in three steps: define a State interface with a method per action, implement a class per state, and replace the conditional code with delegation.">
+        <figcaption>The plan, in three steps. Step three is the whole pattern: no conditionals left in the context.</figcaption>
+        {{SAYS:new-design}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:state-interface}}" alt="Defining the State interface with insertQuarter, ejectQuarter, turnCrank and dispense, the five concrete state classes, and the old GumballMachine code with its int constants.">
+        <figcaption><code>State</code> declares the same four actions the machine exposes — plus <code>dispense()</code>, which the client never calls directly.</figcaption>
+        {{SAYS:state-interface}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:annotate-exercise}}" alt="Sharpen your pencil: annotate each state’s four actions with the behavior and transition, from NoQuarterState through WinnerState.">
+        <figcaption>The design step the book insists on: write the behavior of all four actions in all five states <em>before</em> touching code.</figcaption>
+        {{SAYS:annotate-exercise}}
+      </figure>
+      <div>
+        <div class="note" style="margin-top:0">
+          <strong>The five states, in the order you meet them:</strong> <code>NoQuarterState</code> → <code>HasQuarterState</code> → <code>SoldState</code> → <code>SoldOutState</code>, plus <code>WinnerState</code> once the contest arrives.
+        </div>
+        <div class="note warn" style="margin-top:14px">
+          <strong>Note what each state must be able to do:</strong> answer four actions and move the machine. That means every state class needs a reference back to the <code>GumballMachine</code>.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:no-quarter-state}}" alt="NoQuarterState implementing State, holding a GumballMachine reference, accepting a quarter and calling setState(getHasQuarterState()).">
+        <figcaption>The template state class: a <code>GumballMachine</code> field, one message per action, and one transition on the answer that matters.</figcaption>
+        {{SAYS:no-quarter-state}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:rework-machine}}" alt="Reworking the GumballMachine: old int constants replaced by four State fields, with the current state now a State object rather than an integer.">
+        <figcaption>The same machine, with four state objects instead of four <code>int</code>s. Everything else is about to get shorter.</figcaption>
+        {{SAYS:rework-machine}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:complete-machine}}" alt="The complete GumballMachine: four state fields plus winnerState-free constructor wiring, three action methods that delegate, setState(), and releaseBall().">
+        <figcaption>The complete class: three delegating methods, <code>setState()</code> for the states to call back, and <code>releaseBall()</code> with its “...” on the end.</figcaption>
+        {{SAYS:complete-machine}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">GumballMachine.java · the delegating three</span><span class="tagline">four if/else chains, gone</span></header>
+<pre><span class="kw">public void</span> <span class="fn">insertQuarter</span>() { state.insertQuarter(); }
+<span class="kw">public void</span> <span class="fn">ejectQuarter</span>()  { state.ejectQuarter();  }
+<span class="kw">public void</span> <span class="fn">turnCrank</span>() {
+    state.turnCrank();
+    state.dispense();   <span class="cmt">// internal action, called here</span>
+}</pre>
+        </div>
+        <div class="note ok" style="margin-top:14px">
+          <strong>Why <code>turnCrank()</code> calls two methods:</strong> the crank is the only public action that triggers an internal one. <code>dispense()</code> stays off the machine’s public interface — the customer cannot ask for a gumball directly.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:has-quarter-state}}" alt="HasQuarterState: rejects a second quarter, returns the quarter and goes back to NoQuarterState, and on turnCrank() transitions to SoldState.">
+        <figcaption><code>HasQuarterState</code>: the state that owns the two most interesting transitions — refund, and “you turned...”.</figcaption>
+        {{SAYS:has-quarter-state}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:sold-state}}" alt="SoldState: three error messages and a dispense() that releases a ball then picks NoQuarterState or SoldOutState, followed by the Brain Power question about calling dispense() anyway.">
+        <figcaption><code>SoldState</code> is where the machine actually pays out — and where the Brain Power question lives: why does <code>turnCrank()</code> call <code>dispense()</code> even when nothing was sold?</figcaption>
+        {{SAYS:sold-state}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:your-turn-soldout}}" alt="Sharpen your pencil: the empty SoldOutState skeleton with four blank action methods to fill in.">
+        <figcaption>Your turn: the fifth class. Its answer is on page 421 — every action prints, and none of them transitions.</figcaption>
+        {{SAYS:your-turn-soldout}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">SoldOutState.java · the answer</span><span class="tagline">the state that can only wait for a refill</span></header>
+<pre><span class="kw">public void</span> <span class="fn">insertQuarter</span>() {
+    System.out.println(<span class="str">"You can't insert a quarter, the machine is sold out"</span>);
+}
+<span class="kw">public void</span> <span class="fn">ejectQuarter</span>() {
+    System.out.println(<span class="str">"You can't eject, you haven't inserted a quarter yet"</span>);
+}
+<span class="kw">public void</span> <span class="fn">turnCrank</span>() {
+    System.out.println(<span class="str">"You turned, but there are no gumballs"</span>);
+}
+<span class="kw">public void</span> <span class="fn">dispense</span>() {
+    System.out.println(<span class="str">"No gumball dispensed"</span>);
+}</pre>
+        </div>
+        <div class="note" style="margin-top:14px">
+          <strong>Four messages, zero transitions.</strong> That is a state doing its job: it describes a situation rather than asking “which situation am I in?”
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:what-we-done}}" alt="What we’ve done so far: four structural wins listed, and a diagram of the machine holding one instance of each state with a current-state pointer.">
+        <figcaption>What the rework bought: localized behavior, no conditionals, each state closed for modification and the machine open for extension.</figcaption>
+        {{SAYS:what-we-done}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:transitions}}" alt="State transitions: turnCrank() delegated to the current state, the machine moving to Sold, then dispense() choosing NoQuarter or SoldOut.">
+        <figcaption>Delegation, drawn: the client touches the machine, the machine touches its current state, and the state moves the machine.</figcaption>
+        {{SAYS:transitions}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG10:self-guided-tour}}" alt="Behind the Scenes: Self-Guided Tour exercise with four panels of a GumballMachine and its states to annotate.">
+      <figcaption>The self-guided tour: four snapshots of the machine, to be annotated with the action, the output and the new current state.</figcaption>
+      {{SAYS:self-guided-tour}}
+    </figure>
+
+    <div class="principle" style="margin-top:30px">
+      <span class="yy">☯</span>
+      <div><b>The State Pattern</b><p>allows an object to alter its behavior when its internal state changes. The object will appear to change its class.</p></div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:state-defined}}" alt="The State Pattern defined, with the Context delegating request() to state.handle(), the State interface and two concrete states.">
+        <figcaption>The structure: <code>Context</code> delegates, <code>State</code> declares, <code>ConcreteState</code> answers — and the client only ever sees the context.</figcaption>
+        {{SAYS:state-defined}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:strategy-vs-state}}" alt="Strategy and State compared: same class diagram, different intent, with the mallard and rubber duck strategies from chapter 1.">
+        <figcaption>“This class diagram is EXACTLY the same.” It is — the difference is who chooses the object and why it changes.</figcaption>
+        {{SAYS:strategy-vs-state}}
+      </figure>
+    </div>
+
+    <div class="grid2" style="margin-top:24px;align-items:start">
+      <div class="note" style="margin-top:0">
+        <strong>State vs. Strategy, in one line each:</strong> State is an alternative to a nest of conditionals, and the state objects move the context around themselves. Strategy is an alternative to subclassing, and the client picks the algorithm.
+      </div>
+      <div class="note" style="margin-top:0">
+        <strong>And the shared skeleton:</strong> a context holding an interface, delegating to it, with interchangeable implementations. Only the intent distinguishes them — which is exactly why the book ends the chapter with a fireside chat.
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG10:qa}}" alt="Dumb Questions about the State Pattern: who decides the next state, whether clients touch states, sharing state objects, the extra classes, and interface versus abstract class.">
+      <figcaption>The Dumb Questions page is the best design advice in the chapter: transition placement, shared states, and why an interface was enough here.</figcaption>
+      {{SAYS:qa}}
+    </figure>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:winner-state}}" alt="WinnerState implementation: release one ball, if none left go SoldOut, otherwise release a second ball, announce the winner, then NoQuarter or SoldOut.">
+        <figcaption><code>WinnerState</code>: two <code>releaseBall()</code> calls, one announcement, and the same two possible endings as <code>SoldState</code>.</figcaption>
+        {{SAYS:winner-state}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:random-winner}}" alt="HasQuarterState with a Random field: turnCrank() draws nextInt(10) and goes to WinnerState when the draw is 0 and more than one gumball remains.">
+        <figcaption>The whole contest: <code>randomWinner.nextInt(10)</code>, a zero, and more than one gumball left. That is the entire game.</figcaption>
+        {{SAYS:random-winner}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:ceo-demo}}" alt="The CEO demo test drive: a shortened GumballMachineTestDrive that keeps inserting quarters until a winner appears, with the engineering team waiting outside.">
+        <figcaption>The CEO demo: “this code really hasn’t changed at all; we just shortened it a bit.” Adding a state did not touch the client.</figcaption>
+        {{SAYS:ceo-demo}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:game-output}}" alt="The contest console output: five gumballs, two winners in a row, inventory falling 5 to 3 to 0, ending with You're a winner and Machine is sold out.">
+        <figcaption>Two wins in a row, inventory 5 → 3 → 0. Lucky — and exactly what the demo needs to show both outcomes.</figcaption>
+        {{SAYS:game-output}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG10:sanity-check}}" alt="Sanity check: four things to shore up before shipping — duplicate code in Sold and Winner, dispense() always being called, transitions living in the states, and state sharing.">
+      <figcaption>The sanity check is the honest part of the chapter: the design is not finished, and the book lists four ways it could be better.</figcaption>
+      {{SAYS:sanity-check}}
+    </figure>
+  </div>
+</section>
+<!-- ============================================================ 3. DEMO -->
+<section id="st-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>live demo</span></div>
+    <h2>One machine, five state objects</h2>
+    <p class="sub">Drive a real <code>GumballMachine</code>: every button goes through the state object that is current, every message is the book’s, and the trace shows which class answered. Turn the contest on, rig the draw, or replay either of the book’s test drives.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>GumballMachine · Mighty Gumball, Inc.</h3>
+        <div class="actions">
+          <button class="btn ghost" id="sp-clear">Clear console</button>
+        </div>
+      </div>
+
+      <div class="gb-grid">
+        <div class="gb-machine" id="sp-machine">
+          <div class="gb-cap">Java-enabled Standing Gumball Model #2004</div>
+          <div class="gb-glass">
+            <div class="gb-count" id="sp-count">5</div>
+            <div class="gb-label">gumballs</div>
+          </div>
+          <div class="gb-slot">
+            <span class="gb-slot-label">quarter slot</span>
+            <span class="gb-slot-value" id="sp-slot">empty</span>
+          </div>
+          <div class="gb-state" id="sp-state">NoQuarterState</div>
+        </div>
+
+        <div>
+          <div class="ad-card" style="margin-top:0">
+            <h4>Actions — all delegated to the current state</h4>
+            <div class="ad-choices">
+              <button class="btn primary small" id="sp-insert">insertQuarter()</button>
+              <button class="btn small" id="sp-eject">ejectQuarter()</button>
+              <button class="btn small" id="sp-crank">turnCrank()</button>
+              <button class="btn ghost small" id="sp-refill">refill(5)</button>
+              <button class="btn ghost small" id="sp-reset">new GumballMachine(5)</button>
+            </div>
+            <div class="ad-choices" style="margin-top:12px">
+              <label class="switch"><input type="checkbox" id="sp-contest"><span>1-in-10 contest</span></label>
+              <label class="switch"><input type="checkbox" id="sp-rig"><span>rig the draw (always win)</span></label>
+            </div>
+            <div class="ad-choices" style="margin-top:12px">
+              <button class="btn ghost small" id="sp-td1">Run the book’s first TestDrive</button>
+              <button class="btn ghost small" id="sp-td2">Run the CEO demo</button>
+            </div>
+          </div>
+
+          <h4 class="rc-h4" style="margin-top:16px">Current state object</h4>
+          <div class="rc-devices" id="sp-states"></div>
+
+          <h4 class="rc-h4" style="margin-top:14px">Delegation trace</h4>
+          <pre class="rc-tostring" id="sp-trace">— nothing yet —</pre>
+        </div>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">console</span>
+        </header>
+        <div class="body" id="sp-log"></div>
+        <footer><button class="btn small" id="sp-clear2">Clear console</button></footer>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>Try the illegal moves:</strong> insert two quarters, eject when there is no quarter, turn the crank twice, insert a quarter into an empty machine. Each one is a sentence in one state class — there is no <code>if (state == ...)</code> anywhere in the machine.
+      </div>
+      <div class="note warn">
+        <strong>Try the contest:</strong> switch it on and crank a few times. With five gumballs the first win takes two, and if that empties the machine the run ends with “Oops, out of gumballs!” inside <code>WinnerState</code>.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 4. CHEAT SHEET -->
+<section id="st-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 10 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>A spec on stationery</h4><p>Four states, four actions, five transitions — and a promise of more behavior later. Mel’s kind of change request.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Version one: an int and four branches</h4><p>Every action checks the state with conditionals. It works, and the test drive passes — 5 → 4 → 2 → 0 gumballs.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The contest breaks it</h4><p>A new <code>WINNER</code> state means a new branch in every method. The code is open for modification and closed for nothing else.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>One class per state</h4><p><code>State</code> declares the four actions; each concrete state answers them and moves the machine. The context’s methods become one-liners.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The context holds every state</h4><p>Four fields (five with <code>WinnerState</code>), created in the constructor, plus <code>setState()</code> and <code>releaseBall()</code> for the states to use.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Same diagram as Strategy</h4><p>A context, an interface, interchangeable implementations. What differs is intent: State moves itself, Strategy is handed to the context.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The contest is two lines</h4><p><code>nextInt(10)</code> returns 0 and there is more than one gumball left → <code>WinnerState</code> instead of <code>SoldState</code>.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Refill needs a new action</h4><p><code>refill()</code> joins the <code>State</code> interface; four states do nothing, <code>SoldOutState</code> transitions back to <code>NoQuarterState</code>.</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The book’s bullet points</h3>
+        <ul class="bullets">
+          <li>The State Pattern allows an object to have many different behaviors that are based on its internal state.</li>
+          <li>Unlike a procedural state machine, the State Pattern represents each state as a full-blown class.</li>
+          <li>The Context gets its behavior by delegating to the current state object it is composed with.</li>
+          <li>By encapsulating each state into a class, we localize any changes that will need to be made.</li>
+          <li>The State and Strategy Patterns have the same class diagram, but they differ in intent.</li>
+          <li>The Strategy Pattern typically configures Context classes with a behavior or algorithm.</li>
+          <li>The State Pattern allows a Context to change its behavior as the state of the Context changes.</li>
+          <li>State transitions can be controlled by the State classes or by the Context classes.</li>
+          <li>Using the State Pattern will typically result in a greater number of classes in your design.</li>
+          <li>State classes may be shared among Context instances.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">State vs. Strategy</h3>
+        <table class="compare">
+          <thead><tr><th></th><th>State</th><th>Strategy</th></tr></thead>
+          <tbody>
+            <tr><td>Intent</td><td>behave differently per internal state</td><td>swap interchangeable algorithms</td></tr>
+            <tr><td>Replaces</td><td>conditionals on state</td><td>subclassing behavior</td></tr>
+            <tr><td>Who sets it</td><td>the states (and the context)</td><td>usually the client</td></tr>
+            <tr><td>Client knows</td><td>almost nothing about states</td><td>which strategy it chose</td></tr>
+            <tr><td>Transitions</td><td>central to the design</td><td>not part of the pattern</td></tr>
+            <tr><td>Feels like</td><td>changing class at runtime</td><td>plugging in an algorithm</td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:14px">
+          <strong>The book’s matching exercise:</strong> State ↔ “encapsulate state-based behavior and delegate to the current state”; Strategy ↔ “encapsulate interchangeable behaviors and use delegation”; Template Method ↔ “subclasses decide how to implement steps”.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:34px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:fireside-1}}" alt="Fireside Chats: Strategy and State meet, and Strategy accuses State of copying its composition and delegation.">
+        <figcaption>The reunion, part one: State admits they are related but insists the intent is different — the context changes its own state over time.</figcaption>
+        {{SAYS:fireside-1}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:fireside-2}}" alt="Fireside Chats, concluded: State points out its discrete state transitions; Strategy admits it likes to control the algorithm, and jokes about chapter numbers.">
+        <figcaption>Part two, and the punchline: “I’m in Chapter 1; they stuck you way out in Chapter 10.”</figcaption>
+        {{SAYS:fireside-2}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:refill-exercise}}" alt="The refill exercise: Mighty Gumball’s revised state diagram with a refill transition into the No Quarter state.">
+        <figcaption>The forgotten transition: a machine that runs dry can never recover without a <code>refill</code>.</figcaption>
+        {{SAYS:refill-exercise}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:refill-your-turn}}" alt="The refill prompt: write refill(int count) for the Gumball machine, updating the count and resetting the state.">
+        <figcaption>Your turn: one argument, update the count, reset the state — and add the method to every state, not just one.</figcaption>
+        {{SAYS:refill-your-turn}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:matching}}" alt="Who does what: match State, Strategy and Template Method to three shuffled descriptions.">
+        <figcaption>The matching exercise — the descriptions are deliberately shuffled.</figcaption>
+        {{SAYS:matching}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:matching-solution}}" alt="The matching solution: State, Strategy and Template Method each wired to the correct description.">
+        <figcaption>Solution: State ↔ state-based behavior; Strategy ↔ interchangeable behaviors; Template Method ↔ steps in an algorithm.</figcaption>
+        {{SAYS:matching-solution}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG10:toolbox10}}" alt="The design toolbox after chapter 10: twelve patterns including State, nine principles, and the chapter’s ten bullet points.">
+      <figcaption>Twelve patterns, nine principles, no new principles this chapter — “that gives you time to sleep on them.”</figcaption>
+      {{SAYS:toolbox10}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:puzzle-solution}}" alt="The Design Puzzle solution: a five-state diagram with a Winner state reached by a winning turn of the crank.">
+        <figcaption>The Design Puzzle answer: <code>Winner</code> sits beside <code>Gumball Sold</code>, reached from <code>Has Quarter</code> on a winning crank.</figcaption>
+        {{SAYS:puzzle-solution}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:soldout-solution}}" alt="The SoldOutState solution with the check-yourself answers ticked: A, C, D, E and F.">
+        <figcaption>Two solutions on one page: the <code>SoldOutState</code> class, and the answer to the check-yourself question — A, C, D, E, F.</figcaption>
+        {{SAYS:soldout-solution}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:behavior-table-solution}}" alt="The annotated behavior table: every action in all five states with its message and transition.">
+        <figcaption>The behavior table, finished: five states × four actions, with the messages and the transitions each one causes.</figcaption>
+        {{SAYS:behavior-table-solution}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG10:tour-solution}}" alt="The self-guided tour solution: four annotated machine snapshots following insertQuarter, turnCrank and dispense.">
+        <figcaption>The tour, annotated: quarter → crank → sold → dispense → no quarter, with the delegation arrows drawn in.</figcaption>
+        {{SAYS:tour-solution}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG10:refill-solution}}" alt="The refill solution: refill() added to the State interface and SoldOutState, and refill(int count) added to GumballMachine.">
+      <figcaption>The refill answer: the interface gains a method, four states ignore it, and the machine updates the count before asking the state.</figcaption>
+      {{SAYS:refill-solution}}
+    </figure>
+
+    <div class="quiz" style="margin-top:34px" id="st-quiz">
+      <h3 style="margin-top:0">Check yourself: the State Pattern</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="st-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. The State Pattern lets an object alter its behavior when its internal state changes; the object appears to change its class.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="B"><span class="txt">B. State and Strategy share the same class diagram, but they differ in intent.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="C"><span class="txt">C. State transitions can be controlled by the state classes or by the context.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="D"><span class="txt">D. The State Pattern usually <em>reduces</em> the number of classes in a design.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="E"><span class="txt">E. Clients are expected to call methods on the state objects directly.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="F"><span class="txt">F. State objects can be shared across context instances, provided they keep no context-specific data of their own.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="st-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="st-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="st-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>The chapter in one sentence:</strong> put each state’s behavior in its own class, let the context delegate to whichever one is current, and adding a state becomes adding a class instead of editing every method.
+    </div>
+
+    <p style="margin-top:22px;font-size:.92rem;color:var(--ink-soft)">Next in the book: <strong>Chapter 11, the Proxy Pattern</strong> — the gumball machine goes remote, and Objectville meets RMI.</p>
+  </div>
+</section>
+
+<script>
+/* =========================================================== chapter 10 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#sp-log');
+  if (!logBox) return;
+
+  const log = (text, cls = 'out') => {
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = text;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  const say = t => log(t, 'out');
+  const dim = t => log(t, 'dim');
+  const call = t => log(t, 'call');
+  const err = t => log(t, 'err');
+
+  /* ------------------------------------------------------------ the states */
+  const NAME = {
+    SOLD_OUT: 'SoldOutState',
+    NO_QUARTER: 'NoQuarterState',
+    HAS_QUARTER: 'HasQuarterState',
+    SOLD: 'SoldState',
+    WINNER: 'WinnerState'
+  };
+
+  function Machine(count) {
+    this.count = count;
+    this.contest = false;
+    this.rig = false;
+    this.v1 = false;               // version one prints "slot" (no ellipsis) and no comma in turnCrank
+    this.trace = [];
+    this.state = count > 0 ? NAME.NO_QUARTER : NAME.SOLD_OUT;
+    this.lastCall = 'insertQuarter';
+  }
+
+  Machine.prototype.note = function (from, action) {
+    this.trace.push(`${from}.${action}()`);
+  };
+  Machine.prototype.setState = function (name) {
+    if (this.state !== name) this.trace.push(`setState(${name})`);
+    this.state = name;
+  };
+  Machine.prototype.releaseBall = function () {
+    say(this.v1 ? 'A gumball comes rolling out the slot' : 'A gumball comes rolling out the slot...');
+    if (this.count > 0) this.count -= 1;
+  };
+  Machine.prototype.toString = function () {
+    const stateLine = this.state === NAME.SOLD_OUT ? 'Machine is sold out' : 'Machine is waiting for quarter';
+    return ['Mighty Gumball, Inc.',
+            'Java-enabled Standing Gumball Model #2004',
+            `Inventory: ${this.count} gumball${this.count === 1 ? '' : 's'}`,
+            stateLine].join('\n');
+  };
+
+  /* the five state objects — every method is the book's code, transcribed */
+  const STATES = {
+    SoldOutState: {
+      insertQuarter(m) { m.note('SoldOutState', 'insertQuarter'); say("You can't insert a quarter, the machine is sold out"); },
+      ejectQuarter(m)  { m.note('SoldOutState', 'ejectQuarter');  say("You can't eject, you haven't inserted a quarter yet"); },
+      turnCrank(m)     { m.note('SoldOutState', 'turnCrank');     say('You turned, but there are no gumballs'); },
+      dispense(m)      { m.note('SoldOutState', 'dispense');      say('No gumball dispensed'); },
+      refill(m)        { m.note('SoldOutState', 'refill');        m.setState(NAME.NO_QUARTER); }
+    },
+    NoQuarterState: {
+      insertQuarter(m) { m.note('NoQuarterState', 'insertQuarter'); say('You inserted a quarter'); m.setState(NAME.HAS_QUARTER); },
+      ejectQuarter(m)  { m.note('NoQuarterState', 'ejectQuarter');  say("You haven't inserted a quarter"); },
+      turnCrank(m)     { m.note('NoQuarterState', 'turnCrank');     say(m.v1 ? "You turned but there's no quarter" : "You turned, but there's no quarter"); },
+      dispense(m)      { m.note('NoQuarterState', 'dispense');      say('You need to pay first'); },
+      refill(m)        { /* does nothing */ }
+    },
+    HasQuarterState: {
+      insertQuarter(m) { m.note('HasQuarterState', 'insertQuarter'); say("You can't insert another quarter"); },
+      ejectQuarter(m)  { m.note('HasQuarterState', 'ejectQuarter');  say('Quarter returned'); m.setState(NAME.NO_QUARTER); },
+      turnCrank(m)     {
+        m.note('HasQuarterState', 'turnCrank');
+        say('You turned...');
+        const winner = m.rig ? 0 : Math.floor(Math.random() * 10);
+        m.trace.push(`randomWinner.nextInt(10) → ${winner}`);
+        if (m.contest && winner === 0 && m.count > 1) m.setState(NAME.WINNER);
+        else m.setState(NAME.SOLD);
+      },
+      dispense(m)      { m.note('HasQuarterState', 'dispense'); say('No gumball dispensed'); },
+      refill(m)        { /* does nothing */ }
+    },
+    SoldState: {
+      insertQuarter(m) { m.note('SoldState', 'insertQuarter'); say("Please wait, we're already giving you a gumball"); },
+      ejectQuarter(m)  { m.note('SoldState', 'ejectQuarter');  say('Sorry, you already turned the crank'); },
+      turnCrank(m)     { m.note('SoldState', 'turnCrank');     say("Turning twice doesn't get you another gumball!"); },
+      dispense(m) {
+        m.note('SoldState', 'dispense');
+        m.releaseBall();
+        if (m.count > 0) m.setState(NAME.NO_QUARTER);
+        else { say('Oops, out of gumballs!'); m.setState(NAME.SOLD_OUT); }
+      },
+      refill(m)        { /* does nothing */ }
+    },
+    WinnerState: {
+      insertQuarter(m) { m.note('WinnerState', 'insertQuarter'); say("Please wait, we're already giving you a gumball"); },
+      ejectQuarter(m)  { m.note('WinnerState', 'ejectQuarter');  say('Sorry, you already turned the crank'); },
+      turnCrank(m)     { m.note('WinnerState', 'turnCrank');     say("Turning twice doesn't get you another gumball!"); },
+      dispense(m) {
+        m.note('WinnerState', 'dispense');
+        m.releaseBall();
+        if (m.count === 0) { m.setState(NAME.SOLD_OUT); return; }
+        m.releaseBall();
+        say("YOU'RE A WINNER! You got two gumballs for your quarter");
+        if (m.count > 0) m.setState(NAME.NO_QUARTER);
+        else { say('Oops, out of gumballs!'); m.setState(NAME.SOLD_OUT); }
+      },
+      refill(m)        { /* does nothing */ }
+    }
+  };
+
+  const callState = (m, action) => {
+    const impl = STATES[m.state];
+    impl[action](m);
+  };
+
+  Machine.prototype.insertQuarter = function () { this.trace = []; callState(this, 'insertQuarter'); };
+  Machine.prototype.ejectQuarter  = function () { this.trace = []; callState(this, 'ejectQuarter'); };
+  Machine.prototype.turnCrank     = function () {
+    this.trace = [];
+    callState(this, 'turnCrank');
+    callState(this, 'dispense');
+  };
+  Machine.prototype.refill = function (n) {
+    this.count += n;
+    say(`The gumball machine was just refilled; its new count is: ${this.count}`);
+    callState(this, 'refill');
+  };
+
+  let machine = new Machine(5);
+
+  /* --------------------------------------------------------------- drawing */
+  const stateChips = () => {
+    $('#sp-states').innerHTML = Object.keys(NAME).map(k => {
+      const n = NAME[k];
+      const on = machine.state === n ? 'true' : 'false';
+      return `<div class="rc-dev"><span>${n}</span><b data-on="${on}">${on === 'true' ? 'current' : 'idle'}</b></div>`;
+    }).join('');
+  };
+
+  const render = () => {
+    $('#sp-count').textContent = String(machine.count);
+    $('#sp-state').textContent = machine.state;
+    $('#sp-state').className = 'gb-state' + (machine.state === NAME.SOLD_OUT ? ' out' : '') +
+      (machine.state === NAME.WINNER ? ' win' : '');
+    $('#sp-slot').textContent = machine.state === NAME.HAS_QUARTER ? 'quarter in' :
+      machine.state === NAME.SOLD || machine.state === NAME.WINNER ? 'processing' : 'empty';
+    $('#sp-trace').textContent = machine.trace.length
+      ? [`Waitress → machine.${machine.lastCall}()  // the only call the client makes`, ...machine.trace].join('\n')
+      : '— nothing yet —';
+    stateChips();
+  };
+
+  /* --------------------------------------------------------------- buttons */
+  const act = (fn, label) => {
+    machine.lastCall = label.replace('()', '');
+    call(`gumballMachine.${label}`);
+    fn();
+    render();
+  };
+
+  $('#sp-insert').addEventListener('click', () => act(() => machine.insertQuarter(), 'insertQuarter()'));
+  $('#sp-eject').addEventListener('click', () => act(() => machine.ejectQuarter(), 'ejectQuarter()'));
+  $('#sp-crank').addEventListener('click', () => act(() => machine.turnCrank(), 'turnCrank()'));
+  $('#sp-refill').addEventListener('click', () => act(() => machine.refill(5), 'refill(5)'));
+  $('#sp-reset').addEventListener('click', () => {
+    machine = new Machine(5);
+    machine.contest = $('#sp-contest').checked;
+    machine.rig = $('#sp-rig').checked;
+    logBox.innerHTML = '';
+    dim('new GumballMachine(5);   // fresh machine, five gumballs, contest ' + (machine.contest ? 'ON' : 'off'));
+    render();
+  });
+  $('#sp-contest').addEventListener('change', e => {
+    machine.contest = e.target.checked;
+    dim(`// 1-in-10 contest ${machine.contest ? 'ON' : 'OFF'} — HasQuarterState.turnCrank() decides`);
+    render();
+  });
+  $('#sp-rig').addEventListener('change', e => {
+    machine.rig = e.target.checked;
+    if (machine.rig) dim('// rigged: nextInt(10) will return 0, so every crank wins');
+  });
+
+  /* the book's two test drives, replayed exactly */
+  $('#sp-td1').addEventListener('click', () => {
+    machine = new Machine(5);
+    machine.v1 = true;                              // the first version: no "..." and no comma
+    $('#sp-contest').checked = false;
+    $('#sp-rig').checked = false;
+    logBox.innerHTML = '';
+    call('%java GumballMachineTestDrive   // page 389, the int-and-conditionals version');
+    const step = (label, fn) => { dim(label); fn(); };
+    say(machine.toString());
+    step('gumballMachine.insertQuarter();', () => machine.insertQuarter());
+    step('gumballMachine.turnCrank();', () => machine.turnCrank());
+    say(machine.toString());
+    step('gumballMachine.insertQuarter();', () => machine.insertQuarter());
+    step('gumballMachine.ejectQuarter();', () => machine.ejectQuarter());
+    step('gumballMachine.turnCrank();', () => machine.turnCrank());
+    say(machine.toString());
+    step('gumballMachine.insertQuarter();', () => machine.insertQuarter());
+    step('gumballMachine.turnCrank();', () => machine.turnCrank());
+    step('gumballMachine.insertQuarter();', () => machine.insertQuarter());
+    step('gumballMachine.turnCrank();', () => machine.turnCrank());
+    step('gumballMachine.ejectQuarter();', () => machine.ejectQuarter());
+    say(machine.toString());
+    step('gumballMachine.insertQuarter();', () => machine.insertQuarter());
+    step('gumballMachine.insertQuarter();', () => machine.insertQuarter());
+    step('gumballMachine.turnCrank();', () => machine.turnCrank());
+    step('gumballMachine.insertQuarter();', () => machine.insertQuarter());
+    step('gumballMachine.turnCrank();', () => machine.turnCrank());
+    step('gumballMachine.insertQuarter();', () => machine.insertQuarter());
+    step('gumballMachine.turnCrank();', () => machine.turnCrank());
+    say(machine.toString());
+    render();
+  });
+
+  $('#sp-td2').addEventListener('click', () => {
+    machine = new Machine(5);
+    machine.v1 = false;
+    machine.contest = true;
+    machine.rig = true;                            // the book's demo won twice in a row
+    $('#sp-contest').checked = true;
+    $('#sp-rig').checked = true;
+    logBox.innerHTML = '';
+    call('%java GumballMachineTestDrive   // page 412, the State Pattern version');
+    say(machine.toString());
+    machine.insertQuarter(); machine.turnCrank();
+    say(machine.toString());
+    machine.insertQuarter(); machine.turnCrank();
+    machine.insertQuarter(); machine.turnCrank();
+    say(machine.toString());
+    dim('// two wins in a row — the book’s demo got lucky twice; "rig" keeps it reproducible here');
+    render();
+  });
+
+  const clear = () => { logBox.innerHTML = ''; };
+  $('#sp-clear').addEventListener('click', clear);
+  $('#sp-clear2').addEventListener('click', clear);
+
+  render();
+  dim('GumballMachine ready: 5 gumballs, NoQuarterState. Every button is delegated to the current state.');
+})();
+
+/* --------------------------------------------------------------- quiz */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const box = $('#st-quiz');
+  if (!box) return;
+
+  const opts   = $$('#st-quiz-opts .opt', box);
+  const answer = $('#st-quiz-answer', box);
+
+  opts.forEach(opt => {
+    opt.addEventListener('change', () => {
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+  });
+
+  $('#st-quiz-check', box).addEventListener('click', () => {
+    const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    let right = 0;
+    const wrong = [];
+    opts.forEach(opt => {
+      const ticked  = opt.querySelector('input').checked;
+      const correct = opt.dataset.correct === '1';
+      const mark    = opt.querySelector('.mark');
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
+      else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
+      else { mark.textContent = ''; }
+    });
+    const allFound = right === correctSet.length;
+    answer.classList.remove('hidden');
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, B, C and F. D is backwards — the pattern usually <em>adds</em> classes, which is the price of flexibility. E is wrong because clients only talk to the context; the context delegates.`
+      : `<strong>All ${correctSet.length} correct.</strong> Behavior per state (A), the same diagram as Strategy with a different intent (B), transitions in the states or the context (C), and shareable state objects (F).`;
+  });
+
+  $('#st-quiz-reset', box).addEventListener('click', () => {
+    opts.forEach(opt => {
+      opt.querySelector('input').checked = false;
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+    answer.classList.add('hidden');
+    answer.innerHTML = '';
+  });
+})();
+</script>
