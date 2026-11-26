@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Head First Design Patterns · Chapters 1–7 — Strategy, Observer, Decorator, Factory, Singleton, Command, Adapter &amp; Facade · Summaries, Book Figures, Code and Live Demos</title>
-<meta name="description" content="Visual summaries of chapters 1–7 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, the seven-slot Home Automation remote and the Command Pattern, then the turkey that quacks (Adapter), the one-button home theater (Facade) and the Principle of Least Knowledge — with the book's figures (and the text inside them), the full Java code, and live demos of all seven chapters.">
+<title>Head First Design Patterns · Chapters 1–8 — Strategy, Observer, Decorator, Factory, Singleton, Command, Adapter, Facade &amp; Template Method · Summaries, Book Figures, Code and Live Demos</title>
+<meta name="description" content="Visual summaries of chapters 1–8 of Head First Design Patterns (2nd edition): SimUDuck and Strategy, the Weather-O-Rama station and Observer, Starbuzz Coffee and Decorator, Objectville PizzaStore and the factory patterns, the ChocolateBoiler and Singleton, the seven-slot Home Automation remote and the Command Pattern, the turkey that quacks (Adapter), the one-button home theater (Facade), then coffee and tea, hooks and the Hollywood Principle (Template Method) — with the book's figures (and the text inside them), the full Java code, and live demos of all eight chapters.">
 <style>
 /* ---------------------------------------------------------------- tokens */
 :root{
@@ -443,6 +443,18 @@ input[type=range]{width:100%;accent-color:var(--purple-2);height:22px}
 .cg-verdict.bad{border-color:#f0c3c9;background:#fdf2f3}
 .grid2 .ad-card,.grid2 .note{margin-top:0}
 
+/* ------------------------------------- ch.8 template method demo */
+#t-steps .rc-dev,#t-ducks .rc-dev{margin:0}
+#t-panel-beverage .ad-card,#t-panel-ducks .ad-card{margin-top:0}
+#t-verdict .cg-verdict{margin-top:12px}
+#t-cmp-out{margin-top:0;font-size:.84rem}
+#t-cmp-out strong{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem}
+#t-log .out{color:#e9e4f7}
+#t-log .dim{color:#8d84a8}
+#t-log .call{color:var(--yellow);font-weight:700}
+#t-log .err{color:#ff9aa8}
+#t-log div{margin:1px 0}
+
 @media print{.wx,.figsay{display:none!important}}
 
 /* ------------------------------------------------------- starbuzz demo */
@@ -629,7 +641,7 @@ footer.site strong{color:#4a4560}
 
 <div class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–7</a>
+    <a class="brand" href="#top"><span class="dot"></span> Head First · Ch. 1–8</a>
     <nav class="navlinks">
       <a href="#story">SimUDuck</a>
       <a href="#principles">Principles</a>
@@ -685,6 +697,12 @@ footer.site strong{color:#4a4560}
       <a href="#a-knowledge">Least knowledge</a>
       <a href="#a-demo">Adapter demo</a>
       <a href="#a-cheatsheet">Ch. 7 recap</a>
+      <span class="navsep" aria-hidden="true">Ch.&nbsp;8</span>
+      <a href="#t-story">Coffee &amp; tea</a>
+      <a href="#t-pattern">Template Method</a>
+      <a href="#t-hollywood">Hollywood</a>
+      <a href="#t-demo">Beverage demo</a>
+      <a href="#t-cheatsheet">Ch. 8 recap</a>
     </nav>
   </div>
 </div>
@@ -1450,11 +1468,13 @@ model.performFly();</pre>
 
 {{CHAPTER7}}
 
+{{CHAPTER8}}
+
 <footer class="site">
   <div class="wrap">
     <div><strong>Source:</strong> <em>Head First Design Patterns: Building Extensible and Maintainable Object-Oriented Software</em>, 2nd edition — Eric Freeman &amp; Elisabeth Robson (O’Reilly). Chapter 1, “Welcome to Design Patterns” (pages 1–36), Chapter 2, “Keeping your Objects in the Know” (pages 37–78), Chapter 3, “Decorating Objects” (pages 79–108) and Chapter 4, “Baking with OO Goodness” (pages 109–168) and Chapter 5, “One-of-a-Kind Objects” (pages 169–190) and Chapter 6, “Encapsulating Invocation” (pages 191–236).</div>
-    <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and the seven interactive simulators are written for this page.</div>
-    <div><strong>Built:</strong> seven chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler, Objectville Remote Control, Turkey Adapter and Home Theater Facade demos (no external assets, works offline).</div>
+    <div>The figures are cropped from the PDF in this repository for study notes and are © O’Reilly Media; every picture is followed by a “what the figure says” panel that transcribes the speech bubbles, arrows and labels printed inside the artwork. The Java listings are the book’s code; the JavaScript ports and the eight interactive simulators are written for this page.</div>
+    <div><strong>Built:</strong> eight chapter summaries · embedded figures with in-figure text · full code · live SimUDuck, Weather Station, Starbuzz, Objectville Pizza Kitchen, Choc-O-Holic boiler, Objectville Remote Control, Turkey Adapter, Home Theater Facade, CaffeineBeverage and DuckSort demos (no external assets, works offline).</div>
     <a class="totop" href="#top">↑ back to top</a>
   </div>
 </footer>

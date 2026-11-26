@@ -1,9 +1,9 @@
 # java
 
-## Head First Design Patterns (2nd ed.) — study pages, chapters 1–7
+## Head First Design Patterns (2nd ed.) — study pages, chapters 1–8
 
 `head-first-ch1-design-patterns.html` is one self-contained page (no external assets,
-works offline) that summarizes the first seven chapters of *Head First Design Patterns*:
+works offline) that summarizes the first eight chapters of *Head First Design Patterns*:
 
 **Chapter 1 — Welcome to Design Patterns / Strategy** (book pages 1–36)
 the SimUDuck story, the three OO design principles, the Strategy Pattern, the diner-talk
@@ -101,6 +101,23 @@ wrap it and watch one `quack()` become a `gobble()` and one `fly()` become five;
 the whole home theater from a single `watchMovie("Raiders of the Lost Ark")` call, with a toggle that
 shows the thirteen individual subsystem calls it replaces.
 
+**Chapter 8 — Encapsulating Algorithms / Template Method** (book pages 277–315)
+the Starbuzz barista training manual and its two near-identical recipes, the `Coffee` and `Tea` classes
+with their duplicated `boilWater()`/`pourInCup()`, the first cut at abstraction (shared methods up,
+recipe still duplicated), the generalisation of `brew()` and `addCondiments()`, and the finished
+`CaffeineBeverage` with a `final prepareRecipe()`. Then the pattern proper: the definition and class
+diagram, Code Up Close and Code Way Up Close (primitive operations, concrete operations, hooks),
+`CaffeineBeverageWithHook` and `CoffeeWithHook`, the `BeverageTestDrive` console run where the hook
+skips the condiments. After that the **Hollywood Principle** ("don't call us, we'll call you") and
+dependency rot, the who-does-what matching exercise, and the safari through `Arrays.sort()` and
+`Comparable` (Daffy, Dewey, Howard, Louie, Donald, Huey — 8/2/7/2/10/2), `JFrame.paint()` as a hook and
+`AbstractList.subList()`. Ends with the Template Method vs. Strategy fireside chat, the toolbox, the
+chapter 8 crossword with its verified solution, both exercise solutions, and a live demo with two tabs:
+**CaffeineBeverage** (pick coffee or tea, flip the `customerWantsCondiments()` hook, watch the four
+steps run in a fixed order with the class that answered each one, and try to override the `final`
+template method) and **DuckSort** (`Arrays.sort()` on the book's six ducks with the exact before/after
+console output, a `compareTo()` inspector and a comparison counter).
+
 ### Build
 
 ```bash
@@ -111,6 +128,7 @@ python tools/crop_ch4.py     # chapter 4 figures  -> assets/ch4/*.jpg
 python tools/crop_ch5.py     # chapter 5 figures  -> assets/ch5/*.jpg
 python tools/crop_ch6.py     # chapter 6 figures  -> assets/ch6/*.jpg
 python tools/crop_ch7.py     # chapter 7 figures  -> assets/ch7/*.jpg
+python tools/crop_ch8.py     # chapter 8 figures  -> assets/ch8/*.jpg
 python tools/build_page.py   # inlines all chapters + base64 images -> head-first-ch1-design-patterns.html
 ```
 
@@ -129,19 +147,21 @@ Needs `pymupdf` and `pillow`. Sources of truth:
   (`{{IMG6:name}}`, plus its own `<script>` block for the remote control and quiz)
 * `site_src/chapter7.template.html` — chapter 7, spliced in at the `{{CHAPTER7}}` marker
   (`{{IMG7:name}}`, plus its own `<script>` block for the adapter/facade demo and quiz)
-* `site_src/figure-text-ch1.json` … `-ch7.json` — curated
+* `site_src/chapter8.template.html` — chapter 8, spliced in at the `{{CHAPTER8}}` marker
+  (`{{IMG8:name}}`, plus its own `<script>` block for the beverage/duck-sort demo and quiz)
+* `site_src/figure-text-ch1.json` … `-ch8.json` — curated
   transcripts of the text printed inside each figure; `tools/figure_text.py` dumps the raw
   PDF text layer per crop to help edit them. Each chapter's markers are resolved against its
   own table, so a repeated figure name (`opener`, `crossword`, `toolbox`) never picks up
   another chapter's text.
-* `tools/crop_ch1.py` … `tools/crop_ch7.py` — crop
+* `tools/crop_ch1.py` … `tools/crop_ch8.py` — crop
   boxes in PDF points (the page is 576 × 666 pt)
 * `index.html` — meta-refresh to the page (handy when serving the folder)
 
 ### Notes
 
 * The figures are book excerpts, © O'Reilly Media — study material, not for redistribution.
-  The Java listings are the book's code; the JavaScript ports and the seven interactive
+  The Java listings are the book's code; the JavaScript ports and the eight interactive
   simulators are written for this page.
 * The heat index demo uses the formula exactly as printed in the book; it computes in
   doubles where the book uses `float`, so one value differs in the fifth decimal

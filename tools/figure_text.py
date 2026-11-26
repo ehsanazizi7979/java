@@ -26,6 +26,7 @@ SOURCES = {
     "ch5": ("tools/crop_ch5.py", 5),
     "ch6": ("tools/crop_ch6.py", 6),
     "ch7": ("tools/crop_ch7.py", 7),
+    "ch8": ("tools/crop_ch8.py", 8),
 }
 
 
