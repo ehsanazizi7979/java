@@ -1,0 +1,786 @@
+<!-- ==================================================== CHAPTER 5 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 5</b> the Singleton Pattern</div>
+  <h2>One-of-a-Kind <span style="color:var(--purple)">Objects</span></h2>
+  <p>Some objects should exist exactly once — a thread pool, a cache, a registry, a boiler. Singleton is the simplest pattern in the book by class count (its class diagram holds a single class) and one of the hardest to get right: a private constructor, one static field, and a static method look harmless until two threads walk through the same <code>if</code> statement.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Choc-O-Holic, Inc.</span>
+    <span class="chip">1 pattern</span>
+    <span class="chip">5 implementations</span>
+    <span class="chip">21 book figures</span>
+    <span class="chip">1 live boiler plant</span>
+  </div>
+</div>
+
+<!-- ========================================================== 5. STORY -->
+<section id="s-story">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>one and only one</span></div>
+    <h2>“An entire chapter about how to instantiate just ONE object?”</h2>
+    <p class="sub">Yes. Every <code>new</code> you have written so far was a promise that this object can exist as many times as anybody feels like. Singleton is the pattern that lets a class break that promise — and the chapter is mostly about the ways that promise sneaks back in.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <div>
+        <figure class="pic" style="margin:0">
+          <img src="{{IMG5:opener}}" alt="Chapter 5 opener: a couple admiring a 1930s car, captioned One-of-a-Kind Objects, with two speech bubbles about the car being one of a kind.">
+          <figcaption>“One-of-a-Kind Objects.” One car, one boiler, one instance — the joke is that everybody wants the only one.</figcaption>
+          {{SAYS:opener}}
+        </figure>
+      </div>
+      <div>
+        <figure class="pic" style="margin-top:0">
+          <img src="{{IMG5:guru5}}" alt="A developer asking what use a single object is, and the guru answering with thread pools, caches, dialog boxes, preferences, logging and device drivers.">
+          <figcaption>The guru’s list: thread pools, caches, dialog boxes, preferences and registry settings, logging, device drivers. In each case, a second instance is a bug, not a feature.</figcaption>
+          {{SAYS:guru5}}
+        </figure>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">The little Singleton</h3>
+    <p>The chapter’s Socratic warm-up — a dialogue in the style of <em>The Little Lisper</em> — builds the pattern one question at a time. It starts from the only two facts you need: any public class can be instantiated any number of times, and a constructor can be made private.</p>
+
+    <div class="grid2" style="margin-top:16px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:little-singleton-1}}" alt="The Little Singleton, page one: questions and answers about creating a single object, ending with a class that has only a private constructor.">
+        <figcaption>Page 1: a private constructor means nobody outside the class can call <code>new</code>. It also means the class can never be instantiated at all — the chicken-and-egg problem.</figcaption>
+        {{SAYS:little-singleton-1}}
+      </figure>
+      <div>
+        <figure class="pic" style="margin:0">
+          <img src="{{IMG5:little-singleton-2}}" alt="The Little Singleton, page two: adding a static getInstance() method, so the class can hand out its own instance.">
+          <figcaption>Page 2: add a <em>static</em> method — a class method, callable as <code>MyClass.getInstance()</code> — and the class can instantiate itself from the inside.</figcaption>
+          {{SAYS:little-singleton-2}}
+        </figure>
+        <div class="code" style="margin-top:14px">
+          <header><span class="fname">the answer to the exercise</span><span class="tagline">one instance, ever</span></header>
+<pre><span class="kw">public class</span> <span class="type">Singleton</span> {
+    <span class="kw">private static</span> <span class="type">Singleton</span> uniqueInstance;
+
+    <span class="kw">private</span> <span class="fn">Singleton</span>() {}
+
+    <span class="kw">public static</span> <span class="type">Singleton</span> <span class="fn">getInstance</span>() {
+        <span class="kw">if</span> (uniqueInstance == <span class="kw">null</span>) {
+            uniqueInstance = <span class="kw">new</span> <span class="type">Singleton</span>();
+        }
+        <span class="kw">return</span> uniqueInstance;
+    }
+}</pre>
+        </div>
+        <p style="font-size:.86rem;color:#7a7290;margin-top:10px">The static field holds the one object; the private constructor blocks everyone else; <code>getInstance()</code> is the only door.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== 6. CLASSIC -->
+<section id="s-classic">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>the classic implementation</span></div>
+    <h2>Dissecting the classic Singleton</h2>
+    <p class="sub">Three pieces do all the work: a static variable, a private constructor, and a static method that creates the instance only if it does not exist yet. The book calls that last part <em>lazy instantiation</em> — and it is also the part that will break.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG5:classic-singleton}}" alt="The classic Singleton class with its annotations, the Code Up Close box explaining the null check and lazy instantiation, and a Watch it! note warning not to type the code in blindly.">
+      <figcaption>Page 173, the whole pattern in one listing. Note the “Watch it!” box on the right: the book warns you that this code has issues before you ever reach page 178.</figcaption>
+      {{SAYS:classic-singleton}}
+    </figure>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">Why each line is there</h3>
+        <ul class="bullets">
+          <li><code>private static Singleton uniqueInstance;</code> — one slot, shared by the whole class, not by an object.</li>
+          <li><code>private Singleton() {}</code> — no other class can call <code>new Singleton()</code>. The compiler enforces the pattern.</li>
+          <li><code>public static Singleton getInstance()</code> — a class method, callable from anywhere without an instance. That is the “global access point”.</li>
+          <li><code>if (uniqueInstance == null)</code> — create on first use only. If nobody ever asks, the object is never made.</li>
+        </ul>
+      </div>
+      <div class="note" style="margin-top:0">
+        <strong>A singleton is still a normal class.</strong> It has its own fields and methods; it just happens to manage its own single instance. That is also why it is criticized: managing the instance is a second responsibility bolted onto whatever the class was really for (more on that in Part 5).
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:32px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:interview}}" alt="Patterns Exposed interview with a Singleton object: there is just one of me, I have no public constructor, and you reach me through getInstance().">
+        <figcaption>The chapter’s interview: “I have no public constructor.” Every objection the reader has — waste, loneliness, uniqueness — gets answered here.</figcaption>
+        {{SAYS:interview}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">The three claims the interview makes</h3>
+        <p><strong>There is only one.</strong> There is no public constructor and no other way in, so the class controls its own cardinality.</p>
+        <p><strong>Everyone shares it.</strong> Every object in the application that asks for it gets the same instance — which is exactly what you want for registry settings, a connection pool or a boiler.</p>
+        <p><strong>It is created late.</strong> “If we never need the instance, it never gets created.” A global variable cannot promise that; a lazily initialised static can.</p>
+        <div class="note warn" style="margin-top:16px">
+          <strong>What the interview does not mention:</strong> threads. Two threads can both find <code>uniqueInstance == null</code> before either assigns it, and then you have two singletons. That is the rest of the chapter.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================== 7. CHOCOLATE -->
+<section id="s-chocolate">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>the chocolate factory</span></div>
+    <h2>Choc-O-Holic, Inc.</h2>
+    <p class="sub">A chocolate boiler takes in milk and chocolate, boils them, and passes them on. It must not be filled twice, boiled twice, or drained before boiling — so the controller is careful. What it never checks is how many boilers exist.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG5:chocolate-boiler}}" alt="The ChocolateBoiler class with empty and boiled flags, fill(), drain(), boil(), and handwritten notes about which condition each method checks.">
+      <figcaption>The boiler’s invariants: fill only when empty, boil only when full and not yet boiled, drain only when full and boiled. The class is careful about <em>state</em> and silent about <em>identity</em>.</figcaption>
+      {{SAYS:chocolate-boiler}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:boiler-exercise}}" alt="Brain Power question asking how things go wrong if two ChocolateBoiler instances get loose, and a sharpen-your-pencil exercise stub where the constructor must be made private.">
+        <figcaption>The chapter’s exercise: “if two ChocolateBoiler instances get loose, some very bad things can happen.” The blank in front of <code>ChocolateBoiler()</code> is the whole fix.</figcaption>
+        {{SAYS:boiler-exercise}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">The failure, spelled out</h3>
+        <p>Two controllers each call <code>new ChocolateBoiler()</code>. Controller A fills its boiler and starts the boil. Controller B, which has never heard of A’s boiler, fills <em>its</em> boiler — and the plant now has two batches, two sets of flags, and one drain pipe.</p>
+        <p>That is the class of bug the pattern exists to prevent: not a wrong line of code, but a wrong <em>number of objects</em>. The fix has two halves:</p>
+        <ul class="bullets">
+          <li>make the constructor <code>private</code>, so nobody outside can create one;</li>
+          <li>hand out the only instance through a static <code>getInstance()</code>.</li>
+        </ul>
+        <figure class="pic" style="margin-top:18px">
+          <img src="{{IMG5:chocolate-singleton}}" alt="The solved exercise: ChocolateBoiler with a private static uniqueInstance field, a private constructor and a lazy static getInstance().">
+          <figcaption>The book’s answer (page 189): the boiler with a private constructor, one static field and a lazy <code>getInstance()</code>.</figcaption>
+          {{SAYS:chocolate-singleton}}
+        </figure>
+      </div>
+    </div>
+
+    <div class="note ok" style="margin-top:26px">
+      <strong>And the fix looks perfect — on a single thread.</strong> The two-boiler problem is gone: no other class can call <code>new ChocolateBoiler()</code>, and everyone who asks gets the one instance. Keep that in mind for Part 4, where the plant adds threads and the same code produces two boilers anyway.
+    </div>
+
+    <h3 style="margin-top:34px">Singleton Pattern defined</h3>
+    <div class="grid2" style="margin-top:16px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:singleton-defined}}" alt="The Singleton Pattern definition in a box, the explanatory bullets about one instance and global access, and the single-class class diagram with static uniqueInstance and static getInstance().">
+        <figcaption>“Ensures a class has only one instance, and provides a global point of access to it.” The class diagram is one box — the simplest in the book.</figcaption>
+        {{SAYS:singleton-defined}}
+      </figure>
+      <div>
+        <div class="principle">
+          <span class="yy">☯</span>
+          <div><b>The Singleton Pattern</b><p>ensures a class has only one instance, and provides a global point of access to it.</p></div>
+        </div>
+        <p style="font-size:.94rem">Two promises, and they are independent. The <em>single instance</em> part is the private constructor plus the static field. The <em>global access</em> part is the static method — the thing a global variable also gives you, without the guarantee.</p>
+        <p style="font-size:.94rem;color:var(--ink-soft)">Note what the pattern does <em>not</em> say: nothing about laziness, nothing about threads, nothing about class loaders. All of that is implementation, and all of it is where the chapter spends its remaining pages.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== 8. THREADS -->
+<section id="s-threads">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>hershey, pa, we have a problem</span></div>
+    <h2>Two threads, one <code>if</code></h2>
+    <p class="sub">The plant adds “some optimizations” that use multiple threads. The Singleton code has not changed — and the boiler fills while a batch is already boiling. Nothing in the class is wrong; the interleaving is.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG5:threads-problem}}" alt="A chocolate boiler overflowing with the CAUTION sticker alongside a developer holding his head, with the report that the boiler filled while a batch was already boiling.">
+      <figcaption>“That’s 500 gallons of spilled milk (and chocolate)!” The classic Singleton is not broken — it is just not atomic.</figcaption>
+      {{SAYS:threads-problem}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:be-the-jvm}}" alt="BE the JVM exercise: code magnets for getInstance(), a Thread One / Thread Two / Value of uniqueInstance table, and the instruction to find the interleaving that creates two boiler objects.">
+        <figcaption>The “BE the JVM” exercise: play the scheduler and find the interleaving. The table is blank on purpose — you are supposed to fill it in.</figcaption>
+        {{SAYS:be-the-jvm}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:jvm-solution}}" alt="The BE the JVM solution table showing uniqueInstance going null, null, object1, object2, with the note that two different objects are returned — two ChocolateBoiler instances.">
+        <figcaption>The answer (page 188): both threads read <code>null</code>, both construct a boiler, and two different objects are returned. No line of code is wrong.</figcaption>
+        {{SAYS:jvm-solution}}
+      </figure>
+    </div>
+
+    <div class="timeline" style="margin-top:30px">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Thread One checks: <code>uniqueInstance == null</code> → true</h4><p>No instance yet. Thread One is about to create one — but the JVM may switch away between the check and the assignment.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Thread Two checks: <code>uniqueInstance == null</code> → true</h4><p>Still null, because Thread One has not assigned anything yet. Thread Two now believes it must create the instance too.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Both threads run <code>uniqueInstance = new ChocolateBoiler()</code></h4><p>Two objects are constructed; the second assignment overwrites the field. Each thread returns the boiler it made.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Result: two boilers, one field</h4><p>Two controllers, two sets of <code>empty</code>/<code>boiled</code> flags, one plant. This is exactly the two-boiler bug the pattern was supposed to prevent.</p></div></div>
+    </div>
+
+    <h3 style="margin-top:34px">Three fixes, with trade-offs</h3>
+    <div class="grid2" style="margin-top:16px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:synchronized}}" alt="Making getInstance() a synchronized method, with the note that no two threads may enter the method at the same time, and the objection that synchronization is expensive.">
+        <figcaption>Fix 1: <code>synchronized</code> on <code>getInstance()</code>. Correct, simple — and every call pays for a lock it needs only once.</figcaption>
+        {{SAYS:synchronized}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:eager}}" alt="Options one and two: do nothing if performance is not critical, or create the instance eagerly in a static initializer, which the JVM guarantees is thread safe.">
+        <figcaption>Fix 2: eager creation in a static initializer. The JVM creates it at class load, so there is no window to race through — but you pay for it even if nobody uses it.</figcaption>
+        {{SAYS:eager}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:double-checked}}" alt="Double-checked locking: check for an instance, then synchronize on Singleton.class, check again, and create; with the volatile variable and the warning that it does not work before Java 5.">
+        <figcaption>Fix 3: double-checked locking. Synchronize only the first time through — but the <code>volatile</code> trick does not work before Java 5.</figcaption>
+        {{SAYS:double-checked}}
+      </figure>
+      <div>
+        <table class="compare" style="margin-top:0">
+          <thead><tr><th>Fix</th><th>Thread-safe?</th><th>Lazy?</th><th>Cost</th></tr></thead>
+          <tbody>
+            <tr><td><code>synchronized getInstance()</code></td><td>yes</td><td>yes</td><td>a lock on every call</td></tr>
+            <tr><td>eager static initializer</td><td>yes (JVM guarantees)</td><td>no</td><td>created even if unused</td></tr>
+            <tr><td>double-checked locking</td><td>yes — Java 5 and later</td><td>yes</td><td>needs <code>volatile</code>; broken before Java 5</td></tr>
+            <tr><td><code>enum</code> (next part)</td><td>yes</td><td>no, but cheap</td><td>none — the simplest of all</td></tr>
+          </tbody>
+        </table>
+        <div class="note ok" style="margin-top:16px">
+          <strong>Which one does the book pick for the boiler?</strong> Page 190: either <code>synchronized</code> or eager works (“we don’t seem to have any performance concerns with the chocolate boiler”), while double-checked locking is “overkill” and would force at least Java 5.
+        </div>
+      </div>
+    </div>
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:back-at-factory}}" alt="Meanwhile back at the Chocolate Factory: the sharpen-your-pencil table where each of the three fixes is described, followed by the Congratulations paragraph.">
+        <figcaption>Page 183: the plant is cleaned up, and the reader has to justify each of the three fixes in writing. That exercise is the best test of whether the trade-offs landed.</figcaption>
+        {{SAYS:back-at-factory}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">The book’s own answers (page 190)</h3>
+        <p><strong>Synchronize <code>getInstance()</code>:</strong> “a straightforward technique that is guaranteed to work. We don’t seem to have any performance concerns with the chocolate boiler, so this would be a good choice.”</p>
+        <p><strong>Use eager instantiation:</strong> “we are always going to instantiate the chocolate boiler in our code, so statically initializing the instance would cause no concerns” — though it is perhaps “less obvious to a developer familiar with the standard pattern.”</p>
+        <p><strong>Double-checked locking:</strong> “given we have no performance concerns, double-checked locking seems like overkill. In addition, we’d have to ensure that we are running at least Java 5.”</p>
+        <div class="note" style="margin-top:14px">
+          <strong>The lesson to keep:</strong> there is no single “correct” Singleton. There is the implementation whose cost you can afford for the traffic you actually have — and a documented reason for choosing it.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================== 9. ENUM -->
+<section id="s-enum">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>enum and the fine print</span></div>
+    <h2>The one-line Singleton</h2>
+    <p class="sub">Everything the last two pages worried about — synchronization, class loading, reflection, serialization — is handled for you if the singleton is an <code>enum</code> with a single constant.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:enum}}" alt="A developer realising an enum solves the Singleton problems, with the enum Singleton code, the client that uses Singleton.UNIQUE_INSTANCE, and a note about Java not always having enums.">
+        <figcaption>“Ah, good idea!” — a one-constant enum is a Singleton the JVM constructs exactly once, and no <code>getInstance()</code> needed at all.</figcaption>
+        {{SAYS:enum}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">Singleton.java · the enum version</span><span class="tagline">the whole pattern</span></header>
+<pre><span class="kw">public enum</span> <span class="type">Singleton</span> {
+    UNIQUE_INSTANCE;
+    <span class="cm">// more useful fields here</span>
+}
+
+<span class="kw">public class</span> <span class="type">SingletonClient</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) {
+        <span class="type">Singleton</span> singleton = <span class="type">Singleton</span>.UNIQUE_INSTANCE;
+        <span class="cm">// use the singleton here</span>
+    }
+}</pre>
+        </div>
+        <p style="font-size:.9rem;margin-top:14px">Why it works: enum constants are created by the JVM during class initialisation, which is guaranteed to happen once and to be visible to every thread. There is no constructor call to guard and no field to check.</p>
+        <div class="note" style="margin-top:14px">
+          <strong>Why the book still teaches the hard way.</strong> “We did that so you really, truly understand how Singleton works.” The classic version is also the answer to the interview question “how do you implement a Singleton <em>without</em> using enum?”
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">The fine print: “Dubious Questions” (pages 184–185)</h3>
+    <div class="grid2" style="margin-top:14px;align-items:start">
+      <ul class="bullets" style="margin-top:0">
+        <li><strong>Why not just static methods and variables?</strong> Fine for a self-contained utility, but Java’s static initialisation order makes it fragile once several classes are involved.</li>
+        <li><strong>Class loaders.</strong> Each loader defines its own namespace, so the same class can be loaded twice — and a Singleton loaded twice is two singletons. Specify the loader if this matters.</li>
+        <li><strong>Reflection and serialization.</strong> Both can create a second instance behind the pattern’s back; the enum form closes those doors.</li>
+        <li><strong>Loose coupling.</strong> Every object that uses the Singleton is tightly coupled to that specific object — a common and fair criticism.</li>
+      </ul>
+      <ul class="bullets" style="margin-top:0">
+        <li><strong>Single Responsibility.</strong> The class now manages its own instance <em>and</em> does its real job. Some designers factor the singleton-ness out.</li>
+        <li><strong>Subclassing.</strong> A private constructor cannot be extended. Make it protected and you no longer have a Singleton; the static instance would also be shared by all subclasses.</li>
+        <li><strong>Global variables.</strong> A global variable gives you access but not uniqueness, and it encourages namespace pollution. Singleton gives you both — and can still be abused.</li>
+        <li><strong>Use sparingly.</strong> “If you are using a large number of Singletons in your application, you should take a hard look at your design.”</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================== 10. DEMO -->
+<section id="s-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 6</span><i></i><span>live demo</span></div>
+    <h2>The Choc-O-Holic boiler plant</h2>
+    <p class="sub">Two controller threads, one <code>getInstance()</code>, five implementations. Pick an implementation, press <b>Run the two threads</b>, and watch the value of <code>uniqueInstance</code> at every step. When the trace is done, the boiler buttons below act on the live object — so you can see what two boilers do to a plant.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>ChocolateBoiler · one instance, five implementations</h3>
+        <div class="actions">
+          <button class="btn primary" id="cg-run">Run the two threads</button>
+          <button class="btn ghost" id="cg-reset">Reset the plant</button>
+          <button class="btn ghost" id="cg-clear">Clear console</button>
+        </div>
+      </div>
+
+      <div class="cg-modes" role="tablist" aria-label="Which getInstance() implementation runs">
+        <button class="tab" role="tab" data-cgmode="classic" aria-selected="true">classic lazy</button>
+        <button class="tab" role="tab" data-cgmode="sync" aria-selected="false">synchronized</button>
+        <button class="tab" role="tab" data-cgmode="eager" aria-selected="false">eager</button>
+        <button class="tab" role="tab" data-cgmode="dcl" aria-selected="false">double-checked</button>
+        <button class="tab" role="tab" data-cgmode="enum" aria-selected="false">enum</button>
+      </div>
+
+      <div class="cg-grid">
+        <div class="cg-panel">
+          <h4>The getInstance() that is running</h4>
+          <pre class="cg-code" id="cg-code"></pre>
+          <h4 style="margin-top:16px">Two threads, one method</h4>
+          <table class="cg-table">
+            <thead><tr><th>#</th><th>Thread One</th><th>Thread Two</th><th>uniqueInstance</th></tr></thead>
+            <tbody id="cg-rows"><tr><td colspan="4" class="cg-empty">Press “Run the two threads”.</td></tr></tbody>
+          </table>
+          <div id="cg-verdict"></div>
+        </div>
+
+        <div class="cg-panel">
+          <h4>Boilers in the plant</h4>
+          <div id="cg-boilers"></div>
+          <div class="cg-actions">
+            <button class="btn small" id="cg-fill">fill()</button>
+            <button class="btn small" id="cg-boil">boil()</button>
+            <button class="btn small" id="cg-drain">drain()</button>
+          </div>
+          <p class="wx-hint" id="cg-hint">The buttons act on boiler #1. Fill it, boil it, drain it — the invariants are the ones from page 175.</p>
+        </div>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">ChocolateBoilerController — console</span>
+        </header>
+        <div class="body" id="cg-log"></div>
+        <footer><button class="btn small" id="cg-clear2">Clear console</button></footer>
+      </div>
+
+      <div class="wx-toolbar">
+        <span class="chip" id="cg-chip">boilers alive: 0</span>
+        <span class="pz-dep" id="cg-note">classic lazy: two threads can both see null.</span>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>What to try:</strong> run the <em>classic lazy</em> version and read the table — both threads read <code>null</code>, both construct a boiler, and the plant ends up with two. Then switch to <em>synchronized</em>: Thread Two never gets past the door until Thread One has released the lock, and there is one boiler. <em>Double-checked</em> gets to the same place without paying for the lock on every call; <em>eager</em> and <em>enum</em> never had a race to lose.
+      </div>
+      <div class="note">
+        <strong>Why it matters:</strong> the only difference between the five implementations is <em>when</em> and <em>how often</em> the single object is created. The pattern’s two promises — one instance, global access — are identical in all five. The bugs live entirely in the “when”.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================== 11. CHEAT SHEET -->
+<section id="s-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 7</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 5 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>A Singleton is about cardinality, not convenience</h4><p>Thread pools, caches, registries, logging, device drivers: a second instance causes inconsistent state or wasted resources, not just extra objects.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Two promises</h4><p>One instance (private constructor + static field) and a global point of access (static <code>getInstance()</code>). A global variable gives you only the second.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The classic implementation is lazy — and racy</h4><p>Two threads can both see <code>uniqueInstance == null</code> and both create an instance; the second assignment silently overwrites the first.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Three fixes</h4><p><code>synchronized getInstance()</code> (simple, locks every call), eager static initialiser (JVM-safe, always created), double-checked locking (lock only the first time, needs Java 5 + <code>volatile</code>).</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The enum shortcut</h4><p>One enum constant is created once by the JVM. It also survives reflection and serialization, which the class-based versions do not.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Know its costs</h4><p>Tight coupling to a concrete global, two responsibilities in one class, hard to subclass, and painful to test in isolation. Use it sparingly.</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The book’s bullet points</h3>
+        <ul class="bullets">
+          <li>The Singleton Pattern ensures you have at most one instance of a class in your application.</li>
+          <li>The Singleton Pattern also provides a global access point to that instance.</li>
+          <li>Java’s implementation makes use of a private constructor, a static method combined with a static variable.</li>
+          <li>Examine your performance and resource constraints and carefully choose an appropriate implementation for multithreaded applications (and we should consider all applications multithreaded!).</li>
+          <li>Beware of the double-checked locking implementation; it isn’t thread safe in versions before Java 5.</li>
+          <li>Be careful if you are using multiple class loaders; this could defeat the implementation and result in multiple instances.</li>
+          <li>You can use Java’s enums to simplify your Singleton implementation.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Five implementations, one pattern</h3>
+        <table class="compare">
+          <thead><tr><th></th><th>Code</th><th>Safe</th><th>Lazy</th></tr></thead>
+          <tbody>
+            <tr><td>classic</td><td>null check + <code>new</code></td><td>no</td><td>yes</td></tr>
+            <tr><td>synchronized</td><td><code>static synchronized</code></td><td>yes</td><td>yes</td></tr>
+            <tr><td>eager</td><td><code>= new Singleton()</code> in the field</td><td>yes</td><td>no</td></tr>
+            <tr><td>double-checked</td><td><code>volatile</code> + sync block</td><td>yes (Java 5+)</td><td>yes</td></tr>
+            <tr><td>enum</td><td><code>UNIQUE_INSTANCE;</code></td><td>yes</td><td>no (but free)</td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:16px">
+          <strong>If you remember one line:</strong> the Singleton is the only pattern in the book whose class diagram is a single box, and almost all of its difficulty is the question “when, exactly, does that box get built?”
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:34px">
+      <img src="{{IMG5:toolbox5}}" alt="The design toolbox after chapter 5: OO basics, principles and six patterns, with the Singleton added and the bullet-point summary on the right.">
+      <figcaption>The toolbox after Chapter 5: six patterns. “When you need to ensure you only have one instance of a class running around your application, turn to the Singleton.”</figcaption>
+      {{SAYS:toolbox5}}
+    </figure>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:crossword5}}" alt="The chapter 5 design patterns crossword grid with its across and down clues about boilers, threads and chocolate.">
+        <figcaption>The chapter 5 crossword — all answers from this chapter. Try it before scrolling.</figcaption>
+        {{SAYS:crossword5}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG5:crossword-solution5}}" alt="The solved chapter 5 crossword with answers including CHOC-O-HOLIC, BOILER, MULTITHREADING, GLOBAL ACCESS POINT, CONSTRUCTOR and DOUBLE CHECKED, plus the worked boiler solutions.">
+        <figcaption>The solution, plus the book’s verdict on each fix for the boiler (page 190).</figcaption>
+        {{SAYS:crossword-solution5}}
+      </figure>
+    </div>
+
+    <div class="quiz" style="margin-top:34px" id="s-quiz">
+      <h3 style="margin-top:0">Check yourself: what is true of Singleton?</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="s-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. A private constructor stops every other class from calling <code>new</code> on it.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="B"><span class="txt">B. Every Singleton implementation is lazily created.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="C"><span class="txt">C. A <code>synchronized</code> <code>getInstance()</code> makes every call pay for a lock, although only the first call needs one.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="D"><span class="txt">D. Double-checked locking is thread safe in every version of Java.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="E"><span class="txt">E. An enum constant is created once by the JVM, which makes it a short and safe Singleton.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="F"><span class="txt">F. Singleton is an example of loose coupling — every client depends only on an abstraction.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="s-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="s-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="s-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>Chapter 5 in the book’s words:</strong> “The Singleton Pattern ensures a class has only one instance, and provides a global point of access to it.” Everything else in the chapter — lazy vs. eager, <code>synchronized</code>, double-checked locking, class loaders, reflection, enums — exists because that one sentence has to survive a multithreaded, multi-class-loader, serializable JVM.
+    </div>
+
+    <p style="margin-top:22px;font-size:.92rem;color:var(--ink-soft)">Next in the book: <strong>Chapter 6, the Command Pattern</strong> — encapsulating a request as an object, and the Objectville Remote Control with its seven slots and (eventually) an Undo button.</p>
+  </div>
+</section>
+
+<script>
+/* ============================================================ chapter 5 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#cg-log');
+  if (!logBox) return;
+
+  /* ------------------------------------------------------------ console */
+  const log = (html, cls = '') => {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.innerHTML = html;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  const dim  = t => `<span class="dim">${t}</span>`;
+  const out  = t => `<span class="out">${t}</span>`;
+  const call = t => `<span class="call">${t}</span>`;
+  const res  = t => `<span class="res">${t}</span>`;
+
+  /* -------------------------------------------------------------- modes */
+  const MODES = {
+    classic: {
+      note: 'classic lazy: two threads can both see null.',
+      code: `<span class="kw">public static</span> ChocolateBoiler getInstance() {
+    <span class="kw">if</span> (uniqueInstance == <span class="kw">null</span>) {
+        uniqueInstance = <span class="kw">new</span> ChocolateBoiler();
+    }
+    <span class="kw">return</span> uniqueInstance;
+}`,
+      boilers: 2,
+      frames: [
+        ['Thread One reads <code>uniqueInstance == null</code> → true', '—', 'null', null],
+        ['—', 'Thread Two reads <code>uniqueInstance == null</code> → true', 'null', null],
+        ['<code>new ChocolateBoiler()</code> → boiler #1; assigns it', '—', 'boiler #1', null],
+        ['—', '<code>new ChocolateBoiler()</code> → boiler #2; overwrites the field', 'boiler #2', null],
+        ['returns boiler #1', 'returns boiler #2', 'boiler #2', 'bad']
+      ],
+      verdict: 'bad',
+      verdictText: '<strong>Two different objects were returned.</strong> Two ChocolateBoiler instances, two sets of <code>empty</code>/<code>boiled</code> flags, one plant — exactly the page-188 answer.'
+    },
+    sync: {
+      note: 'synchronized: Thread Two waits at the door.',
+      code: `<span class="kw">public static synchronized</span> ChocolateBoiler getInstance() {
+    <span class="kw">if</span> (uniqueInstance == <span class="kw">null</span>) {
+        uniqueInstance = <span class="kw">new</span> ChocolateBoiler();
+    }
+    <span class="kw">return</span> uniqueInstance;
+}`,
+      boilers: 1,
+      frames: [
+        ['enters <code>getInstance()</code> and takes the lock', 'blocked outside the method', 'null', null],
+        ['<code>new ChocolateBoiler()</code> → boiler #1; assigns it', 'still waiting', 'boiler #1', null],
+        ['returns boiler #1, releases the lock', '—', 'boiler #1', null],
+        ['—', 'enters; <code>uniqueInstance != null</code>', 'boiler #1', null],
+        ['—', 'returns the same boiler #1', 'boiler #1', 'ok']
+      ],
+      verdict: 'ok',
+      verdictText: '<strong>One object.</strong> Thread Two never even reaches the <code>null</code> check until the field is set. The cost is a lock on every call, forever.'
+    },
+    eager: {
+      note: 'eager: the JVM builds it at class load.',
+      code: `<span class="kw">private static</span> ChocolateBoiler uniqueInstance =
+        <span class="kw">new</span> ChocolateBoiler();   <span class="cm">// static initializer</span>
+
+<span class="kw">public static</span> ChocolateBoiler getInstance() {
+    <span class="kw">return</span> uniqueInstance;
+}`,
+      boilers: 1,
+      frames: [
+        ['class loads: the static initializer runs → boiler #1', '—', 'boiler #1', null],
+        ['<code>getInstance()</code> returns boiler #1', '—', 'boiler #1', null],
+        ['—', '<code>getInstance()</code> returns the same boiler #1', 'boiler #1', 'ok']
+      ],
+      verdict: 'ok',
+      verdictText: '<strong>One object, no race.</strong> The JVM creates it before any thread can touch the field — but it is created even if nobody ever orders a bar of chocolate.'
+    },
+    dcl: {
+      note: 'double-checked: lock only the first time through.',
+      code: `<span class="kw">private volatile static</span> ChocolateBoiler uniqueInstance;
+
+<span class="kw">public static</span> ChocolateBoiler getInstance() {
+    <span class="kw">if</span> (uniqueInstance == <span class="kw">null</span>) {
+        <span class="kw">synchronized</span> (ChocolateBoiler.class) {
+            <span class="kw">if</span> (uniqueInstance == <span class="kw">null</span>) {
+                uniqueInstance = <span class="kw">new</span> ChocolateBoiler();
+            }
+        }
+    }
+    <span class="kw">return</span> uniqueInstance;
+}`,
+      boilers: 1,
+      frames: [
+        ['first check: <code>uniqueInstance == null</code> → true', '—', 'null', null],
+        ['—', 'first check → true (still null)', 'null', null],
+        ['takes the lock on <code>ChocolateBoiler.class</code>', 'blocked at the synchronized block', 'null', null],
+        ['second check → still null; creates boiler #1', 'still waiting', 'boiler #1', null],
+        ['returns boiler #1, releases the lock', '—', 'boiler #1', null],
+        ['—', 'enters the block; second check → not null; returns boiler #1', 'boiler #1', 'ok']
+      ],
+      verdict: 'ok',
+      verdictText: '<strong>One object</strong>, and after the first call the outer check keeps every later caller out of the synchronized block. Needs <code>volatile</code> and Java 5 or later.'
+    },
+    enum: {
+      note: 'enum: the JVM creates UNIQUE_INSTANCE once.',
+      code: `<span class="kw">public enum</span> ChocolateBoiler {
+    UNIQUE_INSTANCE;
+    <span class="cm">// the boiler's fields and methods live here</span>
+}`,
+      boilers: 1,
+      frames: [
+        ['class initialisation creates <code>UNIQUE_INSTANCE</code>', '—', 'UNIQUE_INSTANCE', null],
+        ['uses <code>ChocolateBoiler.UNIQUE_INSTANCE</code>', 'uses the same constant', 'UNIQUE_INSTANCE', 'ok']
+      ],
+      verdict: 'ok',
+      verdictText: '<strong>One object</strong>, created once during class initialisation. No <code>getInstance()</code>, and reflection or deserialization cannot make a second one.'
+    }
+  };
+
+  let mode = 'classic';
+  let boilers = [];
+
+  const rows      = $('#cg-rows');
+  const boilersEl = $('#cg-boilers');
+  const chip      = $('#cg-chip');
+  const noteEl    = $('#cg-note');
+  const verdict   = $('#cg-verdict');
+
+  const nameOf = b => `boiler #${b.id}`;
+  const stateOf = b => (b.empty ? 'empty' : b.boiled ? 'full, boiled' : 'full, not boiled');
+
+  function renderCode() { $('#cg-code').innerHTML = MODES[mode].code; }
+
+  function renderBoilers() {
+    if (!boilers.length) {
+      boilersEl.innerHTML = '<p class="wx-hint" style="margin:0">No boiler yet — run the two threads to create one.</p>';
+    } else {
+      boilersEl.innerHTML = boilers.map(b => {
+        const pct = Math.round((b.gallons / 500) * 100);
+        return `<div class="cg-boiler${boilers.length > 1 && b.id > 1 ? ' bad' : ''}">
+          <h5><span>${nameOf(b)}</span><span>${stateOf(b)}</span></h5>
+          <div class="state">${b.gallons} / 500 gallons of milk &amp; chocolate</div>
+          <div class="cg-shot"><i style="width:${pct}%"></i></div>
+        </div>`;
+      }).join('');
+    }
+    chip.textContent = `boilers alive: ${boilers.length}`;
+  }
+
+  function renderTable() {
+    const frames = MODES[mode].frames;
+    rows.innerHTML = frames.map(([t1, t2, value, flag], i) => {
+      const cls = flag === 'ok' ? ' class="ok"' : flag === 'bad' ? ' class="bad"' : '';
+      return `<tr><td class="step">${i + 1}</td><td>${t1}</td><td>${t2}</td><td${cls}>${value}</td></tr>`;
+    }).join('');
+  }
+
+  function renderVerdict() {
+    const m = MODES[mode];
+    verdict.innerHTML = `<div class="cg-verdict ${m.verdict}">${m.verdictText}</div>`;
+    noteEl.textContent = m.note;
+  }
+
+  function run() {
+    const m = MODES[mode];
+    boilers = Array.from({ length: m.boilers }, (_, i) => ({ id: i + 1, empty: true, boiled: false, gallons: 0 }));
+    renderTable();
+    renderVerdict();
+    renderBoilers();
+
+    log(call(`— ${m.note.replace(/:.*/, '')} — running two threads —`));
+    m.frames.forEach(([t1, t2, value], i) => {
+      const parts = [];
+      if (t1 !== '—') parts.push(`T1: ${t1}`);
+      if (t2 !== '—') parts.push(`T2: ${t2}`);
+      log(dim(`step ${i + 1}`) + ' ' + out(parts.join('   |   ')) + '   ' + dim(`uniqueInstance = ${value}`));
+    });
+    log(dim('──────────────────────────────'));
+    log(m.verdict === 'ok'
+      ? res(`one boiler instance — both threads hold the same object (${m.boilers === 1 ? 'boiler #1' : ''})`)
+      : res('two boiler instances — Two different objects were returned!'));
+  }
+
+  /* ------------------------------------------------------- boiler actions */
+  function act(kind) {
+    if (!boilers.length) {
+      log(dim('// no boiler exists yet — press “Run the two threads” first'));
+      return;
+    }
+    const b = boilers[0];
+    const before = stateOf(b);
+
+    if (kind === 'fill') {
+      if (!b.empty) { log(`<span class="err">fill() ignored — the boiler is already full</span>`); return; }
+      b.empty = false; b.boiled = false; b.gallons = 500;
+      log(out(`boiler #1.fill()  → 500 gallons of milk/chocolate in the boiler`));
+    } else if (kind === 'boil') {
+      if (b.empty || b.boiled) { log(`<span class="err">boil() ignored — ${b.empty ? 'nothing in the boiler' : 'it is already boiling'}</span>`); return; }
+      b.boiled = true;
+      log(out('boiler #1.boil()  → the mixture is boiling'));
+    } else if (kind === 'drain') {
+      if (b.empty || !b.boiled) { log(`<span class="err">drain() ignored — ${b.empty ? 'the boiler is empty' : 'the mixture has not been boiled'}</span>`); return; }
+      b.empty = true; b.boiled = false; b.gallons = 0;
+      log(out('boiler #1.drain() → drained; the boiler is empty again'));
+    }
+
+    log(dim(`// boiler #1 was ${before}, now ${stateOf(b)}`));
+    if (boilers.length > 1) {
+      const other = boilers[1];
+      log(`<span class="err">// boiler #2 still says “${stateOf(other)}” — it never saw that call. Two objects, two truths.</span>`);
+    }
+    renderBoilers();
+  }
+
+  /* ------------------------------------------------------------- wiring */
+  $$('.cg-modes .tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      mode = tab.dataset.cgmode;
+      $$('.cg-modes .tab').forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+      renderCode();
+      renderVerdict();
+      boilers = [];
+      renderBoilers();
+      rows.innerHTML = '<tr><td colspan="4" class="cg-empty">Press “Run the two threads”.</td></tr>';
+      log(dim(`— switched to ${tab.textContent.trim()} —`));
+    });
+  });
+
+  $('#cg-run')?.addEventListener('click', run);
+  $('#cg-reset')?.addEventListener('click', () => {
+    boilers = [];
+    renderBoilers();
+    rows.innerHTML = '<tr><td colspan="4" class="cg-empty">Press “Run the two threads”.</td></tr>';
+    verdict.innerHTML = '';
+    log(dim('— plant reset: no boilers —'));
+  });
+  const clear = () => { logBox.innerHTML = ''; };
+  $('#cg-clear')?.addEventListener('click', clear);
+  $('#cg-clear2')?.addEventListener('click', clear);
+  $('#cg-fill')?.addEventListener('click', () => act('fill'));
+  $('#cg-boil')?.addEventListener('click', () => act('boil'));
+  $('#cg-drain')?.addEventListener('click', () => act('drain'));
+
+  renderCode();
+  renderVerdict();
+  renderBoilers();
+  log(dim('Choc-O-Holic controller ready — press “Run the two threads”.'));
+})();
+
+/* --------------------------------------------------------------- quiz */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const box = $('#s-quiz');
+  if (!box) return;
+
+  const opts   = $$('#s-quiz-opts .opt', box);
+  const answer = $('#s-quiz-answer', box);
+
+  opts.forEach(opt => {
+    opt.addEventListener('change', () => {
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+  });
+
+  $('#s-quiz-check', box)?.addEventListener('click', () => {
+    let right = 0;
+    const wrong = [];
+    opts.forEach(opt => {
+      const ticked  = opt.querySelector('input').checked;
+      const correct = opt.dataset.correct === '1';
+      const mark    = opt.querySelector('.mark');
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
+      else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
+      else { mark.textContent = ''; }
+    });
+    const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    const allFound = right === correctSet.length;
+    answer.classList.remove('hidden');
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, C and E: the private constructor blocks <code>new</code>, a synchronized method pays for a lock on every call, and an enum constant is created once by the JVM. B fails because eager and enum singletons are not lazy; D fails before Java 5; F describes the pattern’s most common criticism, not its strength.`
+      : `<strong>All ${correctSet.length} correct.</strong> The private constructor is the whole enforcement mechanism, synchronization is a cost you pay on every call, and the enum form is short because the JVM already guarantees the creation happens once.`;
+  });
+
+  $('#s-quiz-reset', box)?.addEventListener('click', () => {
+    opts.forEach(opt => {
+      opt.querySelector('input').checked = false;
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+    answer.classList.add('hidden');
+    answer.innerHTML = '';
+  });
+})();
+</script>

@@ -1,0 +1,1215 @@
+<!-- ==================================================== CHAPTER 11 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 11</b> the Proxy Pattern</div>
+  <h2>Controlling <span style="color:var(--purple)">Object Access</span></h2>
+  <p>The CEO wants to watch his gumball machines from his desk. The machines live on three servers, the album art lives on the network, and Elroy’s dating profile should not be editable by strangers. Three problems, one pattern: an object that stands in for another object and decides what gets through.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Mighty Gumball, Inc.</span>
+    <span class="chip">1 pattern, 5 flavours</span>
+    <span class="chip">64 book figures</span>
+    <span class="chip">RMI · virtual · protection</span>
+    <span class="chip">1 live proxy playground</span>
+  </div>
+</div>
+
+<!-- ============================================================ 1. STORY -->
+<section id="px-story">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>the CEO wants a dashboard</span></div>
+    <h2>The gumball machines go remote</h2>
+    <p class="sub">Mighty Gumball’s monitoring code works — on the machine it runs on. The CEO would like to sit at his desk in Objectville and check Santa Fe, Boulder and Austin without driving anywhere. That single request turns a simple object into three objects and a wire.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG11:opener}}" alt="Chapter 11 opener: a schoolyard scene where a bigger kid offers to be a proxy and triple the lunch money he can extract from friends, headed Controlling Object Access.">
+      <figcaption>“With you as my proxy, I’ll be able to triple the amount of lunch money…” — the chapter opens with the least technical proxy in the book, and the definition still fits.</figcaption>
+      {{SAYS:opener}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:ceo-request}}" alt="The CEO writes to the team asking for better monitoring of his gumball machines so he can check them without leaving his desk.">
+        <figcaption>The requirement, in full: “I’d really like to get some better monitoring… without having to leave my desk.” No mention of networks, stubs or sockets.</figcaption>
+        {{SAYS:ceo-request}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:coding-the-monitor}}" alt="Coding the Monitor: GumballMachine gains getLocation() and getCount(), and the first GumballMonitor class is written.">
+        <figcaption>Version one: add <code>getLocation()</code> and <code>getCount()</code> to the machine, then write a <code>GumballMonitor</code> that asks a local machine for its state.</figcaption>
+        {{SAYS:coding-the-monitor}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:local-monitor}}" alt="Testing the Monitor: the monitor is handed a local GumballMachine, and the resulting report shows the machine’s location, inventory and state.">
+        <figcaption>Testing it locally: the monitor calls <code>getLocation()</code>, <code>getCount()</code> and <code>getState()</code> and prints three lines. It works — on one machine, in one JVM.</figcaption>
+        {{SAYS:local-monitor}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:cubicle-conversation}}" alt="Cubicle Conversation: the team realises the monitor has to talk to machines in other JVMs, and that a remote proxy is the answer.">
+        <figcaption>“Don’t worry, guys, I’ve been brushing up on my design patterns.” The monitor cannot hold a reference to an object in another heap — so it should hold a stand-in.</figcaption>
+        {{SAYS:cubicle-conversation}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:remote-proxy-role}}" alt="The role of the remote proxy: a diagram showing the CEO’s desktop, the proxy pretending to be the remote object, and the real Gumball Machine in another JVM.">
+        <figcaption>The remote proxy: on the client’s heap, pretending to be the machine. On the other side of the wire, the real object. The client code never changes.</figcaption>
+        {{SAYS:remote-proxy-role}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:think-rmi}}" alt="A design puzzle asking what the proxy has to do to act as a stand-in for an object in another JVM: it must forward calls and return results.">
+        <figcaption>The “slick idea” panel: a stand-in that forwards method calls over the network and hands back the results. That is RMI in one sentence.</figcaption>
+        {{SAYS:think-rmi}}
+      </figure>
+    </div>
+
+    <div class="note" style="margin-top:26px">
+      <strong>What just changed.</strong> The monitor is no longer coupled to <code>GumballMachine</code>; it is coupled to the <em>idea</em> of a gumball machine. Swap in a stand-in that speaks to a machine across the country and not one line of monitor code has to move. That is the whole economic argument for the Proxy Pattern, and the rest of the chapter is variants of it.
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== 2. THE PATTERN -->
+<section id="px-pattern">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>one object standing in for another</span></div>
+    <h2>Proxy defined — and the RMI detour</h2>
+    <p class="sub">Before the definition the book drags you through Java RMI, because the remote proxy is the variant that needs the most machinery: a remote interface, an implementation, a registry, a server and a client. It is worth the detour — the stub <em>is</em> the proxy.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:rmi-plan}}" alt="Adding a remote proxy to the Gumball Machine monitoring code: a diagram laying out client, stub, skeleton and remote service before any RMI code is written.">
+        <figcaption>The plan on paper: proxy and stub on the client, skeleton and service on the server. Everything between them is RMI’s job.</figcaption>
+        {{SAYS:rmi-plan}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:remote-methods-101}}" alt="Remote methods 101: the client calls a method on a local stub; the stub serialises the call, the skeleton invokes the real method and the result travels back.">
+        <figcaption>Remote methods 101. Variables go over the wire by value (serialisation); objects that must stay remote go over as stubs.</figcaption>
+        {{SAYS:remote-methods-101}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:call-steps-1}}" alt="How the method call happens, steps 1 to 3: the client calls the stub, the stub serialises the call and sends it to the skeleton.">
+        <figcaption>Steps 1–3: client → stub → wire. The client thinks it is calling a local object; the stub packs the method name and arguments.</figcaption>
+        {{SAYS:call-steps-1}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:call-steps-2}}" alt="How the method call happens, steps 4 to 6: the skeleton invokes the service, the result is serialised back to the stub, and the stub returns it to the client.">
+        <figcaption>Steps 4–6: skeleton → service → back through the wire → return value. Same six steps for every remote call you will ever make.</figcaption>
+        {{SAYS:call-steps-2}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:rmi-big-picture}}" alt="Java RMI, the Big Picture: client object, stub, RMI registry, skeleton and service object, with the registry used at lookup time only.">
+        <figcaption>Java RMI, the big picture. The registry is a phone book: you ask it once for the stub, then you talk to the stub.</figcaption>
+        {{SAYS:rmi-big-picture}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:rmi-five-steps}}" alt="An RMI Detour overview: the five steps — make a remote interface, make a remote implementation, run rmiregistry, start the service, and look it up from the client.">
+        <figcaption>The five steps, in order: remote interface → implementation → <code>rmiregistry</code> → start the service → <code>Naming.lookup()</code>.</figcaption>
+        {{SAYS:rmi-five-steps}}
+      </figure>
+    </div>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <div class="code">
+        <header><span class="fname">MyRemote.java</span><span class="tagline">step 1 — the remote interface</span></header>
+<pre><span class="kw">import</span> java.rmi.*;
+
+<span class="kw">public interface</span> <span class="type">MyRemote</span> <span class="kw">extends</span> Remote {
+  <span class="kw">public</span> String sayHello() <span class="kw">throws</span> RemoteException;
+}</pre>
+      </div>
+      <div class="code">
+        <header><span class="fname">MyRemoteImpl.java</span><span class="tagline">step 2 — extends UnicastRemoteObject</span></header>
+<pre><span class="kw">public class</span> <span class="type">MyRemoteImpl</span> <span class="kw">extends</span> UnicastRemoteObject
+                       <span class="kw">implements</span> MyRemote {
+  <span class="kw">public</span> MyRemoteImpl() <span class="kw">throws</span> RemoteException { }
+  <span class="kw">public</span> String sayHello() {
+    <span class="kw">return</span> <span class="str">"Server says 'Hey!'"</span>;
+  }
+  <span class="kw">public static void</span> main(String[] args) {
+    <span class="kw">try</span> {
+      Naming.rebind(<span class="str">"Remote Hello"</span>, <span class="kw">new</span> MyRemoteImpl());
+    } <span class="kw">catch</span> (Exception ex) { ex.printStackTrace(); }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:remote-interface}}" alt="Step one: make a Remote interface — MyRemote extends java.rmi.Remote and every method declares throws RemoteException.">
+        <figcaption>Step one. <code>extends Remote</code> marks the interface as remote; every method declares <code>throws RemoteException</code> because the network is allowed to fail.</figcaption>
+        {{SAYS:remote-interface}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:remote-impl}}" alt="Step two: make a Remote implementation — the class implements the remote interface and extends UnicastRemoteObject, then registers itself with Naming.rebind.">
+        <figcaption>Step two. Extending <code>UnicastRemoteObject</code> gives you the skeleton and the networking; <code>Naming.rebind()</code> publishes the stub.</figcaption>
+        {{SAYS:remote-impl}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:start-service}}" alt="Step three: run rmiregistry from the directory that holds the classes, then start the service in another terminal.">
+        <figcaption>Step three: <code>rmiregistry</code> in one terminal, the service in another. The registry must be able to see your classes.</figcaption>
+        {{SAYS:start-service}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:server-code}}" alt="Complete code for the server side: interface, implementation and main, with annotations pointing out each required piece.">
+        <figcaption>The server, complete: one interface, one implementation, one <code>main</code> that rebinds the name.</figcaption>
+        {{SAYS:server-code}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:lookup-closeup}}" alt="Code Up Close: the client looks up the remote service with Naming.lookup and casts the result to the remote interface.">
+        <figcaption>On the client: <code>Naming.lookup("rmi://127.0.0.1/Remote Hello")</code> returns a stub, and the cast to <code>MyRemote</code> is checked by RMI.</figcaption>
+        {{SAYS:lookup-closeup}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:lookup-steps}}" alt="How the lookup works: the client asks the registry for the name, the registry returns the stub, and the client calls the stub as if it were the remote object.">
+        <figcaption>How the lookup works: registry → stub → client. After that first call, the registry is out of the picture.</figcaption>
+        {{SAYS:lookup-steps}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:client-code}}" alt="Complete code for the client side: a main that looks up a remote service and calls sayHello, with a note about the things programmers do wrong with RMI.">
+        <figcaption>The client, complete — plus the book’s list of things programmers get wrong with RMI (forgetting <code>throws RemoteException</code>, forgetting to start the registry, and so on).</figcaption>
+        {{SAYS:client-code}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:gumball-remote-plan}}" alt="Back to the GumballMachine remote proxy: the monitor, the stub in the client heap, and the remote GumballMachine with its skeleton in the server heap.">
+        <figcaption>Back to the gumball machines: the monitor holds a stub, the stub talks to a skeleton, the skeleton calls the machine. Same six steps as <code>sayHello()</code>.</figcaption>
+        {{SAYS:gumball-remote-plan}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:remote-state}}" alt="Getting the GumballMachine ready to be a remote service: the GumballMachineRemote interface declares getLocation, getCount and getState, all throwing RemoteException.">
+        <figcaption>The new interface: <code>getLocation()</code>, <code>getCount()</code>, <code>getState()</code> — and the return type problem, because <code>State</code> is not serialisable yet.</figcaption>
+        {{SAYS:remote-state}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:gumball-impl}}" alt="The GumballMachine implementation: State must extend Serializable, and the machine extends UnicastRemoteObject with a transient reference to its remote stub.">
+        <figcaption>Two fixes: every <code>State</code> class must extend <code>Serializable</code> so a state can travel back, and the remote reference is <code>transient</code> so it is not serialised with the machine.</figcaption>
+        {{SAYS:gumball-impl}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:register-service}}" alt="Registering with the RMI registry: GumballMachineTestDrive binds each machine under a name built from its location, then the service runs.">
+        <figcaption>Registering: one line per city, <code>Naming.rebind("//" + location + "/gumballmachine", machine)</code>. The name is the address.</figcaption>
+        {{SAYS:register-service}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:monitor-client}}" alt="The GumballMonitor client rewritten to hold a GumballMachineRemote instead of a GumballMachine, with each call wrapped in a try/catch for RemoteException.">
+        <figcaption>The monitor, rewritten: the field becomes <code>GumballMachineRemote</code>, and each call is wrapped in a <code>try/catch</code> — a remote proxy can fail.</figcaption>
+        {{SAYS:monitor-client}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:monitor-testdrive}}" alt="Writing the Monitor test drive: an array of rmi URLs for Santa Fe, Boulder and Austin, a GumballMonitor per location, then report each one.">
+        <figcaption>The test drive: three <code>rmi://</code> URLs, one lookup each, one monitor each, then <code>report()</code> down the array.</figcaption>
+        {{SAYS:monitor-testdrive}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:lookup-up-close}}" alt="Code Up Close: the loop that looks up each machine by name and wraps the lookup in a try/catch, noting that the cast is a checked remote cast.">
+        <figcaption>Code Up Close: the lookup loop. Every call can throw — <code>RemoteException</code> and <code>MalformedURLException</code> are the price of the network.</figcaption>
+        {{SAYS:lookup-up-close}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG11:monitor-output}}" alt="The CEO’s console output: Santa Fe with 99 gumballs waiting for quarter, Boulder with 44 waiting for turn of crank, Austin with 187 waiting for quarter.">
+      <figcaption>The payoff: <code>santafe</code> 99, <code>boulder</code> 44, <code>austin</code> 187 — the CEO is thrilled. Notice that the monitor printed each machine’s real state, including “waiting for turn of crank”.</figcaption>
+      {{SAYS:monitor-output}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:behind-scenes-1}}" alt="Behind the scenes, part one: the monitor calls getCount on the proxy, the proxy serialises the request and sends it over the wire to the skeleton.">
+        <figcaption>Behind the scenes, part one: the proxy serialises <code>getCount()</code> and ships it. The monitor has no idea a socket exists.</figcaption>
+        {{SAYS:behind-scenes-1}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:behind-scenes-2}}" alt="Behind the scenes, part two: the skeleton deserialises the call, invokes it on the GumballMachine, and the serialised state travels back to the proxy.">
+        <figcaption>Part two: the skeleton invokes the real method, the state object is serialised on the way back, and the proxy deserialises it before returning.</figcaption>
+        {{SAYS:behind-scenes-2}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG11:proxy-defined}}" alt="The Proxy Pattern defined: use the Proxy Pattern to create a representative object that controls access to another object, which may be remote, expensive to create, or in need of securing.">
+      <figcaption>The definition, at last: <strong>“The Proxy Pattern provides a surrogate or placeholder for another object to control access to it.”</strong> The variants differ only in <em>how</em> they control access.</figcaption>
+      {{SAYS:proxy-defined}}
+    </figure>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG11:proxy-diagram}}" alt="The Proxy class diagram: Subject, RealSubject and Proxy all implement request(), and the Proxy keeps a reference to the RealSubject it stands in for.">
+      <figcaption>The class diagram is three boxes: <code>Proxy</code> and <code>RealSubject</code> both implement <code>Subject</code>, so the client can hold either. The proxy owns a reference to the real subject — that reference is the whole trick.</figcaption>
+      {{SAYS:proxy-diagram}}
+    </figure>
+
+    <div class="grid2" style="margin-top:28px;align-items:start">
+      <div class="code">
+        <header><span class="fname">Proxy.java</span><span class="tagline">the pattern in nine lines</span></header>
+<pre><span class="kw">public class</span> <span class="type">Proxy</span> <span class="kw">implements</span> Subject {
+  RealSubject realSubject;        <span class="cmt">// the object we stand in for</span>
+
+  <span class="kw">public void</span> request() {
+    <span class="cmt">// ...control access here: lazy-create, check rights,</span>
+    <span class="cmt">//     forward over the network, count references...</span>
+    realSubject.request();
+  }
+}</pre>
+      </div>
+      <div class="note ok" style="margin-top:0">
+        <strong>Four r’s, one pattern.</strong> <em>Remote</em> proxy — the subject lives in another JVM. <em>Virtual</em> proxy — the subject is expensive to create. <em>Protection</em> proxy — the subject needs access rights. <em>Smart reference</em> — the subject needs housekeeping (counting, locking, caching). Same diagram every time.
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ================================================== 3. VIRTUAL PROXY -->
+<section id="px-virtual">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>a stand-in while the real thing loads</span></div>
+    <h2>The virtual proxy: album covers that load themselves</h2>
+    <p class="sub">A CD-cover browser hangs on the network: every cover is a megabyte of JPEG, and <code>ImageIcon</code> fetches it in the constructor. The virtual proxy swaps the order around — show a placeholder now, fetch the picture later, paint it when it arrives.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG11:virtual-intro}}" alt="Get ready for the Virtual Proxy: a panel introducing the second flavour of the pattern, where the proxy stands in for an object that is expensive to create.">
+      <figcaption>Flavour two. The remote proxy controlled access to <em>distance</em>; the virtual proxy controls access to <em>cost</em>.</figcaption>
+      {{SAYS:virtual-intro}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:image-proxy-design}}" alt="Displaying album covers: the naive ImageIcon-based browser freezes while covers download, next to a note that a virtual proxy can defer the download.">
+        <figcaption>The problem in one picture: the swing thread blocks on the constructor, so the whole window is blank until the last cover arrives.</figcaption>
+        {{SAYS:image-proxy-design}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:image-proxy-diagram}}" alt="Designing the Album Cover Virtual Proxy: ImageProxy implements Icon, holds an ImageIcon and a URL, and creates the real icon only when it is needed.">
+        <figcaption>The design: <code>ImageProxy</code> implements <code>Icon</code>, keeps a URL and a reference to the real <code>ImageIcon</code>, and reports 800×600 until the real image exists.</figcaption>
+        {{SAYS:image-proxy-diagram}}
+      </figure>
+    </div>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <div class="code">
+        <header><span class="fname">ImageProxy.java</span><span class="tagline">the book’s virtual proxy, transcribed</span></header>
+<pre><span class="kw">public class</span> <span class="type">ImageProxy</span> <span class="kw">implements</span> Icon {
+  ImageIcon imageIcon;     <span class="cmt">// the real subject</span>
+  URL imageURL;
+  Thread retrievalThread;
+  <span class="kw">boolean</span> retrieving = <span class="kw">false</span>;
+
+  <span class="kw">public</span> ImageProxy(URL url) { imageURL = url; }
+
+  <span class="kw">public int</span> getIconWidth() {
+    <span class="kw">if</span> (imageIcon != <span class="kw">null</span>) <span class="kw">return</span> imageIcon.getIconWidth();
+    <span class="kw">return</span> 800;                       <span class="cmt">// stand-in size</span>
+  }
+  <span class="kw">public int</span> getIconHeight() {
+    <span class="kw">if</span> (imageIcon != <span class="kw">null</span>) <span class="kw">return</span> imageIcon.getIconHeight();
+    <span class="kw">return</span> 600;
+  }
+
+  <span class="kw">public void</span> paintIcon(<span class="kw">final</span> Component c, Graphics g,
+                        <span class="kw">int</span> x, <span class="kw">int</span> y) {
+    <span class="kw">if</span> (imageIcon != <span class="kw">null</span>) {
+      imageIcon.paintIcon(c, g, x, y);
+    } <span class="kw">else</span> {
+      g.drawString(<span class="str">"Loading album cover, please wait..."</span>,
+                   x + 300, y + 190);
+      <span class="kw">if</span> (!retrieving) {
+        retrieving = <span class="kw">true</span>;
+        retrievalThread = <span class="kw">new</span> Thread(<span class="kw">new</span> Runnable() {
+          <span class="kw">public void</span> run() {
+            <span class="kw">try</span> {
+              imageIcon = <span class="kw">new</span> ImageIcon(imageURL,
+                                           <span class="str">"CD Cover"</span>);
+              c.repaint();
+            } <span class="kw">catch</span> (Exception e) { e.printStackTrace(); }
+          }
+        });
+        retrievalThread.start();
+      }
+    }
+  }
+}</pre>
+      </div>
+      <div>
+        <h3>Why each line is there</h3>
+        <ul class="bullets">
+          <li><strong>It implements <code>Icon</code>.</strong> The viewer paints <code>Icon</code>s. It does not know, and cannot know, that this one is a proxy.</li>
+          <li><strong>The constructor is cheap.</strong> It stores a URL. No network, no blocking, no megabyte.</li>
+          <li><strong>800×600 is a lie with a purpose.</strong> Before the real image exists the proxy reports the size the layout should reserve.</li>
+          <li><strong><code>paintIcon()</code> starts the fetch.</strong> The real work happens on the paint thread’s second pass, not in the constructor.</li>
+          <li><strong><code>retrieving</code> is a latch.</strong> <code>paintIcon()</code> is called dozens of times; the thread must start once.</li>
+          <li><strong><code>c.repaint()</code> is the hand-off.</strong> When the image arrives the component repaints and now paints the real icon.</li>
+        </ul>
+        <div class="note">
+          <strong>The client is unchanged.</strong> <code>ImageProxyTestDrive</code> still calls <code>new ImageIcon(...)</code>-shaped code through the <code>Icon</code> interface. The virtual proxy is invisible by construction.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:image-proxy-class}}" alt="Writing the Image Proxy: the full ImageProxy class with its fields, constructor, getIconWidth, getIconHeight and paintIcon.">
+        <figcaption>The class as printed in the book. The annotated comments in the margin are the book’s own explanation of each member.</figcaption>
+        {{SAYS:image-proxy-class}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:paint-icon-closeup}}" alt="Code Up Close: paintIcon checks whether the real image exists, paints it if it does, and otherwise draws the loading message and starts the retrieval thread.">
+        <figcaption>Code Up Close: the <code>if (imageIcon != null)</code> branch is the moment the proxy stops being a stand-in and becomes a delegate.</figcaption>
+        {{SAYS:paint-icon-closeup}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:retrieval-thread}}" alt="Code Way Up Close: the retrieval thread constructs the real ImageIcon, then calls repaint so the component paints with the loaded image.">
+        <figcaption>Code Way Up Close: the thread that does the download. Note that it catches <code>Exception</code> — a failed cover must not kill the viewer.</figcaption>
+        {{SAYS:retrieval-thread}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:two-states-puzzle}}" alt="Design Puzzle: the ImageProxy has two states controlled by conditionals; redesign it with the pattern that cleans up state logic.">
+        <figcaption>A Design Puzzle with a callback to Chapter 10: <code>ImageProxy</code> has two states. Which pattern would you reach for?</figcaption>
+        {{SAYS:two-states-puzzle}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:image-testdrive}}" alt="Testing the Album Cover Viewer: the test drive builds a frame of ImageProxy objects for a list of cover URLs, two of them broken on purpose.">
+        <figcaption>The test drive: a grid of proxies for real cover URLs, and one deliberately bad URL to show that a proxy can fail gracefully.</figcaption>
+        {{SAYS:image-testdrive}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:what-we-did}}" alt="What did we do? Two diagrams of the album cover viewer, before and after, showing the proxy inserted between the viewer and the real image.">
+        <figcaption>What we did, in one drawing: the viewer used to talk to <code>ImageIcon</code>; now it talks to <code>ImageProxy</code>, which talks to <code>ImageIcon</code> when it is ready.</figcaption>
+        {{SAYS:what-we-did}}
+      </figure>
+    </div>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:virtual-qa}}" alt="Dumb Questions about the virtual proxy: why the remote and virtual proxies look so different, how Proxy relates to Decorator and Adapter, and whether they are really one pattern.">
+        <figcaption>The Dumb Questions that matter most: Proxy vs. Decorator vs. Adapter. All three wrap; only one of them is about <em>access</em>.</figcaption>
+        {{SAYS:virtual-qa}}
+      </figure>
+      <div class="note ok" style="margin-top:0">
+        <strong>The answer to the puzzle.</strong> Two states, two conditional branches, and a behaviour that changes when the image arrives — that is the <em>State</em> Pattern from Chapter 10. Give <code>ImageProxy</code> an <code>ImageNotLoaded</code> state and an <code>ImageLoaded</code> state; <code>paintIcon()</code> delegates and the state object decides. The pattern you learned three chapters ago is the refactor for the one you just learned.
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:34px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:fireside-1}}" alt="Fireside Chats: Decorator and Proxy discuss how similar their class diagrams are, and Decorator points out that Proxy controls access while it adds behaviour.">
+        <figcaption>Fireside Chats, part one: Decorator and Proxy have the same shape, and Decorator is not happy about it.</figcaption>
+        {{SAYS:fireside-1}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:fireside-2}}" alt="Fireside Chats, concluded: Proxy explains that it controls access and may create the subject itself, while Decorator is always handed the object it wraps.">
+        <figcaption>Part two, and the distinction in one line: a Decorator is given the object it wraps; a Proxy often creates it.</figcaption>
+        {{SAYS:fireside-2}}
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================ 4. PROTECTION PROXY -->
+<section id="px-protection">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>access rights, checked at call time</span></div>
+    <h2>The protection proxy: Elroy needs a bodyguard</h2>
+    <p class="sub">Objectville’s dating service lets any client call any <code>Person</code> method, so anyone can change anyone’s interests or vote for themselves. A protection proxy wraps the person and refuses the calls the caller is not allowed to make — and Java can build it <em>at runtime</em>, without a class per person.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:dynamic-proxy}}" alt="Using the Java API’s Proxy to create a protection proxy: the stack of classes needed to build a dynamic proxy — interface, invocation handler, and Proxy.newProxyInstance.">
+        <figcaption>Flavour three. A protection proxy needs one class per interface if you write it by hand; Java’s <code>Proxy</code> class builds it for you at runtime.</figcaption>
+        {{SAYS:dynamic-proxy}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:person-interface}}" alt="Geeky Matchmaking: the Person interface with getName, getGender, getInterests, getGeekRating, setName, setGender, setInterests and setGeekRating.">
+        <figcaption><code>Person</code>: four getters and four setters. Nothing in the interface stops a stranger from calling <code>setGeekRating(10)</code>.</figcaption>
+        {{SAYS:person-interface}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:person-impl}}" alt="The Person implementation: fields for name, gender, interests, rating and rating count, with getGeekRating dividing the rating sum by the count.">
+        <figcaption><code>PersonImpl</code>: <code>rating</code> is a running sum, <code>ratingCount</code> the number of votes, and <code>getGeekRating()</code> returns 0 when nobody has voted yet.</figcaption>
+        {{SAYS:person-impl}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:elroy}}" alt="Elroy’s complaint: someone changed his interests and people are bumping up their own Geek scores, so he wants control over who can change his data.">
+        <figcaption>Elroy’s bug report is the requirement: “You shouldn’t be able to change someone else’s interests or give yourself a high rating.”</figcaption>
+        {{SAYS:elroy}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG11:five-minute-drama}}" alt="The five-minute drama: the matchmaking service, a customer, a stranger and the proxy that decides which calls get through.">
+      <figcaption>The five-minute drama in one panel: the customer and a stranger both hold a <code>Person</code>; only the proxy knows which one is which.</figcaption>
+      {{SAYS:five-minute-drama}}
+    </figure>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG11:big-picture-protection}}" alt="Big Picture: creating a Dynamic Proxy for the Person — the Person interface, PersonImpl, an InvocationHandler and Proxy.newProxyInstance producing a proxy class.">
+      <figcaption>The big picture: <code>Proxy.newProxyInstance(classLoader, interfaces, handler)</code> returns an object that implements <code>Person</code> and forwards every call to your handler.</figcaption>
+      {{SAYS:big-picture-protection}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:invocation-handler}}" alt="Step one: creating Invocation Handlers — an InvocationHandler implements invoke(proxy, method, args) and decides what to do with each call.">
+        <figcaption>Step one: the handler. One <code>invoke()</code> method decides whether to forward, rewrite or refuse, for every method on the interface.</figcaption>
+        {{SAYS:invocation-handler}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:owner-handler}}" alt="Creating an Invocation Handler, continued: OwnerInvocationHandler allows getters and setters except setGeekRating, which throws IllegalAccessException.">
+        <figcaption><code>OwnerInvocationHandler</code>: a person may read and edit their own profile — but may not rate themselves.</figcaption>
+        {{SAYS:owner-handler}}
+      </figure>
+    </div>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <div class="code">
+        <header><span class="fname">OwnerInvocationHandler.java</span><span class="tagline">the rights check, in full</span></header>
+<pre><span class="kw">import</span> java.lang.reflect.*;
+
+<span class="kw">public class</span> <span class="type">OwnerInvocationHandler</span> <span class="kw">implements</span> InvocationHandler {
+  Person person;
+
+  <span class="kw">public</span> OwnerInvocationHandler(Person person) {
+    <span class="kw">this</span>.person = person;
+  }
+
+  <span class="kw">public</span> Object invoke(Object proxy, Method method, Object[] args)
+      <span class="kw">throws</span> IllegalAccessException {
+    <span class="kw">try</span> {
+      <span class="kw">if</span> (method.getName().startsWith(<span class="str">"get"</span>)) {
+        <span class="kw">return</span> method.invoke(person, args);
+      } <span class="kw">else if</span> (method.getName().equals(<span class="str">"setGeekRating"</span>)) {
+        <span class="kw">throw new</span> IllegalAccessException();
+      } <span class="kw">else if</span> (method.getName().startsWith(<span class="str">"set"</span>)) {
+        <span class="kw">return</span> method.invoke(person, args);
+      }
+    } <span class="kw">catch</span> (InvocationTargetException e) {
+      e.printStackTrace();
+    }
+    <span class="kw">return null</span>;
+  }
+}</pre>
+      </div>
+      <div>
+        <h3>Same code, mirrored</h3>
+        <p><code>NonOwnerInvocationHandler</code> is the same class with the branches swapped: any <code>set</code> method throws <code>IllegalAccessException</code> <em>except</em> <code>setGeekRating</code>, which is the one thing a non-owner is allowed to do.</p>
+        <ul class="bullets">
+          <li><strong>The subject never changes.</strong> <code>PersonImpl</code> has no idea a proxy exists; its methods are still public.</li>
+          <li><strong>Rights live in the handler.</strong> Change the policy, change one <code>invoke()</code>.</li>
+          <li><strong>Refusal is an exception.</strong> <code>IllegalAccessException</code> is thrown from the handler, not from <code>PersonImpl</code>.</li>
+          <li><strong>The proxy is generated.</strong> No <code>OwnerPersonProxy</code> class exists on disk — <code>Proxy.newProxyInstance()</code> invents it.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:nonowner-exercise}}" alt="Exercise: write the NonOwnerInvocationHandler, allowing setGeekRating and disallowing every other set method.">
+        <figcaption>Your turn — the mirror-image handler. Blank box, one rule: allow <code>setGeekRating</code>, refuse every other setter.</figcaption>
+        {{SAYS:nonowner-exercise}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:create-proxy}}" alt="Step two: creating the Proxy class and instantiating the Proxy object — the getOwnerProxy and getNonOwnerProxy factory methods call Proxy.newProxyInstance.">
+        <figcaption>Step two: the factory methods. <code>Proxy.newProxyInstance()</code> takes the class loader, the interfaces and the handler, and hands back a <code>Person</code>.</figcaption>
+        {{SAYS:create-proxy}}
+      </figure>
+    </div>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <div class="code">
+        <header><span class="fname">MatchMakingTestDrive.java</span><span class="tagline">the factories</span></header>
+<pre><span class="kw">public</span> Person getOwnerProxy(Person person) {
+  <span class="kw">return</span> (Person) Proxy.newProxyInstance(
+      person.getClass().getClassLoader(),
+      person.getClass().getInterfaces(),
+      <span class="kw">new</span> OwnerInvocationHandler(person));
+}
+
+<span class="kw">public</span> Person getNonOwnerProxy(Person person) {
+  <span class="kw">return</span> (Person) Proxy.newProxyInstance(
+      person.getClass().getClassLoader(),
+      person.getClass().getInterfaces(),
+      <span class="kw">new</span> NonOwnerInvocationHandler(person));
+}</pre>
+      </div>
+      <div class="code">
+        <header><span class="fname">console</span><span class="tagline">the book’s output, exactly</span></header>
+<pre>Name is Joe Javabean
+Interests set from owner proxy
+Can't set rating from owner proxy
+Rating is 7
+Name is Joe Javabean
+Can't set interests from non owner proxy
+Rating set from non owner proxy
+Rating is 5</pre>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:matchmaking-test}}" alt="Testing the matchmaking service: the test drive creates a Joe Javabean, two proxies, and calls methods that should and should not be allowed.">
+        <figcaption>The test drive: <code>joe.setGeekRating(7)</code> once, then the same calls through the owner proxy and the non-owner proxy.</figcaption>
+        {{SAYS:matchmaking-test}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:matchmaking-output}}" alt="Running the code: the output shows the owner proxy refusing setGeekRating and the non-owner proxy refusing setInterests, with the geek rating ending at 5.">
+        <figcaption>Running it: the owner proxy refuses the rating, the stranger’s proxy refuses the interests, and 7 and 3 average to <strong>5</strong>.</figcaption>
+        {{SAYS:matchmaking-output}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG11:matching-exercise}}" alt="Who does What? A table asking you to match Decorator, Facade, Proxy and Adapter with four descriptions.">
+      <figcaption>The chapter’s matching exercise — the four wrapping patterns, deliberately shuffled. Solution further down.</figcaption>
+      {{SAYS:matching-exercise}}
+    </figure>
+  </div>
+</section>
+<!-- ============================================================ 5. DEMO -->
+<section id="px-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>live demo</span></div>
+    <h2>Three proxies, one console</h2>
+    <p class="sub">The same pattern in its three teaching flavours. Ask three machines across Objectville for a report through their stubs; watch six album covers paint a placeholder first and load themselves second; try to break into Joe Javabean’s profile through an owner proxy and a stranger’s proxy.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>Objectville Proxy Playground</h3>
+        <div class="actions">
+          <button class="btn ghost" id="px-clear">Clear console</button>
+        </div>
+      </div>
+
+      <div class="cg-modes" id="px-tabs" role="tablist">
+        <button class="tab" role="tab" data-panel="remote" aria-selected="true">remote proxy</button>
+        <button class="tab" role="tab" data-panel="virtual" aria-selected="false">virtual proxy</button>
+        <button class="tab" role="tab" data-panel="protection" aria-selected="false">protection proxy</button>
+      </div>
+
+      <!-- ------------------------------------------------------ remote -->
+      <div class="px-panel" id="px-panel-remote">
+        <div class="px-remote">
+          <div class="px-machines" id="px-machines"></div>
+          <div class="px-side">
+            <div class="ad-card" style="margin-top:0">
+              <h4>The CEO’s monitor</h4>
+              <div class="ad-choices">
+                <button class="btn primary small" id="px-report">monitor.report()</button>
+                <button class="btn small" id="px-replay">run the book’s test drive</button>
+              </div>
+              <div class="ad-choices" style="margin-top:12px">
+                <label class="switch"><input type="checkbox" id="px-latency" checked><span>400 ms of network</span></label>
+              </div>
+              <p class="wx-hint" style="margin:10px 0 0">Each machine is a separate object in a separate heap. The monitor only ever touches a stub.</p>
+            </div>
+            <h4 class="rc-h4" style="margin-top:16px">What travels over the wire</h4>
+            <pre class="rc-tostring" id="px-wire">— no calls yet —</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ----------------------------------------------------- virtual -->
+      <div class="px-panel" id="px-panel-virtual" hidden>
+        <div class="ad-card" style="margin-top:0">
+          <h4>Album cover viewer · every cover is an ImageProxy</h4>
+          <div class="ad-choices">
+            <button class="btn primary small" id="px-paint">paintIcon() on every cover</button>
+            <button class="btn small" id="px-reset-covers">new viewer</button>
+            <label class="switch"><input type="checkbox" id="px-slow"><span>slow network (2–4 s)</span></label>
+          </div>
+          <p class="wx-hint" style="margin:10px 0 0">Before an image exists the proxy reports <code>800 × 600</code> and paints “Loading album cover, please wait…”. When the thread finishes, <code>c.repaint()</code> paints the real 400 × 400 cover.</p>
+        </div>
+        <div class="px-covers" id="px-covers"></div>
+      </div>
+
+      <!-- -------------------------------------------------- protection -->
+      <div class="px-panel" id="px-panel-protection" hidden>
+        <div class="px-protect">
+          <div>
+            <div class="ad-card" style="margin-top:0">
+              <h4>Joe Javabean · PersonImpl</h4>
+              <div class="px-person" id="px-person"></div>
+              <div class="ad-choices" style="margin-top:12px">
+                <button class="btn primary small" id="px-run-match">run MatchMakingTestDrive</button>
+                <button class="btn ghost small" id="px-reset-joe">reset Joe</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="ad-card" style="margin-top:0">
+              <h4>owner proxy · OwnerInvocationHandler</h4>
+              <div class="ad-choices">
+                <button class="btn small" data-proxy="owner" data-call="getInterests">getInterests()</button>
+                <button class="btn small" data-proxy="owner" data-call="setInterests">setInterests("bowling, Go")</button>
+                <button class="btn small" data-proxy="owner" data-call="setGeekRating">setGeekRating(10)</button>
+                <button class="btn small" data-proxy="owner" data-call="getGeekRating">getGeekRating()</button>
+              </div>
+            </div>
+            <div class="ad-card" style="margin-top:12px">
+              <h4>non-owner proxy · NonOwnerInvocationHandler</h4>
+              <div class="ad-choices">
+                <button class="btn small" data-proxy="nonowner" data-call="setGeekRating">setGeekRating(3)</button>
+                <button class="btn small" data-proxy="nonowner" data-call="setInterests">setInterests("bowling, Go")</button>
+                <button class="btn small" data-proxy="nonowner" data-call="getGeekRating">getGeekRating()</button>
+                <button class="btn small" data-proxy="nonowner" data-call="getInterests">getInterests()</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">console</span>
+        </header>
+        <div class="body" id="px-log"></div>
+        <footer><button class="btn small" id="px-clear2">Clear console</button></footer>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>Try this:</strong> turn a crank on Austin’s machine, then press <code>monitor.report()</code>. The number changes because the monitor is reading the <em>real</em> object through its stub — there is no cached copy anywhere on the client.
+      </div>
+      <div class="note warn">
+        <strong>And this:</strong> in the protection tab, press <code>setGeekRating(10)</code> on the owner proxy. The handler throws <code>IllegalAccessException</code> before <code>PersonImpl</code> is ever reached — the subject cannot know it was refused.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 6. CHEAT SHEET -->
+<section id="px-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 6</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 11 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>One more request from the corner office</h4><p>Monitor every gumball machine without leaving the desk. The monitor works — it just has to reach objects in other JVMs.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Remote proxy</h4><p>A local stand-in for a remote object. It forwards calls and returns results; the client thinks the object is local.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>RMI in five steps</h4><p>Remote interface → implementation extends <code>UnicastRemoteObject</code> → <code>rmiregistry</code> → <code>Naming.rebind()</code> → <code>Naming.lookup()</code>.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The stub is the proxy</h4><p>Six steps per call: client → stub → wire → skeleton → service → and back. The registry is used once, at lookup time.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Making the machine remote</h4><p><code>GumballMachineRemote</code> declares the three getters; every <code>State</code> extends <code>Serializable</code>; the stub reference is <code>transient</code>.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Virtual proxy</h4><p><code>ImageProxy</code> reports 800×600, paints a loading message, fetches on a thread and repaints. “Expensive to create” now costs nothing up front.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Protection proxy</h4><p>An <code>InvocationHandler</code> checks the method name: getters always pass, <code>setGeekRating</code> only for non-owners, other setters only for owners.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Dynamic proxy</h4><p><code>Proxy.newProxyInstance(loader, interfaces, handler)</code> generates the proxy class at runtime; rights live in the handler, not in a class.</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The book’s bullet points</h3>
+        <ul class="bullets">
+          <li>The Proxy Pattern provides a representative for another object in order to control the client’s access to it.</li>
+          <li>A Remote Proxy manages interaction between a client and a remote object.</li>
+          <li>A Virtual Proxy controls access to an object that is expensive to create.</li>
+          <li>A Protection Proxy controls access to an object based on access rights.</li>
+          <li>There are many other variants: firewall, caching, synchronization, copy-on-write, complexity-hiding.</li>
+          <li>Proxy and Decorator have the same class diagram but different intent: Decorator adds behaviour, Proxy controls access.</li>
+          <li>Proxy and Adapter both wrap, but Adapter changes the interface while Proxy keeps it the same.</li>
+          <li>Proxy and Facade both sit in front of something, but a Facade hides a <em>subsystem</em> behind a simpler interface.</li>
+          <li>Java’s dynamic proxy creates a proxy class at runtime from an interface list and an <code>InvocationHandler</code>.</li>
+          <li>A proxy can also be a smart reference: counting references, locking, or caching on the client’s behalf.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Who wraps what, and why</h3>
+        <table class="compare">
+          <thead><tr><th>Pattern</th><th>Wraps</th><th>Interface</th><th>Intent</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Proxy</strong></td><td>one object</td><td>same</td><td>control access</td></tr>
+            <tr><td>Decorator</td><td>one object</td><td>same</td><td>add behaviour</td></tr>
+            <tr><td>Adapter</td><td>one object</td><td><strong>different</strong></td><td>make it fit</td></tr>
+            <tr><td>Facade</td><td>a subsystem</td><td><strong>simpler</strong></td><td>hide complexity</td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:14px">
+          <strong>The book’s matching solution:</strong> Decorator — wraps another object and provides additional behaviour. Facade — wraps a bunch of objects to simplify their interface. Proxy — wraps an object to control access to it. Adapter — wraps another object and provides a different interface to it.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:34px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:proxy-zoo-1}}" alt="The Proxy Zoo, first half: firewall proxy, smart reference proxy, caching proxy, each with its habitat and a short description.">
+        <figcaption>The Proxy Zoo, cage one: firewall, smart reference and caching proxies — three more ways to “control access”.</figcaption>
+        {{SAYS:proxy-zoo-1}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:proxy-zoo-2}}" alt="The Proxy Zoo, second half: synchronization, complexity-hiding and copy-on-write proxies, plus a field-notes box for readers.">
+        <figcaption>Cage two: synchronization, complexity-hiding and copy-on-write. The complexity-hiding proxy differs from a Facade because it still <em>controls</em> access.</figcaption>
+        {{SAYS:proxy-zoo-2}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:crossword11}}" alt="Design Patterns Crossword: twelve across clues and twelve down clues covering every pattern in the book so far.">
+        <figcaption>The chapter’s crossword — twelve across, twelve down, and half the answers are patterns you have already met.</figcaption>
+        {{SAYS:crossword11}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:crossword-solution11}}" alt="Design Patterns Crossword Solution: the completed grid.">
+        <figcaption>The grid, solved. Across: APHEXTWIN, WEBPROXY, SKELETON, PROTECTION, ENIGMA, DYNAMIC, ZOO, VIRTUAL, STUB, DETOUR, SUSPENDERS. Down: GEEKS, INVOCATIONHANDLER, RMIREGISTRY, VIRTUAL, METHODINVOCATION, ELROY, REMOTE, DECORATOR.</figcaption>
+        {{SAYS:crossword-solution11}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG11:toolbox11}}" alt="Tools for your Design Toolbox: the Proxy Pattern added, with its bullet points, alongside the OO basics, principles and the rest of the patterns.">
+      <figcaption>The toolbox, now with thirteen patterns. No new principles this chapter — the summary page says the Proxy Pattern is “a representative for another object in order to control the client’s access to it”.</figcaption>
+      {{SAYS:toolbox11}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:nonowner-solution}}" alt="The NonOwnerInvocationHandler solution, plus the Design Puzzle solution for the ImageProxy state redesign.">
+        <figcaption>Two solutions on one page: the mirrored handler, and the Design Puzzle — give the proxy two states and let Chapter 10’s pattern do the branching.</figcaption>
+        {{SAYS:nonowner-solution}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG11:matching-solution}}" alt="The matching solution: Decorator, Facade, Proxy and Adapter each wired to the correct description.">
+        <figcaption>The matching solution: Decorator adds behaviour, Facade simplifies a bunch, Proxy controls access, Adapter changes the interface.</figcaption>
+        {{SAYS:matching-solution}}
+      </figure>
+    </div>
+
+    <div class="quiz" style="margin-top:34px" id="px-quiz">
+      <h3 style="margin-top:0">Check yourself: the Proxy Pattern</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="px-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. A proxy and its real subject implement the same interface, so a client can treat the proxy exactly like the subject.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="B"><span class="txt">B. A remote proxy hides the network: the client calls a local stub as if the remote object were in the same heap.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="C"><span class="txt">C. A virtual proxy can stand in for an object that is expensive to create and only create it when it is actually needed.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="D"><span class="txt">D. A proxy changes the interface of the object it wraps.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="E"><span class="txt">E. Java’s dynamic proxy requires you to write one proxy class per interface at compile time.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="F"><span class="txt">F. Decorator and Proxy have the same class diagram: Decorator adds behaviour, Proxy controls access.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="px-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="px-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="px-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>The chapter in one sentence:</strong> put an object with the same interface in front of your subject, decide what gets through — a network call, a delayed download, an access check — and every client keeps working unchanged.
+    </div>
+
+    <p style="margin-top:22px;font-size:.92rem;color:var(--ink-soft)">Next in the book: <strong>Chapter 12, Compound Patterns</strong> — ducks that quack, flocks that honk, and the MVC machine that puts every pattern in this page together.</p>
+  </div>
+</section>
+<script>
+/* =========================================================== chapter 11 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#px-log');
+  if (!logBox) return;
+
+  const log = (text, cls = 'out') => {
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = text;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  const say = t => log(t, 'out');
+  const dim = t => log(t, 'dim');
+  const call = t => log(t, 'call');
+  const err = t => log(t, 'err');
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  /* ---------------------------------------------------------------- tabs */
+  const tabs = $$('#px-tabs .tab');
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+    $$('#px-demo .px-panel').forEach(p => { p.hidden = p.id !== `px-panel-${tab.dataset.panel}`; });
+  }));
+
+  $('#px-clear').addEventListener('click', () => { logBox.innerHTML = ''; });
+  $('#px-clear2').addEventListener('click', () => { logBox.innerHTML = ''; });
+
+  /* ============================================================ REMOTE */
+  const MACHINES = [
+    { host: 'santafe.mightygumball.com', count: 99,  state: 'waiting for quarter' },
+    { host: 'boulder.mightygumball.com', count: 44,  state: 'waiting for turn of crank' },
+    { host: 'austin.mightygumball.com',  count: 187, state: 'waiting for quarter' }
+  ];
+  const FROM_BOOK = MACHINES.map(m => ({ ...m }));
+
+  const machineState = m => m.count === 0 ? 'sold out' : m.state;
+
+  const renderMachines = () => {
+    $('#px-machines').innerHTML = MACHINES.map((m, i) => `
+      <div class="px-machine" data-host="${m.host}">
+        <div class="px-host">${m.host}</div>
+        <div class="px-count">${m.count}</div>
+        <div class="px-countlabel">gumballs</div>
+        <div class="px-state">${machineState(m)}</div>
+        <div class="px-machinebtns">
+          <button class="btn small" data-m="${i}" data-act="insert">insertQuarter()</button>
+          <button class="btn small" data-m="${i}" data-act="crank">turnCrank()</button>
+        </div>
+      </div>`).join('');
+  };
+
+  const wire = lines => { $('#px-wire').textContent = lines.join('\n'); };
+
+  const crank = (m, i) => {
+    call(`stub${i + 1}.turnCrank()   // the client's only reference is the stub`);
+    if (m.count === 0) {
+      err("You turned, but there are no gumballs");
+      wire([`stub.turnCrank()  →  serialize  →  skeleton  →  ${m.host}.turnCrank()`,
+            `return: (void)   // the machine is sold out`]);
+      return;
+    }
+    if (m.state !== 'waiting for turn of crank') {
+      err("You turned, but there's no quarter");
+      wire([`stub.turnCrank()  →  serialize  →  skeleton  →  ${m.host}.turnCrank()`,
+            `return: (void)   // NoQuarterState said no`]);
+      return;
+    }
+    m.count -= 1;
+    m.state = 'waiting for quarter';
+    say('A gumball comes rolling out the slot...');
+    if (m.count === 0) { m.state = 'sold out'; say('Oops, out of gumballs!'); }
+    wire([`stub.turnCrank()  →  serialize("turnCrank")  →  skeleton`,
+          `${m.host}.turnCrank()   // the real method, in the other heap`,
+          `return: (void)   // inventory is now ${m.count}`]);
+  };
+
+  const insert = (m, i) => {
+    call(`stub${i + 1}.insertQuarter()`);
+    if (m.count === 0) err("You can't insert a quarter, the machine is sold out");
+    else if (m.state === 'waiting for turn of crank') err("You can't insert another quarter");
+    else { m.state = 'waiting for turn of crank'; say('You inserted a quarter'); }
+    wire([`stub.insertQuarter()  →  serialize  →  skeleton  →  ${m.host}.insertQuarter()`,
+          `return: (void)   // state is now ${machineState(m)}`]);
+  };
+
+  $('#px-machines').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const i = Number(btn.dataset.m);
+    if (btn.dataset.act === 'crank') crank(MACHINES[i], i);
+    else insert(MACHINES[i], i);
+    renderMachines();
+  });
+
+  const report = async () => {
+    call('monitor.report()   // GumballMonitor holds one GumballMachineRemote stub per machine');
+    const wait = $('#px-latency').checked;
+    for (let i = 0; i < MACHINES.length; i++) {
+      const m = MACHINES[i];
+      if (wait) await sleep(320);
+      dim(`stub${i + 1}.getLocation()   // a network round trip`);
+      say(`Gumball Machine: ${m.host}`);
+      say(`Current inventory: ${m.count} gumballs`);
+      say(`Current state: ${machineState(m)}`);
+    }
+    wire([`stub.getLocation()  →  skeleton  →  getLocation()`,
+          `stub.getCount()     →  skeleton  →  getCount()`,
+          `stub.getState()     →  skeleton  →  getState()  →  serialized State object`,
+          `the State travels back by value; the machine stays where it is`]);
+  };
+
+  $('#px-report').addEventListener('click', () => { report(); });
+
+  $('#px-replay').addEventListener('click', () => {
+    logBox.innerHTML = '';
+    FROM_BOOK.forEach((src, i) => { MACHINES[i].count = src.count; MACHINES[i].state = src.state; });
+    renderMachines();
+    call('%java GumballMonitorTestDrive   // the CEO runs this');
+    MACHINES.forEach(m => {
+      say(`Gumball Machine: ${m.host}`);
+      say(`Current inventory: ${m.count} gumballs`);
+      say(`Current state: ${machineState(m)}`);
+    });
+    dim('This is amazing; it’s going to revolutionize my business and blow away the competition!');
+    wire([`three lookups, three stubs, nine remote calls`,
+          `the registry is only used by Naming.lookup()`]);
+  });
+
+  renderMachines();
+
+  /* =========================================================== VIRTUAL */
+  const COVERS = [
+    ['Objectville Ska',      '#ffd45e', '#d64550'],
+    ['The Gumball Sessions', '#7fd1ae', '#1f8a63'],
+    ['Patterns in the Wild', '#9fb4f2', '#3f2a72'],
+    ['Duck Typing',          '#ffb877', '#c98b3e'],
+    ['Coffee & Code',        '#f2a7b5', '#8f1f2a'],
+    ['Elroy’s Mixtape',      '#cdbdf3', '#6b4bb0']
+  ];
+  let painting = false;
+
+  const renderCovers = () => {
+    $('#px-covers').innerHTML = COVERS.map(([title, a, b], i) => `
+      <div class="px-cover" data-state="idle" data-i="${i}">
+        <div class="px-art" style="--a:${a};--b:${b}">
+          <span class="px-loading">Loading album cover, please wait…</span>
+          <span class="px-title">${title}</span>
+        </div>
+        <div class="px-dims">800 × 600</div>
+      </div>`).join('');
+    painting = false;
+  };
+
+  const paint = async () => {
+    if (painting) return;
+    const pending = $$('#px-covers .px-cover').filter(t => t.dataset.state !== 'loaded');
+    if (!pending.length) {
+      dim('ImageProxy.paintIcon(): imageIcon.paintIcon(c, g, x, y)   // every cover is already loaded');
+      return;
+    }
+    painting = true;
+    const slow = $('#px-slow').checked;
+    call('albumFrame.repaint()   // the viewer paints every Icon it was given');
+    const tiles = $$('#px-covers .px-cover');
+    tiles.forEach(t => { if (t.dataset.state === 'loaded') return; t.dataset.state = 'loading'; });
+    tiles.forEach((tile, i) => {
+      if (tile.dataset.state === 'loaded') return;
+      const [title] = COVERS[i];
+      dim(`viewer.paintIcon(cover[${i}], g, x, y)   // ${title}`);
+      dim('ImageProxy.paintIcon(): imageIcon == null → drawString("Loading album cover, please wait...")');
+      const wait = slow ? 2200 + i * 450 : 500 + i * 180;
+      setTimeout(async () => {
+        const t = $(`#px-covers .px-cover[data-i="${i}"]`);
+        if (!t || t.dataset.state === 'loaded') return;
+        dim(`retrievalThread: imageIcon = new ImageIcon(url, "CD Cover")  // ${title} is 400 × 400`);
+        t.dataset.state = 'loaded';
+        t.querySelector('.px-dims').textContent = '400 × 400';
+        await sleep(0);
+        dim(`c.repaint() → ImageProxy.paintIcon(): imageIcon.paintIcon(c, g, x, y)`);
+        if (i === tiles.length - 1) painting = false;
+      }, wait);
+    });
+    if (!tiles.length) painting = false;
+  };
+
+  $('#px-paint').addEventListener('click', paint);
+  $('#px-reset-covers').addEventListener('click', () => {
+    renderCovers();
+    dim('new AlbumCoverViewer()   // six fresh ImageProxy objects, nothing downloaded');
+  });
+  renderCovers();
+
+  /* ======================================================== PROTECTION */
+  function PersonImpl() {
+    this.name = 'Joe Javabean';
+    this.gender = 'male';
+    this.interests = 'cars, computers, music';
+    this.ratingSum = 0;
+    this.ratingCount = 0;
+  }
+  PersonImpl.prototype.getName = function () { return this.name; };
+  PersonImpl.prototype.getGender = function () { return this.gender; };
+  PersonImpl.prototype.getInterests = function () { return this.interests; };
+  PersonImpl.prototype.getGeekRating = function () {
+    return this.ratingCount === 0 ? 0 : Math.floor(this.ratingSum / this.ratingCount);
+  };
+  PersonImpl.prototype.setName = function (n) { this.name = n; };
+  PersonImpl.prototype.setGender = function (g) { this.gender = g; };
+  PersonImpl.prototype.setInterests = function (i) { this.interests = i; };
+  PersonImpl.prototype.setGeekRating = function (r) { this.ratingSum += r; this.ratingCount += 1; };
+
+  const INTERFACE = ['getName', 'getGender', 'getInterests', 'getGeekRating',
+                     'setName', 'setGender', 'setInterests', 'setGeekRating'];
+
+  const POLICIES = {
+    owner: {
+      label: 'ownerProxy',
+      check(method) {
+        if (method.startsWith('get')) return 'allow';
+        if (method === 'setGeekRating') return 'block';
+        return 'allow';
+      },
+      refusal: "Can't set rating from owner proxy"
+    },
+    nonowner: {
+      label: 'nonOwnerProxy',
+      check(method) {
+        if (method.startsWith('get')) return 'allow';
+        if (method === 'setGeekRating') return 'allow';
+        return 'block';
+      },
+      refusal: "Can't set interests from non owner proxy"
+    }
+  };
+
+  class IllegalAccessException extends Error {}
+
+  let joe = new PersonImpl();
+
+  const fmt = v => typeof v === 'string' ? JSON.stringify(v) : String(v);
+
+  function newProxyInstance(target, policy) {
+    const proxy = {};
+    INTERFACE.forEach(method => {
+      proxy[method] = (...args) => {
+        const shown = args.map(fmt).join(', ');
+        call(`${policy.label}.${method}(${shown})`);
+        dim(`  handler.invoke(proxy, "${method}", [${shown}])`);
+        if (policy.check(method) === 'block') {
+          err('  IllegalAccessException  // thrown by the handler, not by PersonImpl');
+          throw new IllegalAccessException(policy.refusal);
+        }
+        const value = target[method](...args);
+        dim(`  method.invoke(person, [${shown}]) → ${value === undefined ? '(void)' : fmt(value)}`);
+        renderPerson();
+        return value;
+      };
+    });
+    return proxy;
+  }
+
+  const ownerProxy = newProxyInstance(joe, POLICIES.owner);
+  const nonOwnerProxy = newProxyInstance(joe, POLICIES.nonowner);
+
+  const renderPerson = () => {
+    $('#px-person').innerHTML = `
+      <div class="rc-dev"><span>name</span><b>${joe.name}</b></div>
+      <div class="rc-dev"><span>interests</span><b>${joe.interests}</b></div>
+      <div class="rc-dev"><span>rating sum / votes</span><b>${joe.ratingSum} / ${joe.ratingCount}</b></div>
+      <div class="rc-dev"><span>getGeekRating()</span><b>${joe.getGeekRating()}</b></div>`;
+  };
+  renderPerson();
+
+  const resetJoe = (quiet) => {
+    joe = new PersonImpl();
+    joe.setGeekRating(7);                 // the book's starting vote
+    const fresh = newProxyInstance(joe, POLICIES.owner);
+    const fresh2 = newProxyInstance(joe, POLICIES.nonowner);
+    Object.assign(ownerProxy, fresh);
+    Object.assign(nonOwnerProxy, fresh2);
+    renderPerson();
+    if (!quiet) dim('new PersonImpl(): Joe Javabean, "cars, computers, music", one 7-point vote');
+  };
+
+  const ACTIONS = {
+    'owner:getInterests':   () => { const v = ownerProxy.getInterests(); say(`  → ${fmt(v)}`); },
+    'owner:setInterests':   () => { ownerProxy.setInterests('bowling, Go'); say('Interests set from owner proxy'); },
+    'owner:setGeekRating':  () => { try { ownerProxy.setGeekRating(10); } catch (e) { say(e.message || "Can't set rating from owner proxy"); } },
+    'owner:getGeekRating':  () => { const v = ownerProxy.getGeekRating(); say(`  → Rating is ${v}`); },
+    'nonowner:setGeekRating': () => {
+      nonOwnerProxy.setGeekRating(3);
+      say('Rating set from non owner proxy');
+      say(`Rating is ${nonOwnerProxy.getGeekRating()}`);
+    },
+    'nonowner:setInterests':  () => { try { nonOwnerProxy.setInterests('bowling, Go'); } catch (e) { say(e.message || "Can't set interests from non owner proxy"); } },
+    'nonowner:getGeekRating': () => { const v = nonOwnerProxy.getGeekRating(); say(`  → Rating is ${v}`); },
+    'nonowner:getInterests':  () => { const v = nonOwnerProxy.getInterests(); say(`  → ${fmt(v)}`); }
+  };
+
+  $$('[data-proxy][data-call]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = `${btn.dataset.proxy}:${btn.dataset.call}`;
+      if (ACTIONS[key]) ACTIONS[key]();
+    });
+  });
+
+  $('#px-reset-joe').addEventListener('click', () => resetJoe(false));
+
+  $('#px-run-match').addEventListener('click', () => {
+    logBox.innerHTML = '';
+    resetJoe(true);
+    call('java MatchMakingTestDrive   // the book’s own sequence');
+    say(`Name is ${ownerProxy.getName()}`);
+    ownerProxy.setInterests('bowling, Go');
+    say('Interests set from owner proxy');
+    try { ownerProxy.setGeekRating(10); } catch (e) { say(e.message || "Can't set rating from owner proxy"); }
+    say(`Rating is ${ownerProxy.getGeekRating()}`);
+    say(`Name is ${nonOwnerProxy.getName()}`);
+    try { nonOwnerProxy.setInterests('bowling, Go'); } catch (e) { say(e.message || "Can't set interests from non owner proxy"); }
+    nonOwnerProxy.setGeekRating(3);
+    say('Rating set from non owner proxy');
+    say(`Rating is ${nonOwnerProxy.getGeekRating()}`);
+    renderPerson();
+  });
+
+  dim('Proxy playground ready: three remote stubs, six virtual album covers, two protection proxies.');
+})();
+
+/* --------------------------------------------------------------- quiz */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const box = $('#px-quiz');
+  if (!box) return;
+
+  const opts   = $$('#px-quiz-opts .opt', box);
+  const answer = $('#px-quiz-answer', box);
+
+  opts.forEach(opt => {
+    opt.addEventListener('change', () => {
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+  });
+
+  $('#px-quiz-check', box).addEventListener('click', () => {
+    const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    let right = 0;
+    const wrong = [];
+    opts.forEach(opt => {
+      const ticked  = opt.querySelector('input').checked;
+      const correct = opt.dataset.correct === '1';
+      const mark    = opt.querySelector('.mark');
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
+      else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
+      else { mark.textContent = ''; }
+    });
+    const allFound = right === correctSet.length;
+    answer.classList.remove('hidden');
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, B, C and F. D describes an <em>Adapter</em> — a proxy keeps the same interface. E is backwards: the dynamic proxy generates the class at runtime from <code>Proxy.newProxyInstance()</code>.`
+      : `<strong>All ${correctSet.length} correct.</strong> Same interface (A), hidden network (B), create-on-demand (C) and the Decorator/Proxy distinction (F).`;
+  });
+
+  $('#px-quiz-reset', box).addEventListener('click', () => {
+    opts.forEach(opt => {
+      opt.querySelector('input').checked = false;
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+    answer.classList.add('hidden');
+    answer.innerHTML = '';
+  });
+})();
+</script>

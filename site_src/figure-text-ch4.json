@@ -1,0 +1,225 @@
+{
+ "opener": [
+  "Chapter 4 · the Factory Pattern",
+  "“Baking with OO Goodness”",
+  "“Get ready to bake some loosely coupled OO designs. There is more to making objects than just using the new operator. You’ll learn that instantiation is an activity that shouldn’t always be done in public and can often lead to coupling problems.”"
+ ],
+ "new-concrete": [
+  "Thought bubble: “Okay, it’s been three chapters and you still haven’t answered my question about new. We aren’t supposed to program to an implementation, but every time I use new, that’s exactly what I’m doing, right?”",
+  "“When you see ‘new’, think ‘concrete’.”",
+  "“You, when you use the new operator you are certainly instantiating a concrete class, so that’s definitely an implementation and not an interface. And you make a good observation: that tying your code to a concrete class can make it more fragile and less flexible.”",
+  "Code: Duck duck = new MallardDuck();  —  “We want to use an abstract type to keep code flexible.” / “But we have to create an instance of a concrete class.”",
+  "“When we have a whole set of related concrete classes, often we end up writing code like this:”  if (picnic) { duck = new MallardDuck(); } else if (hunting) { duck = new DecoyDuck(); } else if (inBathTub) { duck = new RubberDuck(); }",
+  "“We have a bunch of different duck classes, and we don’t know until runtime which one we need to instantiate.”",
+  "“Here we’ve got several concrete classes being instantiated, and the decision of which to instantiate is made at runtime depending on some set of conditions.”",
+  "“When you see code like this, you know that when it comes time for changes or extensions, you’ll have to reopen this code and examine what needs to be added (or deleted). Often this kind of code ends up in several parts of the application, making maintenance and updates more difficult and error-prone.”"
+ ],
+ "orderpizza-varies": [
+  "Code: Pizza orderPizza(String type) { Pizza pizza; if (type.equals(\"cheese\")) { pizza = new CheesePizza(); } else if (type.equals(\"greek\")) { pizza = new GreekPizza(); } else if (type.equals(\"pepperoni\")) { pizza = new PepperoniPizza(); } else if (type.equals(\"clam\")) { pizza = new ClamPizza(); } else if (type.equals(\"veggie\")) { pizza = new VeggiePizza(); } pizza.prepare(); pizza.bake(); pizza.cut(); pizza.box(); return pizza; }",
+  "“This code is NOT closed for modification. If the PizzaStore changes its pizza offerings, we have to go in and edit this code.”",
+  "“This is what varies. As the pizza selection changes over time, you’ll have to modify this code over and over.”",
+  "“This is what we expect to stay the same. For the most part, preparing, baking, and packaging pizza has remained the same for years and years. So we don’t expect this code to change, just the pizzas it operates on.”",
+  "“Clearly, dealing with which concrete class is instantiated is really messing up our orderPizza() method and preventing it from being closed for modification. But now that we know what is varying and what isn’t, it’s probably time to encapsulate it.”"
+ ],
+ "simple-factory-flow": [
+  "“So now we know we’d be better off moving the object creation out of the orderPizza() method. But how? Well, what we’re going to do is take the creation code and move it out into another object that is only going to be concerned with creating pizzas.”",
+  "Code: Pizza orderPizza(String type) { Pizza pizza; … prepare(); bake(); cut(); box(); return pizza; }",
+  "“First we pull the object-creation code out of the orderPizza() method.”",
+  "“What’s going to go here?”",
+  "“Then we place that code in an object that is only going to worry about how to create pizzas. If any other object needs a pizza created, this is the object to come to.”",
+  "“We’ve got a name for this new object: we call it a Factory.”",
+  "The cloud holds the old selection: if (type.equals(\"cheese\")) { pizza = new CheesePizza(); } else if (type.equals(\"pepperoni\")) { pizza = new PepperoniPizza(); } … ; the arrow from the method points at a small circle labelled “SimplePizzaFactory”.",
+  "“Factories handle the details of object creation. Once we have a SimplePizzaFactory, our orderPizza() method becomes a client of that object. Any time it needs a pizza, it asks the pizza factory to make one. Gone are the days when the orderPizza() method needs to know about Greek versus Clam pizzas. Now the orderPizza() method just cares that it gets a pizza that implements the Pizza interface so that it can call prepare(), bake(), cut(), and box().”"
+ ],
+ "simple-factory-diagram": [
+  "“The Simple Factory actually isn’t a Design Pattern; it’s more of a programming idiom. But it is commonly used, so we’ve given it a Head First Pattern Honorable Mention. Some developers do mistake this idiom for the Factory Pattern, but the next time that happens you can subtly show you know your stuff; you just don’t strut as you educate them on the distinction.”",
+  "Badge: Pattern Honorable Mention.",
+  "Classes: PizzaStore (orderPizza()), SimplePizzaFactory (createPizza()), Pizza <<abstract>> (prepare(), bake(), cut(), box()), CheesePizza, VeggiePizza, ClamPizza, PepperoniPizza.",
+  "“This is the factory where we create pizzas. It should be the only part of our application that refers to concrete Pizza classes.”",
+  "“This is the product of the factory; what we call ‘product’ in this pattern.”",
+  "“We’ve defined Pizza as an abstract class with some helpful implementations that can be overridden.”",
+  "“The create method is often declared statically.”",
+  "“These are our concrete products. Each product needs to implement the Pizza interface (which in this case means ‘extend the abstract Pizza class’) and be able to be created by the factory and handed back to the client.”",
+  "“This is the client of the factory; PizzaStore gets the SimplePizzaFactory to get instances of pizza.”",
+  "“Think of Simple Factory as a warm-up. Next, we’ll explore two heavy-duty patterns that are both factories. But don’t worry, there’s more pizza to come!”"
+ ],
+ "franchise": [
+  "“Your Objectville Pizza Store has done so well that you’ve franchised the business, and now everyone wants a Pizza Store in their own neighborhood. As the franchisor, you want to ensure the quality of the franchise operations and so you want them to use your time-tested code.”",
+  "“But what about regional differences? Each franchise might want to offer different styles of pizzas (New York, Chicago, and California, to name a few), depending on where the franchise store is located and the tastes of the local pizza connoisseurs.”",
+  "“You want all the franchise pizza stores to leverage your PizzaStore code, so the pizzas are prepared in the same way.”",
+  "“One franchise wants a factory that makes NY-style pizzas: thin crust, tasty sauce, and just a little cheese.”",
+  "“Another franchise wants a factory that makes Chicago-style pizzas: their customers like pizzas with thick crust and tons of cheese.”",
+  "“If we take our SimplePizzaFactory and create three different factories — NYPizzaFactory, ChicagoPizzaFactory, and CaliforniaPizzaFactory — then we can just compose the PizzaStore with the appropriate factory and a franchise is good to go. That’s one approach.”"
+ ],
+ "framework": [
+  "Code: PizzaStore is now abstract — see why below.  public abstract class PizzaStore { public Pizza orderPizza(String type) { Pizza pizza; pizza = createPizza(type); pizza.prepare(); pizza.bake(); pizza.cut(); pizza.box(); return pizza; } abstract Pizza createPizza(String type); }",
+  "“Now createPizza is back to being a call to a method in the PizzaStore rather than on a factory object.”",
+  "“All this looks just the same.”",
+  "“Now we’ve moved our factory object to this method.”",
+  "“Our ‘factory method’ is now abstract in PizzaStore.”",
+  "“Now we’ve got a store waiting for subclasses; we’re going to have a subclass for each regional type: NYPizzaStore, ChicagoPizzaStore, CaliforniaPizzaStore, and each subclass is going to make the decision about what makes up a pizza.”"
+ ],
+ "subclasses-decide": [
+  "Classes: PizzaStore (createPizza(), orderPizza()) ← NYPizzaStore (createPizza()) and ChicagoPizzaStore (createPizza()).",
+  "“Each subclass provides an implementation of the createPizza() method, overriding the abstract createPizza() method in PizzaStore, while all subclasses make use of the orderPizza() method defined in PizzaStore. We could make the orderPizza() method final if we really wanted to enforce this.”",
+  "“If a franchise wants NY-style pizzas for its customers, it uses the NY subclass, which has its own createPizza() method, creating NY-style pizzas.”",
+  "“Similarly, by using the Chicago subclass, we get an implementation of createPizza() with Chicago ingredients.”",
+  "“Remember, createPizza() is abstract in PizzaStore, so all pizza store subclasses MUST implement the method.”",
+  "NYPizzaStore: if (type.equals(\"cheese\")) { pizza = new NYStyleCheesePizza(); } else if (type.equals(\"pepperoni\")) { pizza = new NYStylePepperoniPizza(); } else if (type.equals(\"clam\")) { pizza = new NYStyleClamPizza(); } else if (type.equals(\"veggie\")) { pizza = new NYStyleVeggiePizza(); }",
+  "ChicagoPizzaStore: if (type.equals(\"cheese\")) { pizza = new ChicagoStyleCheesePizza(); } else if (type.equals(\"pepperoni\")) { pizza = new ChicagoStylePepperoniPizza(); } else if (type.equals(\"clam\")) { pizza = new ChicagoStyleClamPizza(); } else if (type.equals(\"veggie\")) { pizza = new ChicagoStyleVeggiePizza(); }"
+ ],
+ "ethan-joel": [
+  "Ethan’s thought bubble: “I like NY-style pizza… you know, thin, crispy crust with a little cheese and really good sauce.”",
+  "Joel’s thought bubble: “I like Chicago-style deep dish pizza with thick crust and tons of cheese.”",
+  "“Ethan needs to order his pizza from a NY pizza store.”",
+  "“Joel needs to order his pizza from a Chicago pizza store. Same pizza-ordering method, but different kind of pizza!”",
+  "“So how do they order?” — 1. First, Joel and Ethan each need an instance of a PizzaStore. Joel needs to instantiate a ChicagoPizzaStore and Ethan needs a NYPizzaStore. 2. With a PizzaStore in hand, both Ethan and Joel call the orderPizza() method and pass in the type of pizza they want (cheese, veggie, and so on). 3. To create the pizza, the createPizza() method is called, which is defined in the two subclasses NYPizzaStore and ChicagoPizzaStore. As we defined them, the NYPizzaStore instantiates a NY-style pizza and the ChicagoPizzaStore instantiates a Chicago-style pizza. In either case, the Pizza is returned to the orderPizza() method. 4. The orderPizza() method has no idea what kind of pizza was created, but it knows it is a pizza and it prepares, bakes, cuts, and boxes it for Ethan and Joel."
+ ],
+ "pizza-console": [
+  "Code: public class PizzaTestDrive { public static void main(String[] args) { PizzaStore nyStore = new NYPizzaStore(); PizzaStore chicagoStore = new ChicagoPizzaStore(); Pizza pizza = nyStore.orderPizza(\"cheese\"); System.out.println(\"Ethan ordered a \" + pizza.getName() + \"\\n\"); pizza = chicagoStore.orderPizza(\"cheese\"); System.out.println(\"Joel ordered a \" + pizza.getName() + \"\\n\"); } }",
+  "“First we create two different stores.”",
+  "“We use one store to make Ethan’s order…”",
+  "“…and the other for Joel’s.”",
+  "“Both pizzas get prepared, the toppings get added, and the pizzas are baked, cut, and boxed. Our superclass doesn’t know what pizza is; it’s all handled just by manipulating the right pizza.”",
+  "java PizzaTestDrive — “Preparing NY Style Sauce and Cheese Pizza / Tossing dough… / Adding sauce… / Adding toppings: / Grated Reggiano cheese / Bake for 25 minutes at 350 / Cutting the pizza into diagonal slices / Place pizza in official PizzaStore box / Ethan ordered a NY Style Sauce and Cheese Pizza”",
+  "“Preparing Chicago Style Deep Dish Cheese Pizza / Tossing dough… / Adding sauce… / Adding toppings: / Shredded Mozzarella Cheese / Bake for 25 minutes at 350 / Cutting the pizza into square slices / Place pizza in official PizzaStore box / Joel ordered a Chicago Style Deep Dish Cheese Pizza”"
+ ],
+ "factory-method-diagram": [
+  "“It’s finally time to meet the Factory Method Pattern. All factory patterns encapsulate object creation. The Factory Method Pattern encapsulates object creation by letting subclasses decide what objects to create. Let’s check out these class diagrams to see who the players are in this pattern.”",
+  "The Creator classes: PizzaStore <<abstract>> (orderPizza(), createPizza()); NYPizzaStore (createPizza()); ChicagoPizzaStore (createPizza()).",
+  "“This is our abstract creator class. It defines an abstract factory method that the subclasses implement to produce products.”",
+  "“Often the creator contains code that depends on an abstract product, which is produced by a subclass. The creator never really knows which concrete product was produced.”",
+  "“Each franchise gets its own subclass of PizzaStore; it’s free to create its own style of pizza by implementing createPizza().”",
+  "“The createPizza() method is our factory method. It produces products.”",
+  "“Classes that produce products are called concrete creators.”",
+  "The Product classes: Pizza, extended by NYStyleCheesePizza, NYStyleVeggiePizza, NYStyleClamPizza, NYStylePepperoniPizza, ChicagoStyleCheesePizza, ChicagoStyleVeggiePizza, ChicagoStyleClamPizza, ChicagoStylePepperoniPizza.",
+  "“Factories produce products, and in the PizzaStore, our product is a Pizza.”",
+  "“These are the concrete products — all the pizzas that are produced by our stores.”"
+ ],
+ "parallel-hierarchies": [
+  "“For every concrete Creator, there’s typically a whole set of products that it creates. Chicago pizza creators create different types of Chicago-style pizza; New York pizza creators create different types of New York-style pizza, and so on. In fact, we can see our sets of Creator classes and their corresponding Product classes as parallel hierarchies.”",
+  "Left: “The Product classes” — Pizza (abstract) extended by NYStyleCheesePizza, NYStyleVeggiePizza, NYStyleClamPizza, NYStylePepperoniPizza and the Chicago-style equivalents.",
+  "Right: “The Creator classes” — PizzaStore <<abstract>> (orderPizza(), createPizza()) extended by NYPizzaStore and ChicagoPizzaStore.",
+  "“Notice how these class hierarchies are parallel: both have abstract classes that are extended by concrete classes, which know about specific implementations for NY and Chicago pizza.”",
+  "“The NYPizzaStore encapsulates all the knowledge about how to make NY-style pizza.”",
+  "“The ChicagoPizzaStore encapsulates all the knowledge about how to make Chicago-style pizza.”",
+  "“The factory method is the key to encapsulating the knowledge.”"
+ ],
+ "factory-method-defined": [
+  "“The Factory Method Pattern defines an interface for creating an object, but lets subclasses decide which class to instantiate. Factory Method lets a class defer instantiation to subclasses.”",
+  "Diagram: Product <<interface>>; ConcreteProduct; Creator <<abstract>> with factoryMethod() and anOperation(); ConcreteCreator with factoryMethod().",
+  "“Creator is a class that contains the implementations for all of the methods to manipulate products, except for the factory method.”",
+  "“The abstract factoryMethod() is what all Creator subclasses must implement.”",
+  "“ConcreteCreator implements the factoryMethod(), which is the method that actually produces products.”",
+  "“ConcreteCreator is responsible for creating one or more concrete products. It is the only class that has the knowledge of how to create these products.”",
+  "“All products must implement the same interface so that the classes that use the products can refer to the interface, not the concrete class.”",
+  "Margin note: “You could ask them what ‘decides’ means, but we bet you now understand this better than they do!”",
+  "“Because the Creator class is written without knowledge of the actual products that will be created, we say ‘decide’ not because the pattern allows subclasses themselves to decide, but rather, because the decision actually comes down to which subclass is used to create the product.”"
+ ],
+ "guru4": [
+  "Guru: Tell me about your training. — Student: Guru, I have taken my study of “encapsulate what varies” further.",
+  "Guru: Go on. — Student: I have learned that one can encapsulate the code that creates objects. When you have code that instantiates concrete classes, this is an area of frequent change. I learned a technique called “Factories” that allows you to encapsulate the behavior of instantiation.",
+  "Guru: And these “factories,” of what benefit are they? — Student: There are many. By placing all my creation code in one object or method, I avoid duplication in my code and provide one place to perform maintenance. That also means clients depend only upon interfaces rather than the concrete classes required to instantiate objects. As I have learned in my studies, this allows me to program to an interface, not an implementation, and that makes my code more flexible and extensible in the future.",
+  "Guru: Yes, your OO instincts are growing. Do you have any questions for your guru today? — Student: Guru, I know that by encapsulating object creation I am coding to abstractions and decoupling my client code from actual implementations. But my factory code must still use concrete classes to instantiate real objects. Am I not pulling the wool over my own eyes?",
+  "Guru: Object creation is a reality of life; we must create objects or we will never create a single Java application. But, with knowledge of this reality, we can design our code so that we have corralled this creation code like the sheep whose wool you would pull over your eyes. Once corralled, we can protect and care for the creation code. If we let our creation code run wild, then we will never collect its wool.",
+  "Student: Guru, I see the truth in this. — Guru: As I know you would. Now, please go and meditate on object dependencies."
+ ],
+ "dependencies": [
+  "“When you directly instantiate an object, you are depending on its concrete class. Take a look at our very dependent PizzaStore one page back. It creates all the pizza objects right in the PizzaStore class instead of delegating to a factory.”",
+  "“This version of the PizzaStore depends on all those pizza objects, because it’s creating them directly.”",
+  "“If the implementation of these classes changes, then we may have to modify in PizzaStore.”",
+  "“Because any change to the concrete implementations of pizzas affects the PizzaStore, we say that the PizzaStore ‘depends on’ the pizza implementations.”",
+  "“Every new kind of pizza we add creates another dependency for PizzaStore.”",
+  "The eight concrete classes PizzaStore is glued to: NYStyleCheesePizza, NYStyleVeggiePizza, NYStylePepperoniPizza, NYStyleClamPizza, ChicagoStylePepperoniPizza, ChicagoStyleClamPizza, ChicagoStyleCheesePizza, ChicagoStyleVeggiePizza."
+ ],
+ "dip": [
+  "“It should be pretty clear that reducing dependencies to concrete classes in our code is a ‘good thing.’ In fact, we’ve got an OO design principle that formalizes this notion; it even has a big, formal name: Dependency Inversion Principle.”",
+  "Design Principle: “Depend upon abstractions. Do not depend upon concrete classes.”",
+  "Handwritten margin note: “Yet another phrase you can use to impress the execs in the room! Your raise will more than offset the cost of this book, and you’ll gain the admiration of your fellow developers.”",
+  "“At first, this principle sounds a lot like ‘Program to an interface, not an implementation,’ right? It is similar; however, the Dependency Inversion Principle makes an even stronger statement about abstraction. It suggests that our high-level components should not depend on our low-level components; rather, they should both depend on abstractions.”",
+  "“A ‘high-level’ component is a class with behavior defined in terms of other, ‘low-level’ components. For example, PizzaStore is a high-level component because its behavior is defined in terms of the various pizzas it sells: it creates all the different pizza objects, and prepares, bakes, cuts, and boxes them, while the pizzas it uses are low-level components.”"
+ ],
+ "dip-applied": [
+  "“Now, the main problem with the very dependent PizzaStore is that it depends on every type of pizza because it actually instantiates concrete types in its orderPizza() method.”",
+  "“While we’ve created an abstraction, Pizza, we’re nevertheless creating concrete Pizzas in this code, so we don’t get a lot of leverage out of this abstraction.”",
+  "“How can we get those instantiations out of the orderPizza() method? Well, as we know, the Factory Method Pattern allows us to do just that.”",
+  "“So, after we’ve applied the Factory Method Pattern, our diagram looks like this:” PizzaStore and eight concrete pizzas both pointing at the abstraction Pizza.",
+  "“PizzaStore now depends only on Pizza, the abstract class.”",
+  "“Pizza is an abstract class—an abstraction.”",
+  "“The concrete pizza classes depend on the Pizza abstraction too, because they implement the Pizza interface (remember, we’re using ‘interface’ in the general sense) in the Pizza abstract class.”",
+  "“After applying Factory Method, you’ll notice that our high-level component, the PizzaStore, and our low-level components, the pizzas, both depend on Pizza, the abstract class. Applying the Dependency Inversion Principle to the PizzaStore has followed through on the design principle.”"
+ ],
+ "dip-guidelines": [
+  "“The following guidelines can help you avoid OO designs that violate the Dependency Inversion Principle:”",
+  "“No variable should hold a reference to a concrete class.” — “If you use new, you’ll be holding a reference to a concrete class. Use a factory to get around that!”",
+  "“No class should derive from a concrete class.” — “If you derive from a concrete class, you’re depending on a concrete class. Derive from an abstraction, like an interface or an abstract class.”",
+  "“No method should override an implemented method of any of its base classes.” — “If you override an implemented method, then your base class wasn’t really an abstraction to start with. Those methods implemented in the base class are meant to be shared by all your subclasses.”",
+  "Thought bubble: “But wait, aren’t these guidelines impossible to follow? If I follow these, I’ll never be able to write a single program!”",
+  "“You’re exactly right! Like many of our principles, this is a guideline you should strive for, rather than a rule you should follow all the time. Clearly, every single Java program ever written violates these guidelines! … if you have a class that isn’t likely to change, and you know it, then it’s not the end of the world if you instantiate a concrete class in your code. Think about it; we instantiate String objects all the time without thinking twice. Does that violate the principle? Yes. Is that okay? Yes. Why? Because String is very unlikely to change.”"
+ ],
+ "families": [
+  "“New York uses one set of ingredients and Chicago another. Given the popularity of Objectville Pizza, won’t be long before we also need to ship another set of regional ingredients to California, and what’s next? Austin?”",
+  "Chicago family: FrozenClams, PlumTomatoSauce, ThickCrustDough, MozzarellaCheese.",
+  "New York family: FreshClams, MarinaraSauce, ThinCrustDough, ReggianoCheese.",
+  "California family: FrozenClams, BruschettaSauce, VeryThinCrustDough, GoatCheese.",
+  "“All Objectville’s Pizzas are made from the same components, but each region has a different implementation of those components.”",
+  "“Each family consists of a type of dough, a type of sauce, a type of cheese, and a seafood topping (along with a few more we haven’t shown, like veggies and spices).”",
+  "“In total, these three regions make up ingredient families, with each region implementing a complete family of ingredients.”"
+ ],
+ "abstract-factory-diagram": [
+  "“The Abstract Factory Pattern provides an interface for creating families of related or dependent objects without specifying their concrete classes.”",
+  "Classes: Client; AbstractFactory (CreateProductA(), CreateProductB()); AbstractProductA, AbstractProductB; ConcreteFactory1, ConcreteFactory2; ProductA1, ProductA2, ProductB1, ProductB2.",
+  "“The Abstract Factory defines the interface that all Concrete factories must implement, which consists of a set of methods for producing products.”",
+  "“The concrete factories implement the different product families. To create a product, the client uses one of these factories, so it never has to instantiate a product object.”",
+  "“This is the product family. Each concrete factory can produce an entire set of products.”",
+  "“The Client is written against the abstract factory and then composed at runtime with an actual factory.”"
+ ],
+ "ingredient-factory": [
+  "“That’s a fairly complicated class diagram; let’s look at it all in terms of our PizzaStore:”",
+  "“The abstract PizzaIngredientFactory is the interface that defines how to make a family of related products—everything we need to make a pizza.”",
+  "“The clients of the Abstract Factory are the two instances of our PizzaStore, NYPizzaStore and ChicagoStylePizzaStore.”",
+  "“The job of the concrete pizza factories is to make pizza ingredients. Each factory knows how to create the right objects for its region.”",
+  "“Each factory produces a different implementation for the family of products.”",
+  "Diagram: PizzaIngredientFactory <<interface>> with createDough(), createSauce(), createCheese(), createVeggies(), createPepperoni(), createClam(); NYPizzaIngredientFactory and ChicagoPizzaIngredientFactory; product families ThinCrustDough/ThickCrustDough, MarinaraSauce/PlumTomatoSauce, ReggianoCheese/MozzarellaCheese, FreshClams/FrozenClams, and Dough/Sauce/Cheese/Clams interfaces."
+ ],
+ "compare-fm": [
+  "“Factory Method and Abstract Factory compared.”",
+  "“PizzaStore is implemented as a Factory Method because we want to be able to create a product that varies by region. With the Factory Method, each region gets its own concrete factory that knows how to make pizzas that are appropriate for the area.”",
+  "“Provides an abstract interface for creating one product.”",
+  "“Each subclass decides which concrete class to instantiate.” / “The Factory Method” / “The Factory Method”",
+  "“The NYPizzaStore subclass instantiates only NY-style pizzas.” / “The ChicagoPizzaStore subclass instantiates only Chicago-style pizzas.”",
+  "“This is the product of the PizzaStore. Clients only rely on this abstract type.”",
+  "“Subclasses are instantiated by the Factory Methods.”",
+  "“The createPizza() method is parameterized by pizza type, so we can return many types of pizza products.”",
+  "“New York Store” / “Chicago Store” callouts on the two creator subclasses."
+ ],
+ "compare-af": [
+  "“PizzaIngredientFactory is implemented as an Abstract Factory because we need to create families of products (the ingredients). Each subclass implements the ingredients using its own regional suppliers.”",
+  "“Provides an abstract interface for creating a family of products.”",
+  "“Each concrete subclass creates a family of products.”",
+  "“Methods to create products in an Abstract Factory are often implemented with a Factory Method…”",
+  "“…for instance, the subclass decides the type of dough…”  “…or the type of clams.”",
+  "“Each ingredient represents a product that is produced by a Factory Method in the Abstract Factory.”",
+  "“The product subclasses create parallel sets of product families. Here we have a New York ingredient family and a Chicago family.”",
+  "“New York” and “Chicago” callouts next to the two ingredient factories."
+ ],
+ "toolbox4": [
+  "“Tools for your Design Toolbox — In this chapter, we added two more tools to your toolbox: Factory Method and Abstract Factory. Both patterns encapsulate object creation and allow you to decouple your code from concrete types.”",
+  "OO Basics cards: Abstraction, Encapsulation, Polymorphism, Inheritance.",
+  "OO Principles cards: Encapsulate what varies. Favor composition over inheritance. Program to interfaces, not implementations. Strive for loosely coupled designs between objects that interact. Classes should be open for extension but closed for modification. Depend on abstractions. Do not depend on concrete classes.",
+  "OO Patterns cards: Strategy — defines a family of algorithms, encapsulates each one, and makes them interchangeable. Strategy lets the algorithm vary independently from clients that use it. Observer — defines a one-to-many dependency between objects so that when one object changes state, all its dependents are notified and updated automatically. Decorator — attach additional responsibilities to an object dynamically. Decorators provide a flexible alternative to subclassing for extending functionality. Abstract Factory — provides an interface for creating families of related or dependent objects without specifying their concrete classes. Factory Method — defines an interface for creating an object, but lets subclasses decide which class to instantiate. Factory Method lets a class defer instantiation to the subclasses.",
+  "“We have a new principle that guides us to keep things abstract whenever possible.”",
+  "“Both of these new patterns encapsulate object creation and lead to more decoupled, flexible designs.”",
+  "Bullet points: All factories encapsulate object creation. · Simple Factory, while not a bona fide design pattern, is a simple way to decouple your clients from concrete classes. · Factory Method relies on inheritance: object creation is delegated to subclasses, which implement the factory method to create objects. · Abstract Factory relies on object composition: object creation is implemented in methods exposed in the factory interface. · All factory patterns promote loose coupling by reducing the dependency of your application on concrete classes. · The intent of Factory Method is to allow a class to defer instantiation to its subclasses. · The intent of Abstract Factory is to create families of related objects without having to depend on their concrete classes. · The Dependency Inversion Principle guides us to avoid dependencies on concrete types and to strive for abstractions. · Factories are a powerful technique for coding to abstractions, not concrete classes."
+ ],
+ "crossword": [
+  "“Design Patterns Crossword — It’s been a long chapter. Grab a slice of Pizza and relax while doing this crossword; all of the solution words are from this chapter.”",
+  "ACROSS — 1. In Factory Method, each franchise is a ________. 4. In Factory Method, who decides which class to instantiate? 6. Role of PizzaStore in the Factory Method Pattern. 7. All New York–style pizzas use this kind of cheese. 8. In Abstract Factory, each ingredient factory is a _______. 9. When you use new, you are programming to an ___________. 11. createPizza() is a ____________. 12. Joel likes this kind of pizza. 13. In Factory Method, the PizzaStore and the concrete Pizzas all depend on this abstraction. 14. When a class instantiates an object from a concrete class, it’s ___________ on that object. 15. All factory patterns allow us to __________ object creation.",
+  "DOWN — 2. We used ___________ in Simple Factory and Abstract Factory, and inheritance in Factory Method. 3. Abstract Factory creates a ___________ of products. 5. Not a REAL factory pattern, but handy nonetheless. 10. Ethan likes this kind of pizza."
+ ],
+ "crossword-solution": [
+  "“Design Patterns Crossword Solution — It’s been a long chapter. Grab a slice of Pizza and relax while doing this crossword; all of the solution words are from this chapter. Here’s the solution.”",
+  "ACROSS — 1 CONCRETE CREATOR · 4 SUBCLASS · 6 CREATOR · 7 REGGIANO · 8 CONCRETE FACTORY · 9 IMPLEMENTATION · 11 FACTORY METHOD · 12 CHICAGO STYLE · 13 PIZZA · 14 DEPENDENT · 15 ENCAPSULATE",
+  "DOWN — 2 OBJECT COMPOSITION · 3 FAMILY · 5 SIMPLE FACTORY · 10 NY STYLE"
+ ]
+}

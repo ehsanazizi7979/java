@@ -1,0 +1,838 @@
+<!-- ==================================================== CHAPTER 7 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 7</b> the Adapter and Facade Patterns</div>
+  <h2>Being <span style="color:var(--purple)">Adaptive</span></h2>
+  <p>Two patterns that wrap things for the sake of the <em>interface</em> rather than the object: an <b>Adapter</b> converts one interface into the one a client expects, and a <b>Facade</b> replaces a crowd of interfaces with one simple one. Same wrapping trick as Decorator — completely different intent.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Ducks &amp; turkeys</span>
+    <span class="chip">2 patterns</span>
+    <span class="chip">32 book figures</span>
+    <span class="chip">+ the Principle of Least Knowledge</span>
+    <span class="chip">1 live demo</span>
+  </div>
+</div>
+
+<!-- =========================================================== 1. STORY -->
+<section id="a-story">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>square peg, round hole</span></div>
+    <h2>Adapters, all around us</h2>
+    <p class="sub">The chapter opens with the most familiar adapter in the world: the power brick that lets a US laptop plug into a British outlet. The pattern is the same move in code — a class that sits between your client and an incompatible interface and translates.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG7:opener}}" alt="Chapter 7 opener: a photo studio pretending to be a horse race and a man in a coat saying that wrapped in this coat he’s a different man.">
+      <figcaption>“We can make things look like something they’re not.” That is the whole chapter — and the reason Adapter and Facade can look so similar on paper.</figcaption>
+      {{SAYS:opener}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:ac-adapter}}" alt="A British wall outlet, an AC power adapter and a US plug, with labels pointing out that the adapter converts one interface into another.">
+        <figcaption>Physical adapters do exactly what OO adapters do: they expose the interface you need on one side and speak the other interface on the far side.</figcaption>
+        {{SAYS:ac-adapter}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:oo-adapter}}" alt="Your existing system talking to a new vendor class through an Adapter: the adapter implements the interface your code expects and talks to the vendor interface to service requests.">
+        <figcaption>The software version: “No code changes. No code changes. New code.” The only new code is the adapter.</figcaption>
+        {{SAYS:oo-adapter}}
+      </figure>
+    </div>
+
+    <h3 style="margin-top:34px">The duck-and-turkey adapter</h3>
+    <p>Chapter 1’s ducks come back, now behind a <code>Duck</code> interface with <code>quack()</code> and <code>fly()</code>. The new bird is a turkey: it <code>gobble()</code>s and flies short distances. If you are short on ducks, you can write an adapter that makes a turkey <em>look</em> like a duck to any code holding a <code>Duck</code> reference.</p>
+
+    <div class="figure-grid" style="margin-top:22px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:duck-turkey}}" alt="The Duck interface with quack() and fly(), MallardDuck implementing it, and a Turkey interface with gobble() and fly() plus the turkey cartoon.">
+        <figcaption>Two interfaces, one overlapping method name — and <code>fly()</code> does not mean the same thing in both.</figcaption>
+        {{SAYS:duck-turkey}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:turkey-adapter}}" alt="WildTurkey implementing Turkey, and TurkeyAdapter implementing Duck while holding a Turkey; the Code Up Close notes explain each line, including calling turkey.fly() five times.">
+        <figcaption><code>TurkeyAdapter</code> implements the target interface (<code>Duck</code>), holds the adaptee (<code>Turkey</code>), and translates each call. <code>quack()</code> → <code>gobble()</code>; <code>fly()</code> → five short flights.</figcaption>
+        {{SAYS:turkey-adapter}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:test-drive}}" alt="DuckTestDrive main() creating a duck, a turkey and a TurkeyAdapter, the testDuck() method, and the console output showing the adapter gobbling and flying five short distances.">
+        <figcaption>The test drive: <code>testDuck()</code> takes a <code>Duck</code>, and never learns that one of its arguments is a turkey wearing a duck interface.</figcaption>
+        {{SAYS:test-drive}}
+      </figure>
+      <div>
+        <div class="console" style="margin-top:0">
+          <header><span class="lights"><i></i><i></i><i></i></span><span class="title">% java DuckTestDrive</span></header>
+          <div class="body">
+            <div class="out">The Turkey says...</div>
+            <div class="out">Gobble gobble</div>
+            <div class="out">I'm flying a short distance</div>
+            <div class="out">The Duck says...</div>
+            <div class="out">Quack</div>
+            <div class="out">I'm flying</div>
+            <div class="out">The TurkeyAdapter says...</div>
+            <div class="out">Gobble gobble</div>
+            <div class="out">I'm flying a short distance</div>
+            <div class="out">I'm flying a short distance</div>
+            <div class="out">I'm flying a short distance</div>
+            <div class="out">I'm flying a short distance</div>
+            <div class="out">I'm flying a short distance</div>
+          </div>
+        </div>
+        <p style="font-size:.9rem;color:var(--ink-soft);margin-top:10px">Five flights: the adapter is not a pass-through — it is a <em>translation</em>, and translation can add, split or drop calls.</p>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:adapter-explained}}" alt="The Adapter Pattern explained: Client calls request() on the Adapter, which calls translatedRequest() on the Adaptee, with the three numbered steps and the note that client and adaptee are decoupled.">
+        <figcaption>The mechanics in three steps. The arrow that matters is the one that is <em>missing</em>: client → adaptee does not exist.</figcaption>
+        {{SAYS:adapter-explained}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:adapter-defined}}" alt="The Adapter Pattern definition box, the class diagram with Client, Target, Adapter and Adaptee, and the annotations about composition and delegation.">
+        <figcaption>The definition and the class diagram. Note what the pattern buys: composition, plus “the client sees only the Target interface”.</figcaption>
+        {{SAYS:adapter-defined}}
+      </figure>
+    </div>
+
+    <div class="principle" style="margin-top:30px">
+      <span class="yy">☯</span>
+      <div><b>The Adapter Pattern</b><p>converts the interface of a class into another interface the clients expect. Adapter lets classes work together that couldn’t otherwise because of incompatible interfaces.</p></div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:object-class}}" alt="Object and class adapters: the class adapter diagram where the Adapter subclasses both Target and Adaptee, with the note that Java cannot do multiple inheritance.">
+        <figcaption>Two flavours: <em>object</em> adapter (composition — the one Java can do) and <em>class</em> adapter (multiple inheritance — the one Java cannot).</figcaption>
+        {{SAYS:object-class}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:magnets-answer}}" alt="The duck magnets answer: annotated class-adapter and object-adapter diagrams showing Duck as the Target and Turkey as the Adaptee, with sticky notes explaining each role.">
+        <figcaption>The answer to the magnets exercise: in both diagrams the client thinks it is talking to a <code>Duck</code>, and the <code>Turkey</code> is the adaptee.</figcaption>
+        {{SAYS:magnets-answer}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG7:face-to-face}}" alt="Fiendish chats: Object Adapter and Class Adapter argue about composition versus inheritance, flexibility versus efficiency.">
+      <figcaption>The two adapters argue it out. The book’s verdict is implicit: composition is the flexible choice, and it is the only one Java offers.</figcaption>
+      {{SAYS:face-to-face}}
+    </figure>
+
+    <h3 style="margin-top:34px">A real adapter: <code>Enumeration</code> → <code>Iterator</code></h3>
+    <div class="figure-grid" style="margin-top:16px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:real-world}}" alt="Legacy Enumeration and modern Iterator interfaces side by side, with the note that legacy code exposes Enumeration while new code expects Iterator.">
+        <figcaption>Java’s own history provides the example: <code>Vector</code>, <code>Stack</code> and <code>Hashtable</code> hand out <code>Enumeration</code>s; everything newer speaks <code>Iterator</code>.</figcaption>
+        {{SAYS:real-world}}
+      </figure>
+      <figure class="pic style="margin:0">
+        <img src="{{IMG7:enumeration-design}}" alt="Designing the EnumerationIterator adapter: the two interfaces, the method mapping, and the class diagram with Iterator as Target and Enumeration as Adaptee.">
+        <figcaption>Mapping first: <code>hasMoreElements()</code> → <code>hasNext()</code>, <code>nextElement()</code> → <code>next()</code>, and then the awkward one — <code>remove()</code>.</figcaption>
+        {{SAYS:enumeration-design}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:enumeration-iterator}}" alt="The EnumerationIterator class implementing Iterator over an Enumeration, with remove() throwing UnsupportedOperationException, and annotations for each delegation.">
+        <figcaption>The finished adapter — and the honest answer to <code>remove()</code>: an <code>Enumeration</code> is read-only, so the adapter throws <code>UnsupportedOperationException</code>.</figcaption>
+        {{SAYS:enumeration-iterator}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">EnumerationIterator.java</span><span class="tagline">an imperfect adapter, documented</span></header>
+<pre><span class="kw">public class</span> <span class="type">EnumerationIterator</span> <span class="kw">implements</span> <span class="type">Iterator</span>&lt;<span class="type">Object</span>&gt; {
+    <span class="type">Enumeration</span>&lt;?&gt; enumeration;
+
+    <span class="kw">public</span> <span class="fn">EnumerationIterator</span>(<span class="type">Enumeration</span>&lt;?&gt; enumeration) {
+        <span class="kw">this</span>.enumeration = enumeration;
+    }
+
+    <span class="kw">public boolean</span> <span class="fn">hasNext</span>() {
+        <span class="kw">return</span> enumeration.hasMoreElements();
+    }
+
+    <span class="kw">public</span> <span class="type">Object</span> <span class="fn">next</span>() {
+        <span class="kw">return</span> enumeration.nextElement();
+    }
+
+    <span class="kw">public void</span> <span class="fn">remove</span>() {
+        <span class="kw">throw new</span> <span class="type">UnsupportedOperationException</span>();
+    }
+}</pre>
+        </div>
+        <div class="note warn" style="margin-top:14px">
+          <strong>The lesson in the last method:</strong> an adapter can be <em>imperfect</em>. When the adaptee cannot support part of the target interface, the honest options are to throw a documented runtime exception (as here) or to accept degraded behaviour. What you must not do is silently do the wrong thing.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG7:decorator-adapter}}" alt="Fireside chats: the Decorator Pattern and the Adapter Pattern argue about whether adapters are just fancy decorators.">
+      <figcaption>Decorator vs. Adapter, in their own words: “I still say that adapters are just fancy decorators — I mean, just like us, you wrap an object.” / “No, no, no, not at all. We always convert the interface of what we wrap; you never do.”</figcaption>
+      {{SAYS:decorator-adapter}}
+    </figure>
+
+    <div class="note" style="margin-top:26px">
+      <strong>The book’s Q&amp;A on scope:</strong> “Does an adapter always wrap one and only one class?” — No. “You may well have situations where an adapter holds two or more adaptees that are needed to implement the target interface.” That answer is also the setup for the second half of the chapter.
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================== 2. FACADE -->
+<section id="a-facade">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>and now for something different</span></div>
+    <h2>The Facade Pattern</h2>
+    <p class="sub">Adapter changes an interface so a client can use it. Facade changes an interface so a client can <em>survive</em> it: one class, a handful of obvious methods, and a subsystem of seven components behind it.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:three-intents}}" alt="The who-does-what exercise: match Decorator, Adapter and Facade to their intents — adds responsibility, converts one interface to another, makes an interface simpler.">
+        <figcaption>Three wrapper patterns, three intents. If you keep only one table from this chapter, keep this one.</figcaption>
+        {{SAYS:three-intents}}
+      </figure>
+      <div>
+        <table class="compare" style="margin-top:0">
+          <thead><tr><th>Pattern</th><th>Wraps</th><th>Intent</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Decorator</strong></td><td>one object</td><td>doesn’t alter the interface, adds responsibility</td></tr>
+            <tr><td><strong>Adapter</strong></td><td>one or more objects</td><td>converts one interface into another</td></tr>
+            <tr><td><strong>Facade</strong></td><td>a subsystem</td><td>makes an interface simpler</td></tr>
+          </tbody>
+        </table>
+        <div class="note ok" style="margin-top:14px">
+          <strong>The book’s own warning about telling them apart by size:</strong> “The difference between the two is not in terms of how many classes they ‘wrap’, it is in their intent.” An adapter may adapt several classes; a facade may simplify a single complicated class.
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">Home Sweet Home Theater</h3>
+    <div class="figure-grid" style="margin-top:16px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:theater}}" alt="The seven home theater components — Amplifier, Tuner, StreamingPlayer, Projector, Screen, PopcornPopper and TheaterLights — each with its own large interface.">
+        <figcaption>Seven components, seven interfaces, dozens of methods. Watching a movie means being the integration layer yourself.</figcaption>
+        {{SAYS:theater}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:hard-way}}" alt="The thirteen tasks needed to watch a movie by hand, from turning on the popcorn popper to starting the movie, with the reader already exhausted.">
+        <figcaption>Thirteen steps to watch a film — and no mention yet of turning it all off again.</figcaption>
+        {{SAYS:hard-way}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:hard-way-code}}" alt="The same thirteen tasks as thirteen method calls across six classes, with the follow-up questions about turning everything off, listening to the radio, and upgrading the system.">
+        <figcaption>The same thirteen tasks as code: six classes, calling order that matters, and three follow-up questions the book asks at the bottom.</figcaption>
+        {{SAYS:hard-way-code}}
+      </figure>
+      <div>
+        <div class="note warn" style="margin-top:0">
+          <strong>Why this is the classic “before” picture:</strong> the client is coupled to six concrete classes, has to know the correct order, has to duplicate all thirteen calls to turn things off, and breaks when the projector is replaced.
+        </div>
+        <p style="font-size:.94rem;margin-top:14px">The facade answer is one class with four methods. Everything the client needed to know about the subsystem — order, preconditions, “turn the popper on before you pop” — moves into the facade, where it can be written once and tested.</p>
+        <div class="note" style="margin-top:14px">
+          <strong>What a facade is not:</strong> it does not hide the subsystem. The components stay public and directly usable; the facade is a convenience, not a lock.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:facade-picture}}" alt="Lights, Camera, Facade: the HomeTheaterFacade exposing watchMovie(), endMovie(), listenToRadio() and endRadio() over the subsystem, with a client that only knows the facade.">
+        <figcaption>The facade in place: four methods, seven collaborators, and a client that calls one of them.</figcaption>
+        {{SAYS:facade-picture}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:facade-output}}" alt="HomeTheaterTestDrive calling watchMovie and endMovie, and the console output of the whole subsystem run in order.">
+        <figcaption>The whole subsystem, triggered by two calls. The output is the book’s page-265 console run.</figcaption>
+        {{SAYS:facade-output}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:facade-defined}}" alt="The Facade Pattern definition box — a unified interface to a set of interfaces in a subsystem — and the small class diagram with Client, Facade and subsystem classes.">
+        <figcaption>“Facade defines a higher-level interface that makes the subsystem easier to use.” Note the class diagram: no inheritance, no abstraction — just one class and an arrow.</figcaption>
+        {{SAYS:facade-defined}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">HomeTheaterFacade.java · the two methods that matter</span><span class="tagline">delegation, in the right order</span></header>
+<pre><span class="kw">public void</span> <span class="fn">watchMovie</span>(<span class="type">String</span> movie) {
+    System.out.println(<span class="str">"Get ready to watch a movie..."</span>);
+    popper.on();
+    popper.pop();
+    lights.dim(10);
+    screen.down();
+    projector.on();
+    projector.wideScreenMode();
+    amp.on();
+    amp.setStreamingPlayer(player);
+    amp.setSurroundSound();
+    amp.setVolume(5);
+    player.on();
+    player.play(movie);
+}
+
+<span class="kw">public void</span> <span class="fn">endMovie</span>() {
+    System.out.println(<span class="str">"Shutting movie theater down..."</span>);
+    popper.off();
+    lights.on();
+    screen.up();
+    projector.off();
+    amp.off();
+    player.stop();
+    player.off();
+}</pre>
+        </div>
+        <div class="note" style="margin-top:14px">
+          <strong>A facade is allowed to be smart:</strong> it knows the popper must be on before it can pop, and that the amp needs the player reference before surround sound. “A facade is free to add its own ‘smarts’ in addition to making use of the subsystem.”
+        </div>
+      </div>
+    </div>
+
+    <div class="principle" style="margin-top:30px">
+      <span class="yy">☯</span>
+      <div><b>The Facade Pattern</b><p>provides a unified interface to a set of interfaces in a subsystem. Facade defines a higher-level interface that makes the subsystem easier to use.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 3. POLK -->
+<section id="a-knowledge">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>a new principle</span></div>
+    <h2>The Principle of Least Knowledge</h2>
+    <p class="sub">The facade is not just a convenience; it is the shape a design takes when you decide that objects should have as few friends as possible. The book calls that “talk only to your immediate friends” — and it has teeth.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:least-knowledge}}" alt="The Principle of Least Knowledge design principle box and the Brain Power question counting the classes coupled to station.getThermometer().getTemperature().">
+        <figcaption>The principle, stated in six words. The code sample underneath is the anti-pattern it exists to prevent: a chain of calls that couples you to two classes.</figcaption>
+        {{SAYS:least-knowledge}}
+      </figure>
+      <div>
+        <div class="principle" style="margin-top:0">
+          <span class="yy">☯</span>
+          <div><b>Principle of Least Knowledge</b><p>talk only to your immediate friends.</p></div>
+        </div>
+        <p style="font-size:.94rem;margin-top:14px">Concretely: from any method, invoke only methods that belong to</p>
+        <ul class="bullets">
+          <li>the object itself,</li>
+          <li>objects passed in as a parameter,</li>
+          <li>any object the method creates or instantiates,</li>
+          <li>any component (instance variable) of the object.</li>
+        </ul>
+        <div class="note warn" style="margin-top:14px">
+          <strong>The rule that catches most code:</strong> never call a method on an object <em>returned</em> from another method. <code>station.getThermometer().getTemperature()</code> is the canonical violation.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:how-not}}" alt="How NOT to Win Friends and Influence Objects: the four guidelines, the chain-call version and the delegated version that adds getTemperature() to the Station class.">
+        <figcaption>The fix is a one-line delegation: give <code>Station</code> a <code>getTemperature()</code> that asks its own thermometer. The caller now knows one class instead of two.</figcaption>
+        {{SAYS:how-not}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:car}}" alt="The Car class showing the four legal kinds of method calls: a local method, one on a parameter, one on a component, and one on an object the method created.">
+        <figcaption>The “legal moves” in one class: key.turns() (parameter), engine.start() (component), doors.lock() (created here), updateDashboardDisplay() (self).</figcaption>
+        {{SAYS:car}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:house}}" alt="The sharpen-your-pencil exercise with two House classes that both call station.getThermometer(), the hard-hat warning, and the upside-down answer about System.out.println.">
+        <figcaption>The exercise — and the trick: both versions violate the principle, because a <code>Thermometer</code> returned from a call is still “not your friend”. The answer printed upside down: <code>System.out.println()</code>.</figcaption>
+        {{SAYS:house}}
+      </figure>
+      <div>
+        <div class="note ok" style="margin-top:0">
+          <strong>Why the facade belongs here:</strong> the client of a facade has exactly one friend. Everything it needs is on the facade; the seven subsystem classes are the facade’s friends, not the client’s.
+        </div>
+        <div class="note warn" style="margin-top:14px">
+          <strong>And the cost:</strong> “applying this principle results in more ‘wrapper’ classes being written to handle method calls to other components. This can result in increased complexity and development time as well as decreased runtime performance.” Principles are trade-offs, not laws.
+        </div>
+        <div class="note" style="margin-top:14px">
+          <strong>Also called the Law of Demeter.</strong> The book prefers “Principle of Least Knowledge” because “Law” implies you must always apply it — and no principle is a law.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG7:facade-right}}" alt="The Facade Pattern and the Principle of Least Knowledge: the client has one friend, the facade manages the subsystem, and more facades can form layers of subsystems.">
+      <figcaption>The picture to remember: one friend, many layers. If a subsystem gets too friendly with itself, add another facade rather than another dependency.</figcaption>
+      {{SAYS:facade-right}}
+    </figure>
+  </div>
+</section>
+<!-- ============================================================ 4. DEMO -->
+<section id="a-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>live demo</span></div>
+    <h2>Two wrappers, one console</h2>
+    <p class="sub">Both patterns in one place: pass a turkey off to code that demands a duck, then watch seven home-theater components spring into action from a single method call. Same console, two very different kinds of wrapping.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>DuckTestDrive · HomeTheaterTestDrive</h3>
+        <div class="actions">
+          <label class="chip" style="display:flex;gap:8px;align-items:center;cursor:pointer">
+            <input type="checkbox" id="ad-hand"> show the individual subsystem calls
+          </label>
+          <button class="btn ghost" id="ad-clear">Clear console</button>
+        </div>
+      </div>
+
+      <div class="cg-modes" role="tablist" aria-label="Which pattern to run">
+        <button class="tab" role="tab" data-admode="adapter" aria-selected="true">The Adapter</button>
+        <button class="tab" role="tab" data-admode="facade" aria-selected="false">The Facade</button>
+      </div>
+
+      <div id="ad-panel-adapter">
+        <div class="grid2" style="align-items:start">
+          <div class="ad-card">
+            <h4>testDuck(Duck duck)</h4>
+            <p class="wx-hint" style="margin-top:0">The client holds a <code>Duck</code> and calls <code>quack()</code> and <code>fly()</code>. Hand it something that is not a duck and see what happens.</p>
+            <div class="ad-choices">
+              <button class="btn small" data-adpass="mallard">new MallardDuck()</button>
+              <button class="btn small" data-adpass="turkey">new WildTurkey()</button>
+              <button class="btn small" data-adpass="adapter">new TurkeyAdapter(turkey)</button>
+            </div>
+            <div id="ad-verdict"></div>
+          </div>
+          <div class="ad-card">
+            <h4>What the adapter actually calls</h4>
+            <pre class="rc-tostring" id="ad-trace">— nothing yet —</pre>
+          </div>
+        </div>
+      </div>
+
+      <div id="ad-panel-facade" class="hidden">
+        <div class="ad-choices" style="margin-bottom:14px">
+          <button class="btn primary small" data-adfacade="watch">watchMovie("Raiders of the Lost Ark")</button>
+          <button class="btn ghost small" data-adfacade="end">endMovie()</button>
+          <button class="btn ghost small" data-adfacade="radio">listenToRadio(99.5)</button>
+          <button class="btn ghost small" data-adfacade="endradio">endRadio()</button>
+        </div>
+        <div class="grid2" style="align-items:start">
+          <div>
+            <h4 class="rc-h4">The subsystem, right now</h4>
+            <div class="rc-devices" id="ad-devices"></div>
+          </div>
+          <div class="ad-card">
+            <h4>What the facade called</h4>
+            <pre class="rc-tostring" id="ad-call">— nothing yet —</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">console</span>
+        </header>
+        <div class="body" id="ad-log"></div>
+        <footer><button class="btn small" id="ad-clear2">Clear console</button></footer>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>What to try — adapter:</strong> press <code>new WildTurkey()</code> first. The client cannot use it: a turkey has no <code>quack()</code>. Then press <code>new TurkeyAdapter(turkey)</code> and the identical client code works — one gobble for a quack, and five short flights for one long one. The client never changed.
+      </div>
+      <div class="note">
+        <strong>What to try — facade:</strong> press <code>watchMovie()</code> with the “show the individual subsystem calls” box ticked, then unticked. Same thirteen steps, same output; the difference is how many classes the caller had to know. Then press <code>endMovie()</code> and notice that nothing had to be remembered by the client.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 5. CHEAT SHEET -->
+<section id="a-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 7 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>An adapter is a translator, not a decorator</h4><p>It implements the interface the client expects, holds the object with the wrong interface, and converts every call. The client and the adaptee never meet.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Translation can reshape the call</h4><p><code>quack()</code> → <code>gobble()</code>; <code>fly()</code> → five short flights. An adapter may add, split or drop calls — the interface is what is preserved, not the semantics.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Object adapters use composition; class adapters need multiple inheritance</h4><p>Java only gets the object adapter — which is also the flexible one, because it can adapt any subclass of the adaptee.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>An imperfect adapter is legitimate</h4><p><code>EnumerationIterator.remove()</code> throws <code>UnsupportedOperationException</code> because an <code>Enumeration</code> is read-only. Document it and move on.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>A facade simplifies a subsystem</h4><p>It composes the components and delegates to them in the right order. It does <em>not</em> hide them: the subsystem stays available to clients that need low-level access.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>A facade may be smart</h4><p>It knows the popper must be on before it pops and the amp needs the player before surround sound. That domain knowledge is exactly what it is saving its clients from.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Principle of Least Knowledge</h4><p>Talk only to your immediate friends: self, parameters, things you create, and your own components. No calling methods on objects returned by other methods.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>And its price</h4><p>More wrapper classes, more indirection, slower calls. Principles are trade-offs; the book calls this one a principle rather than a law precisely because of that.</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The book’s bullet points</h3>
+        <ul class="bullets">
+          <li>When you need to use an existing class and its interface is not the one you need, use an adapter.</li>
+          <li>When you need to simplify and unify a large interface or complex set of interfaces, use a facade.</li>
+          <li>An adapter changes an interface into one a client expects.</li>
+          <li>A facade decouples a client from a complex subsystem.</li>
+          <li>Implementing an adapter may require little work or a great deal of work depending on the size and complexity of the target interface.</li>
+          <li>Implementing a facade requires that we compose the facade with its subsystem and use delegation to perform the work of the facade.</li>
+          <li>There are two forms of the Adapter Pattern: object and class adapters. Class adapters require multiple inheritance.</li>
+          <li>You can implement more than one facade for a subsystem.</li>
+          <li>An adapter wraps an object to change its interface, a decorator wraps an object to add new behaviors and responsibilities, and a facade “wraps” a set of objects to simplify.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Three wrappers, side by side</h3>
+        <table class="compare">
+          <thead><tr><th></th><th>Adapter</th><th>Decorator</th><th>Facade</th></tr></thead>
+          <tbody>
+            <tr><td>changes the interface?</td><td><strong>yes</strong></td><td>no</td><td><strong>yes — simplifies it</strong></td></tr>
+            <tr><td>adds behavior?</td><td>no</td><td><strong>yes</strong></td><td>only orchestration</td></tr>
+            <tr><td>wraps</td><td>1+ objects</td><td>1 object</td><td>a subsystem</td></tr>
+            <tr><td>client knows</td><td>Target</td><td>the same interface</td><td>the facade only</td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:16px">
+          <strong>If you remember one line:</strong> all three put an object between the client and the thing it uses — the adapter to <em>convert</em>, the decorator to <em>add</em>, the facade to <em>hide the crowd</em>.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:34px">
+      <img src="{{IMG7:toolbox7}}" alt="The design toolbox after chapter 7: OO basics, seven principles including talk only to your friends, nine patterns including Adapter and Facade, and the chapter’s bullets.">
+      <figcaption>The toolbox after Chapter 7: nine patterns and a seventh principle. “Each changes an interface, the adapter to convert, and the facade to unify and simplify.”</figcaption>
+      {{SAYS:toolbox7}}
+    </figure>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:crossword7}}" alt="The chapter 7 design patterns crossword grid with clues about adapters, facades, the least knowledge principle and Raiders of the Lost Ark.">
+        <figcaption>The chapter 7 crossword. Every answer is from this chapter — including the movie title.</figcaption>
+        {{SAYS:crossword7}}
+      </figure>
+      <div>
+        <figure class="pic" style="margin:0 0 18px">
+          <img src="{{IMG7:crossword-solution7}}" alt="The solved chapter 7 crossword with answers including FALSE, CONVERTS, RAIDERS OF THE LOST ARK, AC ADAPTER, TWO WAY, ALLOWS, FLY, WRAPPERS, FACADE, HOME THEATER, SIMPLE PASS THROUGH, LEAST KNOWLEDGE, DECORATOR and TURKEY.">
+          <figcaption>The verified solution (page 276).</figcaption>
+          {{SAYS:crossword-solution7}}
+        </figure>
+        <div class="note ok" style="margin-top:0">
+          <strong>Crossword answers you may want spelled out:</strong> ACROSS 1 FALSE · 5 CONVERTS · 6 RAIDERS OF THE LOST ARK · 10 AC ADAPTER · 11 TWO WAY · 14 ALLOWS · 15 FLY · 16 WRAPPERS · 17 FACADE · 19 HOME THEATER. DOWN 2 SIMPLE PASS THROUGH · 3 DECOUPLING · 4 LEAST KNOWLEDGE · 7 DECORATOR · 8 TURKEY · 9 PRINTLN · 12 POPCORN · 13 TARGET · 18 WRAP.
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:duck-adapter-solution}}" alt="The DuckAdapter exercise solution: implementing Turkey over a Duck, with gobble() delegating to quack() and fly() only flying one time in five.">
+        <figcaption>The other direction: <code>DuckAdapter</code> implements <code>Turkey</code> over a <code>Duck</code>, and fakes a short flight one time in five.</figcaption>
+        {{SAYS:duck-adapter-solution}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG7:enum-solution}}" alt="The IteratorEnumeration exercise solution adapting an Iterator to an Enumeration, plus the solved who-does-what matching exercise.">
+        <figcaption>The reverse adapter: <code>IteratorEnumeration</code> makes an <code>Iterator</code> look like an <code>Enumeration</code>. Both directions are the same three lines of delegation.</figcaption>
+        {{SAYS:enum-solution}}
+      </figure>
+    </div>
+
+    <div class="quiz" style="margin-top:34px" id="a-quiz">
+      <h3 style="margin-top:0">Check yourself: Adapter vs. Facade</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="a-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. An adapter converts one interface into another that a client expects.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="B"><span class="txt">B. A facade encapsulates the subsystem, so clients can no longer use the subsystem classes directly.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="C"><span class="txt">C. The Principle of Least Knowledge says not to call methods on objects returned by other method calls.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="D"><span class="txt">D. A class adapter needs multiple inheritance, which Java does not allow.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="E"><span class="txt">E. Adapter and Decorator both change the interface of the object they wrap, they just differ in size.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="F"><span class="txt">F. <code>EnumerationIterator.remove()</code> can be implemented by delegating to <code>Enumeration</code>.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="a-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="a-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="a-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>Chapter 7 in the book’s words:</strong> an adapter “converts the interface of a class into another interface the clients expect”, and a facade “provides a unified interface to a set of interfaces in a subsystem”. One makes things <em>fit</em>; the other makes things <em>easy</em>. Both do it by wrapping.
+    </div>
+
+    <p style="margin-top:22px;font-size:.92rem;color:var(--ink-soft)">Next in the book: <strong>Chapter 8, the Template Method Pattern</strong> — putting an algorithm’s skeleton in a superclass and letting subclasses fill in the steps.</p>
+  </div>
+</section>
+
+<script>
+/* ============================================================ chapter 7 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#ad-log');
+  if (!logBox) return;
+
+  const log = (html, cls = '') => {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.innerHTML = html;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  const out  = t => `<span class="out">${t}</span>`;
+  const dim  = t => `<span class="dim">${t}</span>`;
+  const call = t => `<span class="call">${t}</span>`;
+  const res  = t => `<span class="res">${t}</span>`;
+  const err  = t => `<span class="err">${t}</span>`;
+
+  /* ============================================================ 1. adapter */
+  const trace = $('#ad-trace');
+  const verdict = $('#ad-verdict');
+
+  const mallard = {
+    quack() { log(out('Quack')); },
+    fly()   { log(out("I'm flying")); }
+  };
+
+  const turkey = {
+    gobble() { log(out('Gobble gobble')); },
+    fly()    { log(out("I'm flying a short distance")); }
+  };
+
+  let gobbleCount = 0, shortFlyCount = 0;
+
+  const turkeyAdapter = {
+    quack() { gobbleCount++; turkey.gobble(); },
+    fly()   { for (let i = 0; i < 5; i++) { shortFlyCount++; turkey.fly(); } }
+  };
+
+  const testDuck = duck => { duck.quack(); duck.fly(); };
+
+  function pass(which) {
+    if (which === 'turkey') {
+      log(err('testDuck(new WildTurkey()) — compile error: incompatible types: WildTurkey cannot be converted to Duck'));
+      log(dim('// WildTurkey has gobble(), not quack(). This is the exact problem the Adapter Pattern removes.'));
+      trace.textContent = 'WildTurkey has no quack() → the call site does not compile.\nWrap it: new TurkeyAdapter(turkey)';
+      verdict.innerHTML = '<div class="cg-verdict bad"><strong>The client rejects it.</strong> The type system is telling you that a turkey is not a duck. Changing the client to call <code>gobble()</code> would couple it to turkeys for ever.</div>';
+      return;
+    }
+
+    gobbleCount = 0; shortFlyCount = 0;
+    log(call('static void testDuck(Duck duck) { duck.quack(); duck.fly(); }'));
+
+    if (which === 'mallard') {
+      testDuck(mallard);
+      trace.textContent = 'duck.quack()  →  MallardDuck.quack()  →  System.out.println("Quack")\nduck.fly()    →  MallardDuck.fly()    →  System.out.println("I\'m flying")';
+      verdict.innerHTML = '<div class="cg-verdict ok"><strong>A real duck.</strong> The client calls the target interface and the object <em>is</em> the target — no translation needed.</div>';
+      return;
+    }
+
+    testDuck(turkeyAdapter);
+    trace.textContent =
+      'duck.quack()  →  TurkeyAdapter.quack()  →  turkey.gobble()\n' +
+      'duck.fly()    →  TurkeyAdapter.fly()    →  turkey.fly() × 5\n\n' +
+      `gobble() calls: ${gobbleCount}   fly() calls: ${shortFlyCount}`;
+    verdict.innerHTML = '<div class="cg-verdict ok"><strong>The client never noticed.</strong> One <code>quack()</code> became one <code>gobble()</code>; one <code>fly()</code> became five short flights. The translation lives in the adapter, and only there.</div>';
+  }
+
+  $$('[data-adpass]').forEach(b => b.addEventListener('click', () => pass(b.dataset.adpass)));
+
+  /* ============================================================= 2. facade */
+  const hand = $('#ad-hand');
+  const callBox = $('#ad-call');
+  const calls = [];
+
+  const note = (line) => {
+    calls.push(line);
+    callBox.textContent = calls.slice(-14).join('\n');
+  };
+  const step = (line, fn) => { if (hand && hand.checked) note(line); fn(); };
+
+  /* the subsystem — every method prints exactly what the book's vendors print */
+  const popper = {
+    on()  { log(out('Popcorn Popper on')); },
+    off() { log(out('Popcorn Popper off')); },
+    pop() { log(out('Popcorn Popper popping popcorn!')); }
+  };
+  const lights = {
+    on()     { log(out('Theater Ceiling Lights on')); },
+    dim(l)   { log(out(`Theater Ceiling Lights dimming to ${l}%`)); }
+  };
+  const screen = {
+    down() { log(out('Theater Screen going down')); },
+    up()   { log(out('Theater Screen going up')); }
+  };
+  const projector = {
+    on()  { log(out('Projector on')); },
+    off() { log(out('Projector off')); },
+    wideScreenMode() { log(out('Projector in widescreen mode (16x9 aspect ratio)')); }
+  };
+  const amp = {
+    on()  { log(out('Amplifier on')); },
+    off() { log(out('Amplifier off')); },
+    setStreamingPlayer(p) { log(out('Amplifier setting Streaming player to Streaming Player')); },
+    setSurroundSound()    { log(out('Amplifier surround sound on (5 speakers, 1 subwoofer)')); },
+    setStereoSound()      { log(out('Amplifier stereo sound on (2 speakers)')); },
+    setTuner(t)           { log(out('Amplifier setting tuner to Tuner')); },
+    setVolume(v)          { log(out(`Amplifier setting volume to ${v}`)); }
+  };
+  const player = {
+    on()  { log(out('Streaming Player on')); },
+    off() { log(out('Streaming Player off')); },
+    play(movie)  { log(out(`Streaming Player playing "${movie}"`)); },
+    stop(movie)  { log(out(`Streaming Player stopped "${movie}"`)); }
+  };
+  const tuner = {
+    on()  { log(out('Tuner on')); },
+    off() { log(out('Tuner off')); },
+    setFrequency(f) { log(out(`Tuner setting frequency to ${f}`)); }
+  };
+
+  const state = { movie: null, lights: '100%', popper: 'idle', screen: 'up', projector: 'off', amp: 'off', player: 'off', tuner: 'off' };
+
+  function renderDevices() {
+    const items = [
+      ['Popcorn popper', state.popper],
+      ['Ceiling lights', state.lights],
+      ['Screen', state.screen],
+      ['Projector', state.projector],
+      ['Amplifier', state.amp],
+      ['Streaming player', state.player],
+      ['Tuner', state.tuner]
+    ];
+    $('#ad-devices').innerHTML = items.map(([k, v]) => {
+      const on = !/(^off$|^idle$|^up$|^100%$)/.test(v);
+      return `<div class="rc-dev"><span>${k}</span><b data-on="${on}">${v}</b></div>`;
+    }).join('');
+  }
+
+  const facade = {
+    watchMovie(movie) {
+      state.movie = movie;
+      log(call(`homeTheater.watchMovie("${movie}")`));
+      log(out('Get ready to watch a movie...'));
+      step('popper.on();',        () => { state.popper = 'on'; popper.on(); });
+      step('popper.pop();',       () => { state.popper = 'popping'; popper.pop(); });
+      step('lights.dim(10);',     () => { state.lights = '10%'; lights.dim(10); });
+      step('screen.down();',      () => { state.screen = 'down'; screen.down(); });
+      step('projector.on();',     () => { state.projector = 'on'; projector.on(); });
+      step('projector.wideScreenMode();', () => { state.projector = 'widescreen'; projector.wideScreenMode(); });
+      step('amp.on();',           () => { state.amp = 'on'; amp.on(); });
+      step('amp.setStreamingPlayer(player);', () => { state.amp = 'streaming'; amp.setStreamingPlayer(player); });
+      step('amp.setSurroundSound();',         () => { state.amp = 'surround'; amp.setSurroundSound(); });
+      step('amp.setVolume(5);',   () => { state.amp = 'volume 5'; amp.setVolume(5); });
+      step('player.on();',        () => { state.player = 'on'; player.on(); });
+      step('player.play(movie);', () => { state.player = `playing "${movie}"`; player.play(movie); });
+      renderDevices();
+    },
+    endMovie() {
+      log(call('homeTheater.endMovie()'));
+      log(out('Shutting movie theater down...'));
+      step('popper.off();',       () => { state.popper = 'off'; popper.off(); });
+      step('lights.on();',        () => { state.lights = '100%'; lights.on(); });
+      step('screen.up();',        () => { state.screen = 'up'; screen.up(); });
+      step('projector.off();',    () => { state.projector = 'off'; projector.off(); });
+      step('amp.off();',          () => { state.amp = 'off'; amp.off(); });
+      step('player.stop(movie);', () => { state.player = 'stopped'; player.stop(state.movie || 'the movie'); });
+      step('player.off();',       () => { state.player = 'off'; player.off(); });
+      state.movie = null;
+      renderDevices();
+    },
+    listenToRadio(freq) {
+      log(call(`homeTheater.listenToRadio(${freq})`));
+      log(out('Tuning in the airwaves...'));
+      step('tuner.on();',            () => { state.tuner = 'on'; tuner.on(); });
+      step(`tuner.setFrequency(${freq});`, () => { state.tuner = `${freq} FM`; tuner.setFrequency(freq); });
+      step('amp.on();',              () => { state.amp = 'on'; amp.on(); });
+      step('amp.setTuner(tuner);',   () => { state.amp = 'tuner'; amp.setTuner(tuner); });
+      step('amp.setStereoSound();',  () => { state.amp = 'stereo'; amp.setStereoSound(); });
+      step('amp.setVolume(5);',      () => { state.amp = 'volume 5'; amp.setVolume(5); });
+      renderDevices();
+    },
+    endRadio() {
+      log(call('homeTheater.endRadio()'));
+      log(out('Shutting down the tuner...'));
+      step('tuner.off();', () => { state.tuner = 'off'; tuner.off(); });
+      step('amp.off();',   () => { state.amp = 'off'; amp.off(); });
+      renderDevices();
+    }
+  };
+
+  $$('[data-adfacade]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.adfacade;
+    if (k === 'watch') facade.watchMovie('Raiders of the Lost Ark');
+    else if (k === 'end') facade.endMovie();
+    else if (k === 'radio') facade.listenToRadio(99.5);
+    else facade.endRadio();
+  }));
+
+  /* ============================================================== tabs */
+  $$('.cg-modes .tab').forEach(tab => tab.addEventListener('click', () => {
+    $$('.cg-modes .tab').forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+    const mode = tab.dataset.admode;
+    $('#ad-panel-adapter').classList.toggle('hidden', mode !== 'adapter');
+    $('#ad-panel-facade').classList.toggle('hidden', mode !== 'facade');
+    log(dim(`— ${tab.textContent.trim()} —`));
+  }));
+
+  const clear = () => { logBox.innerHTML = ''; };
+  $('#ad-clear')?.addEventListener('click', clear);
+  $('#ad-clear2')?.addEventListener('click', clear);
+
+  renderDevices();
+  log(dim('DuckTestDrive ready. Press one of the three calls on the left.'));
+})();
+
+/* --------------------------------------------------------------- quiz */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const box = $('#a-quiz');
+  if (!box) return;
+
+  const opts   = $$('#a-quiz-opts .opt', box);
+  const answer = $('#a-quiz-answer', box);
+
+  opts.forEach(opt => {
+    opt.addEventListener('change', () => {
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+  });
+
+  $('#a-quiz-check', box)?.addEventListener('click', () => {
+    let right = 0;
+    const wrong = [];
+    opts.forEach(opt => {
+      const ticked  = opt.querySelector('input').checked;
+      const correct = opt.dataset.correct === '1';
+      const mark    = opt.querySelector('.mark');
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
+      else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
+      else { mark.textContent = ''; }
+    });
+    const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    const allFound = right === correctSet.length;
+    answer.classList.remove('hidden');
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, C and D. B fails because a facade “doesn’t encapsulate the subsystem classes; it merely provides a simplified interface” — the components stay directly usable. E fails because a decorator never changes the interface; that is the whole difference. F fails because <code>Enumeration</code> is read-only, which is why the adapter throws <code>UnsupportedOperationException</code>.`
+      : `<strong>All ${correctSet.length} correct.</strong> Convert (A), don’t chain calls (C), and remember that a class adapter is the multiple-inheritance flavour Java cannot express (D).`;
+  });
+
+  $('#a-quiz-reset', box)?.addEventListener('click', () => {
+    opts.forEach(opt => {
+      opt.querySelector('input').checked = false;
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+    answer.classList.add('hidden');
+    answer.innerHTML = '';
+  });
+})();
+</script>

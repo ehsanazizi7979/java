@@ -1,0 +1,606 @@
+<!-- ==================================================== CHAPTER 13 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 13</b> better living with patterns</div>
+  <h2>Patterns in the <span style="color:var(--purple)">Real World</span></h2>
+  <p>The last chapter is not about a new pattern. It is about the thing you now own: a vocabulary. What a pattern really is, how the catalog is organised, when <em>not</em> to use one, and how to keep learning after the book is closed.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Objectville, one last time</span>
+    <span class="chip">0 new patterns</span>
+    <span class="chip">34 book figures</span>
+    <span class="chip">13 patterns + MVC</span>
+    <span class="chip">1 live pattern finder</span>
+  </div>
+</div>
+
+<!-- ========================================================== 1. WHAT -->
+<section id="bl-what">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>a solution to a problem in a context</span></div>
+    <h2>What a pattern really is</h2>
+    <p class="sub">You have used thirteen of them. Now the book asks the harder question: what makes a description of a solution a <em>pattern</em>, and why does the name matter more than the code?</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG13:opener}}" alt="Chapter 13 opener: two people on the bonnet of an old car, headed Patterns in the Real World, with a note that you now know more about design patterns than most of the people you work with.">
+      <figcaption>The last chapter opens on a hilltop: “we bet you know more about design patterns than most of the people you work with.”</figcaption>
+      {{SAYS:opener}}
+    </figure>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG13:guide}}" alt="The Objectville Guide to Better Living with Design Patterns: a contents page listing what the chapter covers, from what a pattern is to leaving Objectville.">
+      <figcaption>The chapter’s own table of contents, written as a guidebook — from “what is a pattern?” to “how do I keep learning after this book?”</figcaption>
+      {{SAYS:guide}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:pattern-defined}}" alt="Design Pattern defined: a pattern is a solution to a problem in a context, with an example of a car and a flat tyre.">
+        <figcaption>The sentence to memorise: <strong>a pattern is a solution to a problem in a context.</strong> Everything else in the chapter unpacks those six words.</figcaption>
+        {{SAYS:pattern-defined}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:definition-parts}}" alt="The definition taken apart: a problem, a solution, and the consequences of applying the solution — plus a Brain Power exercise about a non-software problem.">
+        <figcaption>Three parts, in order: the <em>problem</em> and its forces, the <em>solution</em> (not a copy-paste answer), and the <em>consequences</em> — the trade-offs you accept.</figcaption>
+        {{SAYS:definition-parts}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:pattern-catalog}}" alt="Looking more closely at the Design Pattern definition: why a one-off solution is not a pattern, and how real patterns are documented and collected.">
+        <figcaption>Why “problem, context, solution” is not enough: a pattern has to apply to a <em>recurring</em> problem and be usable by someone else.</figcaption>
+        {{SAYS:pattern-catalog}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:forces}}" alt="Geek Bits: may the force be with you — goals and constraints are called forces, and a pattern’s solution must balance them.">
+        <figcaption>Geek Bits: the term for goals and constraints is <strong>forces</strong>. A pattern is a solution that balances them — and “the force” is a nice pun.</figcaption>
+        {{SAYS:forces}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:catalog-conversation}}" alt="Frank and Jim talk about the patterns catalog: why a shared name is the point, and how the catalog is organised.">
+        <figcaption>Frank and Jim work out what a catalog is for: not code you copy, but a shared name that carries a whole design conversation.</figcaption>
+        {{SAYS:catalog-conversation}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:catalog-entry}}" alt="Using a patterns catalog: the parts of a catalog entry — name, intent, also known as, motivation, applicability, structure, participants, collaborations, consequences, implementation, sample code, known uses and related patterns.">
+        <figcaption>Inside a catalog entry: thirteen headings, from <em>name</em> and <em>intent</em> down to <em>known uses</em> and <em>related patterns</em>. That structure is why patterns travel.</figcaption>
+        {{SAYS:catalog-entry}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:singleton-entry}}" alt="A filled-in catalog entry for the Singleton Pattern: intent, also known as, motivation, applicability, structure, participants and consequences.">
+        <figcaption>The Singleton entry, filled in — the same pattern you built in Chapter 5, documented the way the Gang of Four documents it.</figcaption>
+        {{SAYS:singleton-entry}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:discovering-patterns}}" alt="Dumb Questions on discovering your own patterns: how do you know when you have found one, and when are two patterns really one.">
+        <figcaption>“How do I know when I’ve found a new pattern?” The answer is unsatisfying and correct: when you see the same solution to the same problem in several places.</figcaption>
+        {{SAYS:discovering-patterns}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:pattern-template}}" alt="So you wanna be a Design Patterns writer? The template for documenting your own pattern, with the advice to write down the problem, the solution and the consequences.">
+        <figcaption>If you write one down, use the template: problem, forces, solution, consequences, sample code, known uses. It is the difference between a war story and a pattern.</figcaption>
+        {{SAYS:pattern-template}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:matching-exercise}}" alt="Who does What? A matching exercise: twelve patterns on the left and twelve descriptions on the right.">
+        <figcaption>The chapter’s matching exercise — every pattern in the book, described in one line each. The solution is in the recap at the bottom of this page.</figcaption>
+        {{SAYS:matching-exercise}}
+      </figure>
+    </div>
+
+    <div class="note" style="margin-top:26px">
+      <strong>Why the name matters.</strong> A pattern name is a handle for a design conversation: “let’s put a proxy in front of it” conveys an interface, an access policy and a class diagram in six words. That is the real deliverable of this book — not the code, the vocabulary.
+    </div>
+  </div>
+</section>
+<!-- ==================================================== 2. ORGANIZING -->
+<section id="bl-organize">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>purpose, scope, and when not to</span></div>
+    <h2>Organizing the catalog</h2>
+    <p class="sub">Thirteen patterns is already too many to hold as a flat list. The catalog is indexed two ways — by <strong>purpose</strong> and by <strong>scope</strong> — and knowing the grid is how you find the one you want without rereading the book.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:organizing-patterns}}" alt="Organizing Design Patterns: purpose (creational, structural, behavioral) and scope (class, object) with a Venn-style diagram, plus a design puzzle about sorting the patterns.">
+        <figcaption>Two axes: <strong>purpose</strong> (what the pattern is for) and <strong>scope</strong> (whether it works through inheritance or composition).</figcaption>
+        {{SAYS:organizing-patterns}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:categories}}" alt="Pattern Categories: creational patterns decouple a client from the objects it instantiates, structural patterns compose classes and objects, behavioral patterns distribute responsibility.">
+        <figcaption>The three purposes, in the book’s words: creation, composition, and the interaction and distribution of responsibility.</figcaption>
+        {{SAYS:categories}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:class-vs-object}}" alt="Class versus object scope: class patterns establish relationships at compile time through inheritance; object patterns establish them at runtime through composition.">
+        <figcaption>Scope: class patterns are bolted in at compile time (inheritance); object patterns are wired at runtime (composition). Almost everything in this book is an object pattern.</figcaption>
+        {{SAYS:class-vs-object}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:guru-student}}" alt="Guru and Student discuss how a real pattern cookbook is organised and how a pattern language works.">
+        <figcaption>Guru and Student on why the catalog is organised at all: patterns form a language, and languages need grammar.</figcaption>
+        {{SAYS:guru-student}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:adapter-discussion}}" alt="The Student realises that several patterns can fit one problem, and the Guru explains that the design forces decide, not the category.">
+        <figcaption>“So I might say the Adapter Pattern is the best structural pattern for changing an object’s interface?” Yes — and note the word <em>best</em>, which depends on forces, not on a category.</figcaption>
+        {{SAYS:adapter-discussion}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:thinking-in-patterns}}" alt="Thinking in Patterns: keep it simple, patterns aren’t a magic bullet, you know you need a pattern when you expect change, and refactoring to patterns.">
+        <figcaption>The chapter’s core advice: <strong>keep it simple</strong>, a pattern is not a magic bullet, and you know you need one when you can name the change it protects you from.</figcaption>
+        {{SAYS:thinking-in-patterns}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:use-it-anyway}}" alt="Relating to time and patterns: sometimes you use a pattern you do not yet need, because you know the change is coming — and if you don’t need it yet, don’t use it.">
+        <figcaption>The one exception: use a pattern you do not yet need <em>when you expect the aspect it protects to change</em>. Otherwise — don’t.</figcaption>
+        {{SAYS:use-it-anyway}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:patterns-emerge}}" alt="Guru and Student: patterns emerge naturally from good OO design, and a pattern should not be forced into a design.">
+        <figcaption>Patterns emerge from good OO design; they are not sprinkled on top. The Guru’s last lesson is the shortest.</figcaption>
+        {{SAYS:patterns-emerge}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG13:zen-mind}}" alt="Your Mind on Patterns: beginner mind, intermediate mind and the Zen of design patterns — the mind is able to see patterns where they fit naturally.">
+      <figcaption>Zen mind, beginner mind: the goal is not to <em>think about</em> patterns while designing, but to have designed enough that the right one appears.</figcaption>
+      {{SAYS:zen-mind}}
+    </figure>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <div class="note warn" style="margin-top:0">
+        <strong>The warning the book puts in a box.</strong> Overuse of design patterns can lead to code that is <em>downright overengineered</em>. Every pattern you add is a class, an indirection and a thing a colleague has to learn. If a plain interface would do, use a plain interface.
+      </div>
+      <div class="note ok" style="margin-top:0">
+        <strong>Three questions before you apply one.</strong> Can I name the problem? Can I name the forces? Can I name the change this protects me from — with a straight face? If any answer is “no”, you are decorating, not designing.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 3. THE WORLD -->
+<section id="bl-wild">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>vocabulary, community, anti-patterns</span></div>
+    <h2>Patterns in the wider world</h2>
+    <p class="sub">The book ends by pointing outward: the people who wrote the catalog, the other kinds of patterns (architecture, business process), the resources to keep reading, and the anti-patterns that keep the whole idea honest.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG13:warning-overuse}}" alt="WARNING: Overuse of design patterns can lead to overengineered code, with a character asking whether patterns are making things worse.">
+      <figcaption>“Are patterns making things worse?” Only when they are used as decoration. The warning is in a box for a reason.</figcaption>
+      {{SAYS:warning-overuse}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:shared-vocabulary}}" alt="Don’t forget the power of the shared vocabulary: a story about a broadcast class that everyone already understood by name.">
+        <figcaption>Why the vocabulary is the real prize: a design conversation that fits in a sentence, and a new team member who understands the code before reading it.</figcaption>
+        {{SAYS:shared-vocabulary}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:share-your-vocabulary}}" alt="Five ways to share your vocabulary: design discussions, other developers, a design notebook, code comments and stand-up meetings.">
+        <figcaption>Five ways to spread it: design discussions, other developers, your design notebook, code comments and stand-ups.</figcaption>
+        {{SAYS:share-your-vocabulary}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:gang-of-four}}" alt="Cruisin’ Objectville with the Gang of Four: Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides in a convertible.">
+        <figcaption>The Gang of Four: Gamma, Helm, Johnson and Vlissides, whose 1994 book turned Christopher Alexander’s idea into a software catalog.</figcaption>
+        {{SAYS:gang-of-four}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:journey-begun}}" alt="Your journey has just begun: the original Design Patterns book and a note that the catalog is the beginning, not the end.">
+        <figcaption>“Your journey has just begun.” The catalog in this book is a selection; the original GoF book has 23 patterns and a lot more prose.</figcaption>
+        {{SAYS:journey-begun}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:resources}}" alt="Other Design Patterns resources: websites such as the Portland Patterns Repository and the Hillside Group, plus books and conferences.">
+        <figcaption>Where to keep reading: the Portland Patterns Repository, the Hillside Group, the original book, and the conferences where new patterns get argued into existence.</figcaption>
+        {{SAYS:resources}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:patterns-zoo}}" alt="The Patterns Zoo: architectural patterns, application patterns, domain-specific patterns and organisational patterns, with habitat notes.">
+        <figcaption>The Patterns Zoo, final wing: architectural, application, domain-specific and organisational patterns — the same idea applied far outside a single program.</figcaption>
+        {{SAYS:patterns-zoo}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:business-process-patterns}}" alt="Business Process Patterns and organisational patterns: how businesses, customers and suppliers interact, and how organisations structure themselves.">
+        <figcaption>Business process patterns: “describe the interaction between businesses, customers and suppliers.” Design thinking escapes the compiler.</figcaption>
+        {{SAYS:business-process-patterns}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:anti-patterns}}" alt="Annihilating evil with Anti-Patterns: an anti-pattern looks like a good solution but turns out to be a bad one; by documenting them we recognise them sooner.">
+        <figcaption>Anti-patterns: solutions that <em>look</em> right and turn out to be wrong. Documenting them is how a team stops rediscovering them.</figcaption>
+        {{SAYS:anti-patterns}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG13:golden-hammer}}" alt="Anti-Pattern: Golden Hammer — when you need to choose technologies and you only have one, everything looks like a nail; with the solution of keeping an open mind and evaluating alternatives.">
+      <figcaption>The Golden Hammer: “if the only tool you have is a hammer, everything looks like a nail.” The cure is a toolbox — which, by now, you have.</figcaption>
+      {{SAYS:golden-hammer}}
+    </figure>
+  </div>
+</section>
+<!-- ============================================================ 4. DEMO -->
+<section id="bl-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>live demo</span></div>
+    <h2>Find a pattern, sort the catalog</h2>
+    <p class="sub">Two tools the chapter implies but never gives you. Describe the problem and the guide names the patterns — with the reason and a link back to the chapter where you built it. Or browse all fifteen entries by purpose and scope, the way the catalog is really indexed.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>Objectville Pattern Guide</h3>
+        <div class="actions">
+          <button class="btn ghost" id="bl-reset-demo">Reset</button>
+        </div>
+      </div>
+
+      <div class="cg-modes" id="bl-tabs" role="tablist">
+        <button class="tab" role="tab" data-panel="finder" aria-selected="true">pattern finder</button>
+        <button class="tab" role="tab" data-panel="catalog" aria-selected="false">catalog sorter</button>
+      </div>
+
+      <div class="bl-panel" id="bl-panel-finder">
+        <div class="bl-finder">
+          <div>
+            <h4 class="rc-h4">Describe the problem</h4>
+            <div class="bl-chips" id="bl-symptoms"></div>
+            <p class="wx-hint" style="margin:10px 0 0">The forces decide, not the category — every answer links to the chapter where the pattern was built.</p>
+          </div>
+          <div>
+            <h4 class="rc-h4">The guide says</h4>
+            <div class="bl-result" id="bl-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bl-panel" id="bl-panel-catalog" hidden>
+        <div class="bl-filters" id="bl-filters"></div>
+        <div class="bl-count" id="bl-count"></div>
+        <div class="bl-grid" id="bl-grid"></div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>Try this:</strong> in the catalog, filter to <em>class scope</em>. Only three patterns survive — Factory Method, Template Method and Adapter — because everything else in this book is wired at runtime by composition.
+      </div>
+      <div class="note warn">
+        <strong>And this:</strong> ask the finder for “exactly one instance”. It gives you Singleton and then reminds you that this is the one pattern most often used when a plain object and a constructor would do.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 5. CHEAT SHEET -->
+<section id="bl-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 13 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>A pattern is a solution to a problem in a context</h4><p>Problem, forces, solution, consequences. A one-off solution is not a pattern until it recurs and can be handed to someone else.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The catalog entry is the unit</h4><p>Name, intent, motivation, applicability, structure, participants, consequences, implementation, sample code, known uses, related patterns.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Two ways to index them</h4><p>By <strong>purpose</strong> (creational, structural, behavioral) and by <strong>scope</strong> (class or object).</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Keep it simple</h4><p>Patterns are not a magic bullet. Overuse produces overengineered code — the book prints that warning in a box.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Use one when you expect change</h4><p>You know you need a pattern when you can name the change it protects you from. Otherwise, don’t.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The vocabulary is the point</h4><p>One name replaces a paragraph of design discussion — and five habits spread it: discussions, pairing, a notebook, comments, stand-ups.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Anti-patterns keep it honest</h4><p>The Golden Hammer is the classic: one tool, every problem looks like a nail. Documented anti-patterns stop a team repeating its mistakes.</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The catalog, by purpose and scope</h3>
+        <table class="compare">
+          <thead><tr><th>Purpose</th><th>Class scope</th><th>Object scope</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Creational</strong></td><td>Factory Method</td><td>Abstract Factory · Singleton</td></tr>
+            <tr><td><strong>Structural</strong></td><td>Adapter</td><td>Adapter · Composite · Decorator · Facade · Proxy</td></tr>
+            <tr><td><strong>Behavioral</strong></td><td>Template Method</td><td>Command · Iterator · Observer · State · Strategy</td></tr>
+            <tr><td><strong>Compound</strong></td><td>—</td><td>MVC (Observer + Strategy + Composite)</td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:14px">
+          <strong>Class vs. object, in one line:</strong> class patterns fix the relationship at compile time through inheritance; object patterns wire it at runtime through composition. That is why almost everything here is an object pattern.
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-top:0">The book’s closing bullet points</h3>
+        <ul class="bullets">
+          <li>Let design patterns emerge in your designs; don’t force them in for the sake of using a pattern.</li>
+          <li>Design patterns aren’t set in stone; adapt and tweak them to meet your needs.</li>
+          <li>Always pull the problem, forces and solution into your design notebook.</li>
+          <li>Don’t let a pattern take over your design.</li>
+          <li>Design patterns are a shared vocabulary — use it.</li>
+          <li>A pattern is a solution to a problem in a context.</li>
+          <li>Patterns are discovered, not invented.</li>
+          <li>Watch for anti-patterns, and don’t let them take root.</li>
+          <li>The catalog is a beginning, not an end.</li>
+        </ul>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:34px">
+      <img src="{{IMG13:toolbox13}}" alt="Tools for your Design Toolbox: every pattern from the book, plus the bullet points about letting patterns emerge and not forcing them.">
+      <figcaption>The final toolbox: thirteen patterns, the compound pattern, the principles, and the sentence that sums up the whole book.</figcaption>
+      {{SAYS:toolbox13}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:closing}}" alt="Leaving Objectville: the closing page, with a note that the next Head First book is coming and a photograph of a vintage car.">
+        <figcaption>Leaving Objectville. “Boy, it’s been great having you.” The last page of the book — and the first page of everything after it.</figcaption>
+        {{SAYS:closing}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG13:matching-solution}}" alt="The matching exercise solution: twelve patterns wired to their descriptions.">
+        <figcaption>The matching solution: twelve patterns, twelve descriptions, and a decent final exam for the vocabulary.</figcaption>
+        {{SAYS:matching-solution}}
+      </figure>
+    </div>
+
+    <div class="quiz" style="margin-top:34px" id="bl-quiz">
+      <h3 style="margin-top:0">Check yourself: better living with patterns</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="bl-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. A pattern is a solution to a problem in a context, and it comes with consequences.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="B"><span class="txt">B. Use a pattern when you expect the aspect of the system it protects you from to change.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="C"><span class="txt">C. A good design uses as many patterns as possible.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="D"><span class="txt">D. Patterns are discovered by observing recurring solutions, not invented at a desk.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="E"><span class="txt">E. The catalog is indexed by purpose (creational, structural, behavioral) and by scope (class, object).</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="F"><span class="txt">F. An anti-pattern is a pattern you should apply more often.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="bl-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="bl-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="bl-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>The chapter in one sentence:</strong> patterns are a vocabulary for design problems, they are only worth using when the forces are real, and the vocabulary — not the code — is what you take with you.
+    </div>
+
+    <p style="margin-top:22px;font-size:.92rem;color:var(--ink-soft)">Still in the book: <strong>the appendix of leftover patterns</strong> — Bridge, Builder, Chain of Responsibility, Flyweight, Interpreter, Mediator, Memento, Prototype and Visitor.</p>
+  </div>
+</section>
+<script>
+/* =========================================================== chapter 13 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const grid = $('#bl-grid');
+  if (!grid) return;
+
+  /* ------------------------------------------------------------ catalog */
+  const CATALOG = [
+    { name: 'Strategy', purpose: 'behavioral', scope: ['object'], ch: 1, href: '#pattern',
+      intent: 'Define a family of algorithms, encapsulate each one, and make them interchangeable. Strategy lets the algorithm vary independently from clients that use it.' },
+    { name: 'Observer', purpose: 'behavioral', scope: ['object'], ch: 2, href: '#o-pattern',
+      intent: 'Define a one-to-many dependency between objects so that when one object changes state, all its dependents are notified and updated automatically.' },
+    { name: 'Decorator', purpose: 'structural', scope: ['object'], ch: 3, href: '#d-pattern',
+      intent: 'Attach additional responsibilities to an object dynamically. Decorators provide a flexible alternative to subclassing for extending functionality.' },
+    { name: 'Factory Method', purpose: 'creational', scope: ['class'], ch: 4, href: '#f-pattern',
+      intent: 'Define an interface for creating an object, but let subclasses decide which class to instantiate. Factory Method lets a class defer instantiation to subclasses.' },
+    { name: 'Abstract Factory', purpose: 'creational', scope: ['object'], ch: 4, href: '#f-abstract',
+      intent: 'Provide an interface for creating families of related or dependent objects without specifying their concrete classes.' },
+    { name: 'Singleton', purpose: 'creational', scope: ['object'], ch: 5, href: '#s-classic',
+      intent: 'Ensure a class only has one instance, and provide a global point of access to it.' },
+    { name: 'Command', purpose: 'behavioral', scope: ['object'], ch: 6, href: '#c-pattern',
+      intent: 'Encapsulate a request as an object, letting you parameterize clients with different requests, queue or log requests, and support undoable operations.' },
+    { name: 'Adapter', purpose: 'structural', scope: ['class', 'object'], ch: 7, href: '#a-story',
+      intent: 'Convert the interface of a class into another interface clients expect. Adapter lets classes work together that could not otherwise because of incompatible interfaces.' },
+    { name: 'Facade', purpose: 'structural', scope: ['object'], ch: 7, href: '#a-facade',
+      intent: 'Provide a unified interface to a set of interfaces in a subsystem. Facade defines a higher-level interface that makes the subsystem easier to use.' },
+    { name: 'Template Method', purpose: 'behavioral', scope: ['class'], ch: 8, href: '#t-pattern',
+      intent: 'Define the skeleton of an algorithm in a method, deferring some steps to subclasses without changing the algorithm’s structure.' },
+    { name: 'Iterator', purpose: 'behavioral', scope: ['object'], ch: 9, href: '#i-pattern',
+      intent: 'Provide a way to access the elements of an aggregate object sequentially without exposing its underlying representation.' },
+    { name: 'Composite', purpose: 'structural', scope: ['object'], ch: 9, href: '#i-composite',
+      intent: 'Compose objects into tree structures to represent part-whole hierarchies, and let clients treat individual objects and compositions uniformly.' },
+    { name: 'State', purpose: 'behavioral', scope: ['object'], ch: 10, href: '#st-pattern',
+      intent: 'Allow an object to alter its behavior when its internal state changes. The object will appear to change its class.' },
+    { name: 'Proxy', purpose: 'structural', scope: ['object'], ch: 11, href: '#px-pattern',
+      intent: 'Provide a surrogate or placeholder for another object to control access to it.' },
+    { name: 'MVC', purpose: 'compound', scope: ['object'], ch: 12, href: '#cp-compound',
+      intent: 'A compound pattern built from Observer, Strategy and Composite that factors an interactive application into a model, a view and a controller.' }
+  ];
+  const byName = Object.fromEntries(CATALOG.map(p => [p.name, p]));
+
+  const SYMPTOMS = [
+    { id: 'create', label: 'Create objects without naming the concrete class', picks: ['Factory Method', 'Abstract Factory'],
+      why: 'Creation is the thing that changes when a shop adds a pizza or a duck family. Both factories move the <code>new</code> behind an interface — Factory Method defers it to subclasses, Abstract Factory hands you a whole family.' },
+    { id: 'one', label: 'Guarantee exactly one instance', picks: ['Singleton'],
+      why: 'Singleton gives you one instance and a global access point. It is also the pattern most often applied where a single object and a constructor would do — check that you actually need the global access.' },
+    { id: 'runtime', label: 'Add responsibilities to an object at runtime', picks: ['Decorator'],
+      why: 'Subclassing bakes behaviour in at compile time. Decorator wraps the object in another object with the same interface, so you can stack responsibilities and peel them off again.' },
+    { id: 'incompatible', label: 'Make two incompatible interfaces work together', picks: ['Adapter'],
+      why: 'One object, one interface, translated. Adapter does not change either side — it converts calls on the way through, which is why the turkey can pass a duck test.' },
+    { id: 'subsystem', label: 'Simplify a complicated subsystem', picks: ['Facade'],
+      why: 'A Facade gives one friendly method over a pile of collaborating classes. It does not remove the subsystem — it gives clients a shorter path into it.' },
+    { id: 'partwhole', label: 'Treat a group of objects like a single object', picks: ['Composite'],
+      why: 'Composite gives leaves and containers the same interface, so one call on the root recurses through the whole tree. It is the only pattern here that lets <code>print()</code> mean “print everything”.' },
+    { id: 'sync', label: 'Keep many objects in sync when one changes', picks: ['Observer'],
+      why: 'The subject knows only that its observers implement an interface. Push or pull, the coupling stays one-way and the observer list becomes the extension point.' },
+    { id: 'algorithm', label: 'Swap an algorithm at runtime', picks: ['Strategy'],
+      why: 'Encapsulate the algorithm behind an interface and let the client hand the object a different one. Strategy is composition where you might have reached for subclassing.' },
+    { id: 'state', label: 'Change behaviour when the internal state changes', picks: ['State'],
+      why: 'State looks exactly like Strategy — same diagram, different intent: the context changes its own state object over time, and the states drive the transitions.' },
+    { id: 'steps', label: 'Fix the order of steps but let subclasses fill them in', picks: ['Template Method'],
+      why: 'The algorithm lives once in the superclass, in a final method, and the steps are abstract or hook methods. Subclasses extend the middle without touching the order.' },
+    { id: 'undo', label: 'Undo, queue or log requests', picks: ['Command'],
+      why: 'Turn the request itself into an object. Then it can be stored in a slot, put on a queue, written to a log, or remembered for an <code>undo()</code>.' },
+    { id: 'walk', label: 'Walk a collection without exposing its guts', picks: ['Iterator'],
+      why: 'The aggregate hands out an iterator; the client asks <code>hasNext()</code> and <code>next()</code>. Array, <code>ArrayList</code> and <code>HashMap</code> all look identical from the outside.' },
+    { id: 'access', label: 'Control access to an object', picks: ['Proxy'],
+      why: 'A stand-in with the same interface: remote (the network), virtual (the expensive object), protection (the access check). The client never learns the difference.' },
+    { id: 'app', label: 'Structure an application around a model and a UI', picks: ['MVC'],
+      why: 'MVC is not one mechanism — it is Observer (model to view), Strategy (view to controller) and Composite (the widget tree) used together. Once you see the three, the architecture stops being a rule to memorise.' }
+  ];
+
+  /* --------------------------------------------------------------- tabs */
+  const tabs = $$('#bl-tabs .tab');
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+    $$('#bl-demo .bl-panel').forEach(p => { p.hidden = p.id !== `bl-panel-${tab.dataset.panel}`; });
+  }));
+
+  /* ------------------------------------------------------------- finder */
+  const result = $('#bl-result');
+  const EMPTY = '<p class="bl-empty">Pick a problem on the left and the guide will name the pattern — or the two patterns — that solve it.</p>';
+
+  const symptomButtons = SYMPTOMS.map(s =>
+    `<button class="bl-chip" data-symptom="${s.id}">${s.label}</button>`).join('');
+  $('#bl-symptoms').innerHTML = symptomButtons;
+
+  const showSymptom = id => {
+    const s = SYMPTOMS.find(x => x.id === id);
+    if (!s) return;
+    $$('#bl-symptoms .bl-chip').forEach(b => b.classList.toggle('on', b.dataset.symptom === id));
+    const picks = s.picks.map(name => {
+      const p = byName[name];
+      return `<li><a href="${p.href}"><b>${p.name}</b></a> <span class="bl-mini">ch.&nbsp;${p.ch} · ${p.purpose}${p.purpose === 'compound' ? '' : ' · ' + p.scope.join('/') + ' scope'}</span><br>${p.intent}</li>`;
+    }).join('');
+    result.innerHTML = `<div class="bl-result-card">
+        <div class="bl-result-head">The guide says: <b>${s.picks.join('</b> + <b>')}</b></div>
+        <p>${s.why}</p>
+        <ul class="bl-picks">${picks}</ul>
+      </div>`;
+  };
+
+  $('#bl-symptoms').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-symptom]');
+    if (btn) showSymptom(btn.dataset.symptom);
+  });
+  result.innerHTML = EMPTY;
+
+  /* ------------------------------------------------------------ catalog */
+  const FILTERS = [
+    ['all', 'all 15'], ['creational', 'creational'], ['structural', 'structural'],
+    ['behavioral', 'behavioral'], ['compound', 'compound'],
+    ['class', 'class scope'], ['object', 'object scope']
+  ];
+  $('#bl-filters').innerHTML = FILTERS.map(([key, label], i) =>
+    `<button class="bl-filter${i === 0 ? ' on' : ''}" data-filter="${key}">${label}</button>`).join('');
+
+  grid.innerHTML = CATALOG.map(p => `
+    <article class="bl-card" data-name="${p.name}" data-purpose="${p.purpose}" data-scope="${p.scope.join(' ')}">
+      <header><b>${p.name}</b><span class="bl-mini">ch.&nbsp;${p.ch}</span></header>
+      <div class="bl-tags">
+        <span class="bl-tag" data-kind="${p.purpose}">${p.purpose}</span>
+        ${p.scope.map(sc => `<span class="bl-tag" data-kind="scope">${sc}</span>`).join('')}
+      </div>
+      <p>${p.intent}</p>
+      <a class="bl-link" href="${p.href}">build it again →</a>
+    </article>`).join('');
+
+  const applyFilter = key => {
+    $$('#bl-filters .bl-filter').forEach(b => b.classList.toggle('on', b.dataset.filter === key));
+    let shown = 0;
+    $$('#bl-grid .bl-card').forEach(card => {
+      const match = key === 'all' ||
+        card.dataset.purpose === key ||
+        card.dataset.scope.split(' ').includes(key);
+      card.hidden = !match;
+      if (match) shown++;
+    });
+    const label = key === 'all' ? 'all fifteen entries' :
+      key === 'class' ? 'class scope' : key === 'object' ? 'object scope' : key;
+    $('#bl-count').textContent = `${shown} of ${CATALOG.length} entries · ${label}`;
+    return shown;
+  };
+  $('#bl-filters').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-filter]');
+    if (btn) applyFilter(btn.dataset.filter);
+  });
+  applyFilter('all');
+
+  $('#bl-reset-demo').addEventListener('click', () => {
+    tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.panel === 'finder')));
+    $$('#bl-demo .bl-panel').forEach(p => { p.hidden = p.id !== 'bl-panel-finder'; });
+    $$('#bl-symptoms .bl-chip').forEach(b => b.classList.remove('on'));
+    result.innerHTML = EMPTY;
+    applyFilter('all');
+  });
+})();
+
+/* --------------------------------------------------------------- quiz */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const box = $('#bl-quiz');
+  if (!box) return;
+
+  const opts   = $$('#bl-quiz-opts .opt', box);
+  const answer = $('#bl-quiz-answer', box);
+
+  opts.forEach(opt => {
+    opt.addEventListener('change', () => {
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+  });
+
+  $('#bl-quiz-check', box).addEventListener('click', () => {
+    const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    let right = 0;
+    const wrong = [];
+    opts.forEach(opt => {
+      const ticked  = opt.querySelector('input').checked;
+      const correct = opt.dataset.correct === '1';
+      const mark    = opt.querySelector('.mark');
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
+      else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
+      else { mark.textContent = ''; }
+    });
+    const allFound = right === correctSet.length;
+    answer.classList.remove('hidden');
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, B, D and E. C is the opposite of the book’s warning about overengineering. F is backwards: an anti-pattern is a solution that <em>looks</em> right and isn’t.`
+      : `<strong>All ${correctSet.length} correct.</strong> The definition (A), the change you expect (B), discovery over invention (D) and the two-axis catalog (E).`;
+  });
+
+  $('#bl-quiz-reset', box).addEventListener('click', () => {
+    opts.forEach(opt => {
+      opt.querySelector('input').checked = false;
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+    answer.classList.add('hidden');
+    answer.innerHTML = '';
+  });
+})();
+</script>

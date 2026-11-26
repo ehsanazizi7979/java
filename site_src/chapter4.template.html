@@ -1,0 +1,1169 @@
+<!-- ==================================================== CHAPTER 4 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 4</b> the Factory Patterns</div>
+  <h2>Baking with <span style="color:var(--purple)">OO Goodness</span></h2>
+  <p>Three chapters in, the New-operator question is still open: we are told to program to an interface, yet every object we ever use has to be created somewhere, concretely, with <code>new</code>. This chapter takes that one line of code — the instantiation — and shows how to move it out of the places that should not care about it. Simple Factory, Factory Method, and Abstract Factory are three ways of doing it; Dependency Inversion is the principle that explains why it works.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Objectville PizzaStore</span>
+    <span class="chip">1 new principle</span>
+    <span class="chip">2 patterns + 1 idiom</span>
+    <span class="chip">26 book figures</span>
+    <span class="chip">1 live pizza kitchen</span>
+  </div>
+</div>
+
+<!-- ========================================================== 4. STORY -->
+<section id="f-story">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>the pizza problem</span></div>
+    <h2>When you see “new”, think “concrete”</h2>
+    <p class="sub">The chapter opens with the objection that has been sitting on the reader’s shoulder since page 1: if we are supposed to code to an interface, why is every other line a <code>new</code>? The answer is that <code>new</code> is not a bug — it is a dependency. And dependencies on concrete classes are exactly what the whole book keeps telling us to reduce.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <div>
+        <figure class="pic" style="margin:0">
+          <img src="{{IMG4:opener}}" alt="Chapter 4 opener: a 1950s girl baking with the caption Baking with OO Goodness.">
+          <figcaption>“Baking with OO Goodness”: instantiation is an activity that shouldn’t always be done in public.</figcaption>
+          {{SAYS:opener}}
+        </figure>
+      </div>
+      <div>
+        <figure class="pic" style="margin-top:0">
+          <img src="{{IMG4:new-concrete}}" alt="A woman with a thought bubble asking about new, plus the heading When you see new think concrete and two code fragments with handwritten notes.">
+          <figcaption>The whole chapter in one page: <code>new</code> always names a concrete class, and a conditional that picks between concrete classes is a decision baked into your code.</figcaption>
+          {{SAYS:new-concrete}}
+        </figure>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">Objectville PizzaStore, version 1</h3>
+    <p>A pizza shop starts, as every pizza shop does, with one class and one method. Every pizza is prepared, baked, cut, and boxed the same way — so <code>orderPizza()</code> is written once.</p>
+
+    <div class="code">
+      <header><span class="fname">PizzaStore.java · v1</span><span class="tagline">the pizza shop before it had a menu</span></header>
+<pre><span class="type">Pizza</span> <span class="fn">orderPizza</span>() {
+    <span class="type">Pizza</span> pizza = <span class="kw">new</span> <span class="type">Pizza</span>();   <span class="cm">// “we really want this to be an abstract class</span>
+                                          <span class="cm">//  or interface, but we can’t instantiate either”</span>
+    pizza.<span class="fn">prepare</span>();
+    pizza.<span class="fn">bake</span>();
+    pizza.<span class="fn">cut</span>();
+    pizza.<span class="fn">box</span>();
+    <span class="kw">return</span> pizza;
+}</pre>
+    </div>
+
+    <p style="margin-top:18px">Then the menu grows: cheese, Greek, pepperoni. Now the method has to decide which class to instantiate, and the decision is written directly into the ordering logic.</p>
+
+    <div class="code">
+      <header><span class="fname">PizzaStore.java · v2</span><span class="tagline">the version that starts to hurt</span></header>
+<pre><span class="type">Pizza</span> <span class="fn">orderPizza</span>(<span class="type">String</span> type) {
+    <span class="type">Pizza</span> pizza;
+
+    <span class="kw">if</span> (type.<span class="fn">equals</span>(<span class="str">"cheese"</span>))        { pizza = <span class="kw">new</span> <span class="type">CheesePizza</span>(); }
+    <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"greek"</span>))      { pizza = <span class="kw">new</span> <span class="type">GreekPizza</span>(); }
+    <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"pepperoni"</span>))  { pizza = <span class="kw">new</span> <span class="type">PepperoniPizza</span>(); }
+
+    pizza.<span class="fn">prepare</span>();
+    pizza.<span class="fn">bake</span>();
+    pizza.<span class="fn">cut</span>();
+    pizza.<span class="fn">box</span>();
+    <span class="kw">return</span> pizza;
+}</pre>
+    </div>
+
+    <figure class="pic" style="margin-top:28px">
+      <img src="{{IMG4:orderpizza-varies}}" alt="The orderPizza() method with its if/else creation block shaded, annotated as the part that varies, while prepare, bake, cut and box are annotated as the part that stays the same.">
+      <figcaption>The book shades the three lines that will keep changing and leaves the four lines that never will. That split <em>is</em> Chapter 1’s first principle, applied to creation.</figcaption>
+      {{SAYS:orderpizza-varies}}
+    </figure>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <div class="note warn" style="margin-top:0">
+        <strong>Nothing is “closed for modification” here.</strong> Every new pizza reopens this method; every removed pizza leaves dead code behind. When the same instantiation logic gets copy-pasted into a kiosk, a website, and a phone app, all three copies have to be found and fixed.
+      </div>
+      <div class="note" style="margin-top:0">
+        <strong>The fix, in the book’s words:</strong> “take all the parts of your application that instantiate concrete classes and separate or encapsulate them from the rest of your application.” The rest of the chapter is three increasingly sophisticated ways to do exactly that.
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">Encapsulate the creation</h3>
+    <p>The creation code does not disappear — it moves. Pull it out of <code>orderPizza()</code>, drop it into an object whose only job is making pizzas, and let the store ask that object for one.</p>
+
+    <figure class="pic">
+      <img src="{{IMG4:simple-factory-flow}}" alt="Ordering method with the creation block pulled out into a separate cloud object labelled SimplePizzaFactory, with handwritten arrows asking what goes where.">
+      <figcaption>Move the shaded block into a new object, and give <code>orderPizza()</code> a reference to it. The method keeps what stays the same; the factory owns what varies.</figcaption>
+      {{SAYS:simple-factory-flow}}
+    </figure>
+  </div>
+</section>
+
+<!-- ================================================== 5. SIMPLE FACTORY -->
+<section id="f-simple">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>the honorable mention</span></div>
+    <h2>Simple Factory: one class, one job</h2>
+    <p class="sub">The factory holds the <code>if/else</code> chain that <code>orderPizza()</code> used to hold, and hands back a <code>Pizza</code>. The store no longer mentions a single concrete pizza class — it only knows the abstract type. Head First is careful to say that this is <em>not</em> a design pattern: it is a programming idiom, and it earns only an Honorable Mention.</p>
+
+    <div class="code">
+      <header><span class="fname">SimplePizzaFactory.java</span><span class="tagline">the creation code, corralled</span></header>
+<pre><span class="kw">public class</span> <span class="type">SimplePizzaFactory</span> {
+
+    <span class="kw">public</span> <span class="type">Pizza</span> <span class="fn">createPizza</span>(<span class="type">String</span> type) {
+        <span class="type">Pizza</span> pizza = <span class="kw">null</span>;
+
+        <span class="kw">if</span> (type.<span class="fn">equals</span>(<span class="str">"cheese"</span>))        { pizza = <span class="kw">new</span> <span class="type">CheesePizza</span>(); }
+        <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"veggie"</span>))    { pizza = <span class="kw">new</span> <span class="type">VeggiePizza</span>(); }
+        <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"clam"</span>))      { pizza = <span class="kw">new</span> <span class="type">ClamPizza</span>(); }
+        <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"pepperoni"</span>)) { pizza = <span class="kw">new</span> <span class="type">PepperoniPizza</span>(); }
+
+        <span class="cm">// pizza.prepare(); pizza.bake(); pizza.cut(); pizza.box();</span>
+        <span class="kw">return</span> pizza;
+    }
+}</pre>
+    </div>
+
+    <div class="code" style="margin-top:18px">
+      <header><span class="fname">PizzaStore.java</span><span class="tagline">composed with the factory</span></header>
+<pre><span class="kw">public class</span> <span class="type">PizzaStore</span> {
+    <span class="type">SimplePizzaFactory</span> factory;
+
+    <span class="kw">public</span> <span class="fn">PizzaStore</span>(<span class="type">SimplePizzaFactory</span> factory) {
+        <span class="kw">this</span>.factory = factory;
+    }
+
+    <span class="kw">public</span> <span class="type">Pizza</span> <span class="fn">orderPizza</span>(<span class="type">String</span> type) {
+        <span class="type">Pizza</span> pizza = factory.<span class="fn">createPizza</span>(type);   <span class="cm">// ask the factory</span>
+
+        pizza.<span class="fn">prepare</span>();
+        pizza.<span class="fn">bake</span>();
+        pizza.<span class="fn">cut</span>();
+        pizza.<span class="fn">box</span>();
+        <span class="kw">return</span> pizza;
+    }
+}</pre>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG4:simple-factory-diagram}}" alt="Class diagram of the Simple Factory: PizzaStore uses SimplePizzaFactory to create CheesePizza, VeggiePizza, ClamPizza and PepperoniPizza, which extend the abstract Pizza class.">
+      <figcaption>The Simple Factory class diagram, complete with the “Pattern Honorable Mention” badge. <code>SimplePizzaFactory</code> is the only class that mentions concrete pizzas.</figcaption>
+      {{SAYS:simple-factory-diagram}}
+    </figure>
+
+    <div class="note warn" style="margin-top:26px">
+      <strong>Why it isn’t a pattern.</strong> The book is blunt: “The Simple Factory actually isn’t a Design Pattern; it’s more of a programming idiom.” A pattern earns the name by giving you a general, reusable solution to a recurring design problem. Simple Factory is just good practice: put creation in one place. It also sits still while the shop grows — when the shops start differing by region, one factory cannot serve them all.
+    </div>
+
+    <h3 style="margin-top:34px">The franchises arrive</h3>
+    <p>Objectville PizzaStore franchises. Each new store wants the same ordering code but its own local style of pizza: New York thin crust, Chicago deep dish, California whatever California wants. The obvious move — three factories, composed into one <code>PizzaStore</code> — works, but it means the store still has to be handed the right factory, and the store class is still the place where the choice lives.</p>
+
+    <figure class="pic">
+      <img src="{{IMG4:franchise}}" alt="A PizzaStore circle with arrows to a New York pizza factory and a Chicago pizza factory, each producing its own style of pizza, with handwritten notes about regional differences.">
+      <figcaption>Three factories are better than one, but the store still needs to know which one it was given. The next step fixes that by moving the decision into the <em>subclass</em>.</figcaption>
+      {{SAYS:franchise}}
+    </figure>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">If you keep the factory as a parameter</h3>
+        <p style="font-size:.94rem;color:var(--ink-soft)">“If we take our SimplePizzaFactory and create three different factories — NYPizzaFactory, ChicagoPizzaFactory, and CaliforniaPizzaFactory — then we can just compose the PizzaStore with the appropriate factory and a franchise is good to go.” It is a legitimate approach, and the book acknowledges it before moving on: the factory object is no longer hard-wired, but somebody outside the store still has to pick it.</p>
+      </div>
+      <div class="note" style="margin-top:0">
+        <strong>Two caveats worth remembering.</strong> First, a factory class usually has no state, so its create method is often declared <code>static</code> — but a static factory cannot be subclassed and its behavior cannot be changed by overriding. Second, even a good factory does not remove the dependency; it <em>relocates</em> it to one place you can control. That relocation is the whole trick, and it is what the Dependency Inversion Principle will later explain.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 6. FRAMEWORK -->
+<section id="f-framework">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>a framework for the pizza store</span></div>
+    <h2>Let the subclasses decide</h2>
+    <p class="sub">Here is the move that turns this into a pattern. Put <code>createPizza()</code> back inside <code>PizzaStore</code> — but make it <em>abstract</em>. The superclass writes the ordering algorithm and knows nothing about which pizza it is working on; every regional subclass supplies the one method that knows.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <div>
+        <figure class="pic" style="margin:0">
+          <img src="{{IMG4:framework}}" alt="The abstract PizzaStore class with the orderPizza() template method and an abstract createPizza() method, annotated with handwritten notes.">
+          <figcaption><code>PizzaStore</code> is now abstract. <code>orderPizza()</code> calls <code>createPizza()</code>, which is declared abstract — the subclass fills in the blanks.</figcaption>
+          {{SAYS:framework}}
+        </figure>
+      </div>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">PizzaStore.java</span><span class="tagline">the abstract creator</span></header>
+<pre><span class="kw">public abstract class</span> <span class="type">PizzaStore</span> {
+
+    <span class="kw">public</span> <span class="type">Pizza</span> <span class="fn">orderPizza</span>(<span class="type">String</span> type) {
+        <span class="type">Pizza</span> pizza;
+
+        pizza = <span class="fn">createPizza</span>(type);   <span class="cm">// the factory method</span>
+
+        pizza.<span class="fn">prepare</span>();
+        pizza.<span class="fn">bake</span>();
+        pizza.<span class="fn">cut</span>();
+        pizza.<span class="fn">box</span>();
+        <span class="kw">return</span> pizza;
+    }
+
+    <span class="kw">abstract</span> <span class="type">Pizza</span> <span class="fn">createPizza</span>(<span class="type">String</span> type);
+}</pre>
+        </div>
+        <div class="note ok" style="margin-top:14px">
+          <strong>Notice what stayed.</strong> Preparing, baking, cutting and boxing are identical in every franchise, so they live in the superclass once. Only the choice of pizza is deferred. That is a framework: the superclass controls the algorithm, the subclass controls one step of it.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG4:subclasses-decide}}" alt="PizzaStore with NYPizzaStore and ChicagoPizzaStore overriding createPizza, plus the two grey code clouds showing NY- and Chicago-style createPizza() implementations.">
+      <figcaption>Two subclasses, two <code>createPizza()</code> implementations, one untouched <code>orderPizza()</code>. The book notes we could even make <code>orderPizza()</code> <code>final</code> to enforce it.</figcaption>
+      {{SAYS:subclasses-decide}}
+    </figure>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <div class="code" style="margin-top:0">
+        <header><span class="fname">NYPizzaStore.java</span><span class="tagline">thin, crispy, a little cheese</span></header>
+<pre><span class="kw">public class</span> <span class="type">NYPizzaStore</span> <span class="kw">extends</span> <span class="type">PizzaStore</span> {
+
+    <span class="kw">protected</span> <span class="type">Pizza</span> <span class="fn">createPizza</span>(<span class="type">String</span> type) {
+        <span class="kw">if</span> (type.<span class="fn">equals</span>(<span class="str">"cheese"</span>)) {
+            <span class="kw">return new</span> <span class="type">NYStyleCheesePizza</span>();
+        } <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"veggie"</span>)) {
+            <span class="kw">return new</span> <span class="type">NYStyleVeggiePizza</span>();
+        } <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"clam"</span>)) {
+            <span class="kw">return new</span> <span class="type">NYStyleClamPizza</span>();
+        } <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"pepperoni"</span>)) {
+            <span class="kw">return new</span> <span class="type">NYStylePepperoniPizza</span>();
+        } <span class="kw">else return null</span>;
+    }
+}</pre>
+      </div>
+      <div class="code" style="margin-top:0">
+        <header><span class="fname">ChicagoPizzaStore.java</span><span class="tagline">thick crust, tons of cheese</span></header>
+<pre><span class="kw">public class</span> <span class="type">ChicagoPizzaStore</span> <span class="kw">extends</span> <span class="type">PizzaStore</span> {
+
+    <span class="kw">protected</span> <span class="type">Pizza</span> <span class="fn">createPizza</span>(<span class="type">String</span> type) {
+        <span class="kw">if</span> (type.<span class="fn">equals</span>(<span class="str">"cheese"</span>)) {
+            <span class="kw">return new</span> <span class="type">ChicagoStyleCheesePizza</span>();
+        } <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"veggie"</span>)) {
+            <span class="kw">return new</span> <span class="type">ChicagoStyleVeggiePizza</span>();
+        } <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"clam"</span>)) {
+            <span class="kw">return new</span> <span class="type">ChicagoStyleClamPizza</span>();
+        } <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"pepperoni"</span>)) {
+            <span class="kw">return new</span> <span class="type">ChicagoStylePepperoniPizza</span>();
+        } <span class="kw">else return null</span>;
+    }
+}</pre>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">Ethan, Joel, and the four steps of an order</h3>
+    <div class="figure-grid" style="margin-top:16px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG4:ethan-joel}}" alt="Ethan and Joel at a table with thought bubbles about NY-style and Chicago-style pizza, and handwritten notes about which store each of them needs.">
+        <figcaption>Ethan walks into a <code>NYPizzaStore</code>, Joel into a <code>ChicagoPizzaStore</code>. They use the same method; they get different pizzas.</figcaption>
+        {{SAYS:ethan-joel}}
+      </figure>
+      <div>
+        <ul class="checklist">
+          <li><span class="n">1</span><span>Each customer needs a store: Joel instantiates a <code>ChicagoPizzaStore</code>, Ethan a <code>NYPizzaStore</code>.</span></li>
+          <li><span class="n">2</span><span>With the store in hand, both call <code>orderPizza()</code> and pass the type they want — <code>"cheese"</code>, <code>"veggie"</code>, and so on.</span></li>
+          <li><span class="n">3</span><span><code>orderPizza()</code> calls <code>createPizza()</code>, which is defined in the subclass. The NY store instantiates a NY-style pizza; the Chicago store instantiates a Chicago-style one. Either way a <code>Pizza</code> comes back.</span></li>
+          <li><span class="n">4</span><span><code>orderPizza()</code> has no idea what kind of pizza it received — only that it is a <code>Pizza</code> — and prepares, bakes, cuts and boxes it.</span></li>
+        </ul>
+        <div class="note" style="margin-top:14px">
+          <strong>The decision moved.</strong> It used to be an <code>if</code> inside the store. Now it is “which subclass did you instantiate?” — a decision made once, outside the ordering code, and impossible to forget because the compiler requires every concrete store to implement <code>createPizza()</code>.
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">Run it</h3>
+    <p><code>PizzaTestDrive</code> makes one of each store and orders a cheese pizza from both. The console output is the chapter’s proof: the two stores share the whole ordering algorithm and differ only in the pizza that appears at the start.</p>
+
+    <div class="grid2" style="margin-top:16px;align-items:start">
+      <div class="code" style="margin-top:0">
+        <header><span class="fname">PizzaTestDrive.java</span><span class="tagline">the book’s main()</span></header>
+<pre><span class="kw">public class</span> <span class="type">PizzaTestDrive</span> {
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) {
+        <span class="type">PizzaStore</span> nyStore      = <span class="kw">new</span> <span class="type">NYPizzaStore</span>();
+        <span class="type">PizzaStore</span> chicagoStore = <span class="kw">new</span> <span class="type">ChicagoPizzaStore</span>();
+
+        <span class="type">Pizza</span> pizza = nyStore.<span class="fn">orderPizza</span>(<span class="str">"cheese"</span>);
+        System.out.<span class="fn">println</span>(<span class="str">"Ethan ordered a "</span> + pizza.<span class="fn">getName</span>() + <span class="str">"\n"</span>);
+
+        pizza = chicagoStore.<span class="fn">orderPizza</span>(<span class="str">"cheese"</span>);
+        System.out.<span class="fn">println</span>(<span class="str">"Joel ordered a "</span> + pizza.<span class="fn">getName</span>() + <span class="str">"\n"</span>);
+    }
+}</pre>
+      </div>
+      <div>
+        <div class="term-out"><span class="cmd">% java PizzaTestDrive</span>
+Preparing NY Style Sauce and Cheese Pizza
+Tossing dough...
+Adding sauce...
+Adding toppings:
+   Grated Reggiano cheese
+Bake for 25 minutes at 350
+Cutting the pizza into diagonal slices
+Place pizza in official PizzaStore box
+<span class="res">Ethan ordered a NY Style Sauce and Cheese Pizza</span>
+
+Preparing Chicago Style Deep Dish Cheese Pizza
+Tossing dough...
+Adding sauce...
+Adding toppings:
+   Shredded Mozzarella Cheese
+Bake for 25 minutes at 350
+Cutting the pizza into square slices
+Place pizza in official PizzaStore box
+<span class="res">Joel ordered a Chicago Style Deep Dish Cheese Pizza</span></div>
+        <p style="font-size:.8rem;color:#7a7290;margin-top:8px">Verbatim from page 130. Note the one line that differs in the middle: <em>square</em> slices.</p>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG4:pizza-console}}" alt="PizzaTestDrive code with handwritten notes and the dark console window showing the two orders prepared, baked, cut and boxed.">
+      <figcaption>The same run, printed in the book. The superclass does not know what kind of pizza it is handling — it just calls the four methods it knows.</figcaption>
+      {{SAYS:pizza-console}}
+    </figure>
+
+    <div class="code" style="margin-top:26px">
+      <header><span class="fname">Pizza.java</span><span class="tagline">the product of the factory</span></header>
+<pre><span class="kw">public abstract class</span> <span class="type">Pizza</span> {
+    <span class="type">String</span> name;
+
+    <span class="kw">public void</span> <span class="fn">prepare</span>() { ... }   <span class="cm">// abstract in the refactored version</span>
+    <span class="kw">public void</span> <span class="fn">bake</span>()    { System.out.<span class="fn">println</span>(<span class="str">"Bake for 25 minutes at 350"</span>); }
+    <span class="kw">public void</span> <span class="fn">cut</span>()     { System.out.<span class="fn">println</span>(<span class="str">"Cutting the pizza into diagonal slices"</span>); }
+    <span class="kw">public void</span> <span class="fn">box</span>()     { System.out.<span class="fn">println</span>(<span class="str">"Place pizza in official PizzaStore box"</span>); }
+
+    <span class="kw">public void</span> <span class="fn">setName</span>(<span class="type">String</span> name) { <span class="kw">this</span>.name = name; }
+    <span class="kw">public</span> <span class="type">String</span> <span class="fn">getName</span>()            { <span class="kw">return</span> name; }
+}</pre>
+    </div>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <div class="note" style="margin-top:0">
+        <strong>Exercise (page 164).</strong> Write the Chicago- and California-style stores. Both are almost exactly like the New York store — they only create different pizzas, and they return <code>null</code> when the type is unknown.
+      </div>
+      <div class="code" style="margin-top:0">
+        <header><span class="fname">CaliforniaPizzaStore.java</span><span class="tagline">the design-puzzle store</span></header>
+<pre><span class="kw">public class</span> <span class="type">CaliforniaPizzaStore</span> <span class="kw">extends</span> <span class="type">PizzaStore</span> {
+    <span class="kw">protected</span> <span class="type">Pizza</span> <span class="fn">createPizza</span>(<span class="type">String</span> item) {
+        <span class="kw">if</span> (item.<span class="fn">equals</span>(<span class="str">"cheese"</span>))         { <span class="kw">return new</span> <span class="type">CaliforniaStyleCheesePizza</span>(); }
+        <span class="kw">else if</span> (item.<span class="fn">equals</span>(<span class="str">"veggie"</span>))    { <span class="kw">return new</span> <span class="type">CaliforniaStyleVeggiePizza</span>(); }
+        <span class="kw">else if</span> (item.<span class="fn">equals</span>(<span class="str">"clam"</span>))      { <span class="kw">return new</span> <span class="type">CaliforniaStyleClamPizza</span>(); }
+        <span class="kw">else if</span> (item.<span class="fn">equals</span>(<span class="str">"pepperoni"</span>)) { <span class="kw">return new</span> <span class="type">CaliforniaStylePepperoniPizza</span>(); }
+        <span class="kw">else return null</span>;
+    }
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ========================================================= 7. FACTORY METHOD -->
+<section id="f-pattern">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>meet the pattern</span></div>
+    <h2>Factory Method, at last</h2>
+    <p class="sub">What started as a refactoring of <code>orderPizza()</code> turns out to be the general solution to “a class cannot know which class it needs to instantiate.” The book names it, draws it twice, and then sits the reader down with the guru.</p>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <div>
+        <figure class="pic" style="margin:0">
+          <img src="{{IMG4:factory-method-diagram}}" alt="Factory Method class diagrams: the Creator classes PizzaStore, NYPizzaStore and ChicagoPizzaStore, and the Product classes Pizza with its eight regional subclasses, with handwritten notes.">
+          <figcaption>The two parallel hierarchies: creators on top, products below. The factory method is the hinge between them.</figcaption>
+          {{SAYS:factory-method-diagram}}
+        </figure>
+      </div>
+      <div>
+        <div class="principle">
+          <span class="yy">☯</span>
+          <div><b>The Factory Method Pattern</b><p>defines an interface for creating an object, but lets subclasses decide which class to instantiate. Factory Method lets a class defer instantiation to subclasses.</p></div>
+        </div>
+        <p style="font-size:.94rem">Read the last sentence twice. The creator does not go looking for a product and it does not receive one; it <em>defers</em>. The superclass says “I need a pizza here”, and the answer arrives from whichever subclass was instantiated.</p>
+        <p style="font-size:.94rem;color:var(--ink-soft)">That is why the book warns about the word “decide”: the subclass does not choose per order — the choice was made when somebody instantiated the store. “Decide” means “the decision is expressed by which subclass is in use.”</p>
+        <div class="note ok" style="margin-top:16px">
+          <strong>What the pattern buys you.</strong> The creator is decoupled from the concrete products: it depends on the <code>Pizza</code> abstraction only. Add a California store and no existing class changes — you add a creator subclass and a family of products.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG4:factory-method-defined}}" alt="The official Factory Method definition in a box, with the canonical class diagram of Product, Creator, ConcreteProduct and ConcreteCreator and the notes that explain each role.">
+      <figcaption>The canonical diagram. Every role has one job: <code>Creator</code> owns the algorithm, <code>ConcreteCreator</code> owns the knowledge of which product to make.</figcaption>
+      {{SAYS:factory-method-defined}}
+    </figure>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG4:parallel-hierarchies}}" alt="Creators and products viewed in parallel: PizzaStore beside NYPizzaStore and ChicagoPizzaStore, and Pizza beside the eight regional pizzas, with arrows pairing each store with its product family.">
+      <figcaption>Creators and products in parallel. The NY store knows how to make NY pizzas and nothing else; the Chicago store knows Chicago pizzas. The knowledge is encapsulated, not scattered.</figcaption>
+      {{SAYS:parallel-hierarchies}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:32px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG4:guru4}}" alt="Guru and Student: the student explains factory benefits, then worries that the factory still uses concrete classes; the guru answers that creation is a reality of life that can be corralled.">
+        <figcaption>The guru’s answer to “but my factory still says <code>new</code>”: creation is a reality of life; the point is to corral it, not to pretend it away.</figcaption>
+        {{SAYS:guru4}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">Three questions people ask here</h3>
+        <p><strong>“The factory still instantiates concrete classes. Did we gain anything?”</strong> Yes: one place instead of many, and clients that depend only on the abstraction. The dependency did not vanish; it was moved to a single, controlled corner.</p>
+        <p><strong>“Isn’t this just inheritance again?”</strong> It uses inheritance, but not to reuse behavior in the products — to <em>defer a decision</em>. The algorithm in the creator is written once; the product choice varies per subclass.</p>
+        <p><strong>“Why not a constructor parameter or a factory object?”</strong> Both work (that is Simple Factory). Factory Method makes the choice structural: the compiler forces every new store to answer it, and no caller can pass the wrong factory.</p>
+        <div class="note" style="margin-top:16px">
+          <strong>Look familiar?</strong> <code>orderPizza()</code> is a template: fixed steps with one hole. The book points out that Factory Method is a specialization of the Template Method idea — the hook is simply “create something”.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================ 8. DEPENDENCY INVERSION -->
+<section id="f-dip">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>the principle behind the pattern</span></div>
+    <h2>The Dependency Inversion Principle</h2>
+    <p class="sub">Before this chapter, the PizzaStore knew every pizza by name. That is a dependency, and dependencies point in a direction. DIP is the principle that says the arrows should point at abstractions — and it is the reason the factory patterns work.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG4:dependencies}}" alt="A PizzaStore circle with eight arrows to eight concrete pizza classes, annotated to show that the store depends on every one of them.">
+        <figcaption>The very dependent <code>PizzaStore</code>: eight arrows, one for every concrete pizza it says <code>new</code> to. Every new pizza adds another.</figcaption>
+        {{SAYS:dependencies}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">The exercise on page 167</h3>
+        <p>“Let’s pretend you’ve never heard of an OO factory”: here is a <code>DependentPizzaStore</code> with no factory at all. Count the concrete pizza classes it depends on.</p>
+        <div class="code" style="margin-top:12px">
+          <header><span class="fname">DependentPizzaStore.java</span><span class="tagline">the before picture</span></header>
+<pre><span class="kw">public class</span> <span class="type">DependentPizzaStore</span> {
+
+    <span class="kw">public</span> <span class="type">Pizza</span> <span class="fn">createPizza</span>(<span class="type">String</span> style, <span class="type">String</span> type) {
+        <span class="type">Pizza</span> pizza = <span class="kw">null</span>;
+
+        <span class="kw">if</span> (style.<span class="fn">equals</span>(<span class="str">"NY"</span>)) {
+            <span class="kw">if</span> (type.<span class="fn">equals</span>(<span class="str">"cheese"</span>))         { pizza = <span class="kw">new</span> <span class="type">NYStyleCheesePizza</span>(); }
+            <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"veggie"</span>))    { pizza = <span class="kw">new</span> <span class="type">NYStyleVeggiePizza</span>(); }
+            <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"clam"</span>))      { pizza = <span class="kw">new</span> <span class="type">NYStyleClamPizza</span>(); }
+            <span class="kw">else if</span> (type.<span class="fn">equals</span>(<span class="str">"pepperoni"</span>)) { pizza = <span class="kw">new</span> <span class="type">NYStylePepperoniPizza</span>(); }
+        } <span class="kw">else if</span> (style.<span class="fn">equals</span>(<span class="str">"Chicago"</span>)) {
+            <span class="cm">// … four more Chicago-style pizzas …</span>
+        } <span class="kw">else</span> {
+            System.out.<span class="fn">println</span>(<span class="str">"Error: invalid type of pizza"</span>);
+            <span class="kw">return null</span>;
+        }
+
+        pizza.<span class="fn">prepare</span>();  pizza.<span class="fn">bake</span>();  pizza.<span class="fn">cut</span>();  pizza.<span class="fn">box</span>();
+        <span class="kw">return</span> pizza;
+    }
+}</pre>
+        </div>
+        <div class="note ok" style="margin-top:14px">
+          <strong>Answer (page 166): 8.</strong> Add California and it is <strong>12</strong> — four more noodles in the same bowl of spaghetti. Meanwhile the factory version of <code>PizzaStore</code> depends on exactly <em>one</em> thing: the <code>Pizza</code> abstraction.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:32px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG4:dip}}" alt="The Dependency Inversion Principle page: the heading, the explanation that reducing dependencies on concrete classes is a good thing, and the Design Principle box reading Depend upon abstractions, do not depend upon concrete classes.">
+        <figcaption>The principle, boxed: <em>depend upon abstractions. Do not depend upon concrete classes.</em> The margin note suggests using it to impress the execs.</figcaption>
+        {{SAYS:dip}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">Why “inversion”?</h3>
+        <p>In a naive design, the high-level policy (a pizza store) depends on the low-level details (cheese pizza, clam pizza). The arrow points <em>down</em> from policy to detail.</p>
+        <p>Invert it: both the store and every pizza now depend on the <code>Pizza</code> abstraction. The arrow from the store points at an abstraction the details also implement, and the details become plugins.</p>
+        <figure class="pic" style="margin:18px 0 0">
+          <img src="{{IMG4:dip-applied}}" alt="Applying the principle: PizzaStore depends on the abstract Pizza, and the eight concrete pizzas also depend on Pizza, with handwritten notes about the inverted arrows.">
+          <figcaption>After Factory Method: both the high-level store and the low-level pizzas depend on <code>Pizza</code>. That is the inversion.</figcaption>
+          {{SAYS:dip-applied}}
+        </figure>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:32px">
+      <img src="{{IMG4:dip-guidelines}}" alt="The three DIP guidelines — no variable holds a reference to a concrete class, no class derives from a concrete class, no method overrides an implemented base method — each with a handwritten note, plus a thought bubble asking whether these are impossible to follow.">
+      <figcaption>Three guidelines, and the honest caveat underneath them: this is a principle to strive for, not a law. Instantiating <code>String</code> all day long is fine, because <code>String</code> is not going to change.</figcaption>
+      {{SAYS:dip-guidelines}}
+    </figure>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <div class="note warn" style="margin-top:0">
+        <strong>Every Java program violates these guidelines.</strong> The book says so. The point is not purity; it is knowing when you are breaking the rule and why. If a class is unlikely to change, <code>new</code> is fine. If it is likely to change, put a factory in front of it.
+      </div>
+      <div class="note" style="margin-top:0">
+        <strong>Where the chapter goes next.</strong> Factory Method inverts one dependency. But a pizza in New York is made of New York ingredients, and a Chicago pizza of Chicago ones — and the pizzas themselves are now the thing that knows which families exist. That is the second half of the chapter.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================================================== 9. ABSTRACT FACTORY -->
+<section id="f-abstract">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 6</span><i></i><span>families of ingredients</span></div>
+    <h2>Abstract Factory: built from ingredients</h2>
+    <p class="sub">The pizza store is franchised, decoupled, and DIP-compliant. Then somebody points out the obvious: the pizzas themselves are full of regional details. New York uses thin crust, marinara and Reggiano; Chicago uses thick crust, plum tomato sauce and mozzarella. If each pizza hard-codes its ingredients, the store is decoupled but the products are not.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG4:families}}" alt="Three ingredient families in grey clouds: Chicago with FrozenClams, PlumTomatoSauce, ThickCrustDough and MozzarellaCheese; New York with FreshClams, MarinaraSauce, ThinCrustDough and ReggianoCheese; California with FrozenClams, BruschettaSauce, VeryThinCrustDough and GoatCheese.">
+      <figcaption>Three regional families. Each is a complete set: a dough, a sauce, a cheese, a clam — plus veggies and pepperoni, which the book adds on the next page.</figcaption>
+      {{SAYS:families}}
+    </figure>
+
+    <p style="margin-top:22px">The book’s move is to give the pizzas a <em>factory</em>, not a region. Every pizza class receives a <code>PizzaIngredientFactory</code> in its constructor, and its <code>prepare()</code> asks that factory for dough, sauce, cheese and clams. The pizza never knows whether it is being made in New York or Chicago — and because the pizzas are now identical apart from their ingredients, the four <em>×</em> two regional pizza classes collapse into four.</p>
+
+    <div class="code" style="margin-top:22px">
+      <header><span class="fname">PizzaIngredientFactory.java</span><span class="tagline">one method per ingredient</span></header>
+<pre><span class="kw">public interface</span> <span class="type">PizzaIngredientFactory</span> {
+
+    <span class="kw">public</span> <span class="type">Dough</span>     <span class="fn">createDough</span>();
+    <span class="kw">public</span> <span class="type">Sauce</span>     <span class="fn">createSauce</span>();
+    <span class="kw">public</span> <span class="type">Cheese</span>    <span class="fn">createCheese</span>();
+    <span class="kw">public</span> <span class="type">Veggies</span>[] <span class="fn">createVeggies</span>();
+    <span class="kw">public</span> <span class="type">Pepperoni</span> <span class="fn">createPepperoni</span>();
+    <span class="kw">public</span> <span class="type">Clams</span>     <span class="fn">createClam</span>();
+
+}</pre>
+    </div>
+
+    <div class="grid2" style="margin-top:18px;align-items:start">
+      <div class="code" style="margin-top:0">
+        <header><span class="fname">NYPizzaIngredientFactory.java</span><span class="tagline">the New York family</span></header>
+<pre><span class="kw">public class</span> <span class="type">NYPizzaIngredientFactory</span>
+        <span class="kw">implements</span> <span class="type">PizzaIngredientFactory</span> {
+
+    <span class="kw">public</span> <span class="type">Dough</span>   <span class="fn">createDough</span>()   { <span class="kw">return new</span> <span class="type">ThinCrustDough</span>(); }
+    <span class="kw">public</span> <span class="type">Sauce</span>   <span class="fn">createSauce</span>()   { <span class="kw">return new</span> <span class="type">MarinaraSauce</span>(); }
+    <span class="kw">public</span> <span class="type">Cheese</span>  <span class="fn">createCheese</span>()  { <span class="kw">return new</span> <span class="type">ReggianoCheese</span>(); }
+
+    <span class="kw">public</span> <span class="type">Veggies</span>[] <span class="fn">createVeggies</span>() {
+        <span class="type">Veggies</span> veggies[] = { <span class="kw">new</span> <span class="type">Garlic</span>(), <span class="kw">new</span> <span class="type">Onion</span>(),
+                             <span class="kw">new</span> <span class="type">Mushroom</span>(), <span class="kw">new</span> <span class="type">RedPepper</span>() };
+        <span class="kw">return</span> veggies;
+    }
+
+    <span class="kw">public</span> <span class="type">Pepperoni</span> <span class="fn">createPepperoni</span>() { <span class="kw">return new</span> <span class="type">SlicedPepperoni</span>(); }
+    <span class="kw">public</span> <span class="type">Clams</span>     <span class="fn">createClam</span>()     { <span class="kw">return new</span> <span class="type">FreshClams</span>(); }
+}</pre>
+      </div>
+      <div class="code" style="margin-top:0">
+        <header><span class="fname">ChicagoPizzaIngredientFactory.java</span><span class="tagline">the Chicago family (the exercise on page 148)</span></header>
+<pre><span class="kw">public class</span> <span class="type">ChicagoPizzaIngredientFactory</span>
+        <span class="kw">implements</span> <span class="type">PizzaIngredientFactory</span> {
+
+    <span class="kw">public</span> <span class="type">Dough</span>   <span class="fn">createDough</span>()   { <span class="kw">return new</span> <span class="type">ThickCrustDough</span>(); }
+    <span class="kw">public</span> <span class="type">Sauce</span>   <span class="fn">createSauce</span>()   { <span class="kw">return new</span> <span class="type">PlumTomatoSauce</span>(); }
+    <span class="kw">public</span> <span class="type">Cheese</span>  <span class="fn">createCheese</span>()  { <span class="kw">return new</span> <span class="type">MozzarellaCheese</span>(); }
+
+    <span class="kw">public</span> <span class="type">Veggies</span>[] <span class="fn">createVeggies</span>() {
+        <span class="type">Veggies</span> veggies[] = { <span class="kw">new</span> <span class="type">EggPlant</span>(), <span class="kw">new</span> <span class="type">Spinach</span>(),
+                             <span class="kw">new</span> <span class="type">BlackOlives</span>() };
+        <span class="kw">return</span> veggies;
+    }
+
+    <span class="kw">public</span> <span class="type">Pepperoni</span> <span class="fn">createPepperoni</span>() { <span class="kw">return new</span> <span class="type">SlicedPepperoni</span>(); }
+    <span class="kw">public</span> <span class="type">Clams</span>     <span class="fn">createClam</span>()     { <span class="kw">return new</span> <span class="type">FrozenClams</span>(); }
+}</pre>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:32px;align-items:start">
+      <div>
+        <figure class="pic" style="margin:0">
+          <img src="{{IMG4:abstract-factory-diagram}}" alt="Abstract Factory Pattern defined: the definition box plus the canonical diagram of Client, AbstractFactory, ConcreteFactory1 and 2, AbstractProductA and B, and the four product classes.">
+          <figcaption>The general shape: one abstract factory interface, several concrete factories, several product families. The client is written against the interface and composed with a factory at runtime.</figcaption>
+          {{SAYS:abstract-factory-diagram}}
+        </figure>
+      </div>
+      <div>
+        <div class="principle">
+          <span class="yy">☯</span>
+          <div><b>The Abstract Factory Pattern</b><p>provides an interface for creating families of related or dependent objects without specifying their concrete classes.</p></div>
+        </div>
+        <p style="font-size:.94rem">The difference from Factory Method is the unit of creation. Factory Method creates <strong>one</strong> product, and the choice is made by subclassing. Abstract Factory creates a <strong>family</strong> of products, and the choice is made by composing the client with one factory object.</p>
+        <div class="note" style="margin-top:16px">
+          <strong>Notice the two levels of factory here.</strong> <code>PizzaIngredientFactory</code> is the abstract factory. Each of its <code>create…()</code> methods is a factory method in the loose sense — and the book points out that in practice they are very often implemented as factory methods. The patterns compose.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG4:ingredient-factory}}" alt="The whole ingredient-factory design in terms of PizzaStore: NYPizzaStore and ChicagoPizzaStore on top, PizzaIngredientFactory in the middle, the two concrete ingredient factories, and the dough, sauce, cheese and clam families on the right.">
+      <figcaption>“That’s a fairly complicated class diagram; let’s look at it all in terms of our PizzaStore.” The stores are the clients; the factories are plugged into the pizzas.</figcaption>
+      {{SAYS:ingredient-factory}}
+    </figure>
+
+    <h3 style="margin-top:34px">The pizzas, rewired</h3>
+    <p>Two classes now replace eight: <code>CheesePizza</code> and <code>ClamPizza</code> are the same in every region. The regional difference lives entirely in the factory that was passed in.</p>
+
+    <div class="grid2" style="margin-top:16px;align-items:start">
+      <div class="code" style="margin-top:0">
+        <header><span class="fname">CheesePizza.java</span><span class="tagline">one class, every region</span></header>
+<pre><span class="kw">public class</span> <span class="type">CheesePizza</span> <span class="kw">extends</span> <span class="type">Pizza</span> {
+    <span class="type">PizzaIngredientFactory</span> ingredientFactory;
+
+    <span class="kw">public</span> <span class="fn">CheesePizza</span>(<span class="type">PizzaIngredientFactory</span> ingredientFactory) {
+        <span class="kw">this</span>.ingredientFactory = ingredientFactory;
+    }
+
+    <span class="kw">void</span> <span class="fn">prepare</span>() {
+        System.out.<span class="fn">println</span>(<span class="str">"Preparing "</span> + name);
+        dough  = ingredientFactory.<span class="fn">createDough</span>();
+        sauce  = ingredientFactory.<span class="fn">createSauce</span>();
+        cheese = ingredientFactory.<span class="fn">createCheese</span>();
+    }
+}</pre>
+      </div>
+      <div class="code" style="margin-top:0">
+        <header><span class="fname">ClamPizza.java</span><span class="tagline">fresh in NY, frozen in Chicago</span></header>
+<pre><span class="kw">public class</span> <span class="type">ClamPizza</span> <span class="kw">extends</span> <span class="type">Pizza</span> {
+    <span class="type">PizzaIngredientFactory</span> ingredientFactory;
+
+    <span class="kw">public</span> <span class="fn">ClamPizza</span>(<span class="type">PizzaIngredientFactory</span> ingredientFactory) {
+        <span class="kw">this</span>.ingredientFactory = ingredientFactory;
+    }
+
+    <span class="kw">void</span> <span class="fn">prepare</span>() {
+        System.out.<span class="fn">println</span>(<span class="str">"Preparing "</span> + name);
+        dough  = ingredientFactory.<span class="fn">createDough</span>();
+        sauce  = ingredientFactory.<span class="fn">createSauce</span>();
+        cheese = ingredientFactory.<span class="fn">createCheese</span>();
+        clam   = ingredientFactory.<span class="fn">createClam</span>();
+    }
+}</pre>
+      </div>
+    </div>
+
+    <div class="code" style="margin-top:18px">
+      <header><span class="fname">NYPizzaStore.java · the abstract-factory version</span><span class="tagline">the store composes the pizza with a factory</span></header>
+<pre><span class="kw">public class</span> <span class="type">NYPizzaStore</span> <span class="kw">extends</span> <span class="type">PizzaStore</span> {
+
+    <span class="kw">protected</span> <span class="type">Pizza</span> <span class="fn">createPizza</span>(<span class="type">String</span> item) {
+        <span class="type">Pizza</span> pizza = <span class="kw">null</span>;
+        <span class="type">PizzaIngredientFactory</span> ingredientFactory =
+                <span class="kw">new</span> <span class="type">NYPizzaIngredientFactory</span>();
+
+        <span class="kw">if</span> (item.<span class="fn">equals</span>(<span class="str">"cheese"</span>)) {
+            pizza = <span class="kw">new</span> <span class="type">CheesePizza</span>(ingredientFactory);
+            pizza.<span class="fn">setName</span>(<span class="str">"New York Style Cheese Pizza"</span>);
+        } <span class="kw">else if</span> (item.<span class="fn">equals</span>(<span class="str">"veggie"</span>)) {
+            pizza = <span class="kw">new</span> <span class="type">VeggiePizza</span>(ingredientFactory);
+            pizza.<span class="fn">setName</span>(<span class="str">"New York Style Veggie Pizza"</span>);
+        } <span class="kw">else if</span> (item.<span class="fn">equals</span>(<span class="str">"clam"</span>)) {
+            pizza = <span class="kw">new</span> <span class="type">ClamPizza</span>(ingredientFactory);
+            pizza.<span class="fn">setName</span>(<span class="str">"New York Style Clam Pizza"</span>);
+        } <span class="kw">else if</span> (item.<span class="fn">equals</span>(<span class="str">"pepperoni"</span>)) {
+            pizza = <span class="kw">new</span> <span class="type">PepperoniPizza</span>(ingredientFactory);
+            pizza.<span class="fn">setName</span>(<span class="str">"New York Style Pepperoni Pizza"</span>);
+        }
+        <span class="kw">return</span> pizza;
+    }
+}</pre>
+    </div>
+
+    <div class="grid2" style="margin-top:32px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG4:compare-fm}}" alt="Factory Method and Abstract Factory compared, part one: PizzaStore with NYPizzaStore and ChicagoPizzaStore and the parallel product classes, annotated as providing an abstract interface for creating one product.">
+        <figcaption>Part one of the comparison: <code>PizzaStore</code> is Factory Method — one product, chosen by which subclass you instantiated.</figcaption>
+        {{SAYS:compare-fm}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG4:compare-af}}" alt="Factory Method and Abstract Factory compared, part two: PizzaIngredientFactory with the New York and Chicago ingredient factories and the ingredient families, annotated as providing an interface for creating families of products.">
+        <figcaption>Part two: <code>PizzaIngredientFactory</code> is Abstract Factory — a family of products, chosen by which factory object you composed in.</figcaption>
+        {{SAYS:compare-af}}
+      </figure>
+    </div>
+
+    <table class="compare" style="margin-top:28px">
+      <thead><tr><th></th><th>Simple Factory</th><th>Factory Method</th><th>Abstract Factory</th></tr></thead>
+      <tbody>
+        <tr><td>Creates</td><td>one product</td><td>one product</td><td>a family of related products</td></tr>
+        <tr><td>Mechanism</td><td>one class with a <code>switch</code></td><td>inheritance — subclasses override the factory method</td><td>composition — a factory object is passed in</td></tr>
+        <tr><td>Where the choice lives</td><td>inside the factory’s <code>if/else</code></td><td>in which creator subclass was instantiated</td><td>in which factory object was composed</td></tr>
+        <tr><td>Structure</td><td>1 creator, 1 factory</td><td>creator hierarchy + product hierarchy</td><td>factory hierarchy + product families</td></tr>
+        <tr><td>Add a new product</td><td>edit the factory</td><td>edit each creator subclass</td><td>change the factory interface — the expensive case</td></tr>
+        <tr><td>Add a new region</td><td>new factory, re-compose the store</td><td>new creator subclass + new products</td><td>new factory + new product family</td></tr>
+        <tr><td>In Head First</td><td>Honorable Mention, not a pattern</td><td>a pattern</td><td>a pattern</td></tr>
+      </tbody>
+    </table>
+
+    <div class="grid2" style="margin-top:24px;align-items:start">
+      <div class="note warn" style="margin-top:0">
+        <strong>Abstract Factory’s cost.</strong> Its interface has one method per product. Add a new kind of ingredient and every concrete factory — including ones written by other teams — must implement the new method. It also adds classes fast: here, four pizzas plus two factories plus about a dozen ingredient classes.
+      </div>
+      <div class="note ok" style="margin-top:0">
+        <strong>Its payoff.</strong> Products from one factory are guaranteed to belong together (no marinara on a deep-dish pizza), clients never mention a concrete product class, and swapping a whole regional family is a single-line change — the same line the demo below lets you click.
+      </div>
+    </div>
+  </div>
+</section>
+<!-- =========================================================== 10. DEMO -->
+<section id="f-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 7</span><i></i><span>live demo</span></div>
+    <h2>Objectville Pizza Kitchen</h2>
+    <p class="sub">The same order, three designs. Pick an era, pick a store and a pizza, and watch what the code has to say. The console prints the book’s own strings — “Tossing dough…”, “Cutting the pizza into square slices” — so you can compare the runs line by line.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>PizzaTestDrive · three eras of the same shop</h3>
+        <div class="actions">
+          <button class="btn primary" id="pz-order">Order a pizza</button>
+          <button class="btn" id="pz-book">Run the book’s main()</button>
+          <button class="btn ghost" id="pz-clear">Clear console</button>
+        </div>
+      </div>
+
+      <div class="pz-modes" role="tablist" aria-label="Which design is running">
+        <button class="tab" role="tab" data-mode="dependent" aria-selected="false">1 · DependentPizzaStore</button>
+        <button class="tab" role="tab" data-mode="factory" aria-selected="true">2 · Factory Method</button>
+        <button class="tab" role="tab" data-mode="abstract" aria-selected="false">3 · Abstract Factory</button>
+      </div>
+
+      <div class="pz-grid">
+        <div class="pz-panel">
+          <h4>Place the order</h4>
+          <div class="row">
+            <label for="pz-store">Store / style</label>
+            <select id="pz-store">
+              <option value="NY">New York — NYPizzaStore</option>
+              <option value="Chicago">Chicago — ChicagoPizzaStore</option>
+              <option value="California">California — CaliforniaPizzaStore</option>
+            </select>
+          </div>
+          <div class="row" style="margin-bottom:0">
+            <label for="pz-type">What kind of pizza</label>
+            <select id="pz-type">
+              <option value="cheese">cheese</option>
+              <option value="veggie">veggie</option>
+              <option value="clam">clam</option>
+              <option value="pepperoni">pepperoni</option>
+            </select>
+          </div>
+          <p class="wx-hint" id="pz-modesays">Factory Method: the store subclass decides which pizza to instantiate.</p>
+        </div>
+
+        <div class="pz-panel">
+          <h4>What the order produced</h4>
+          <div id="pz-card"></div>
+        </div>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">PizzaTestDrive — console</span>
+        </header>
+        <div class="body" id="pz-log"></div>
+        <footer><button class="btn small" id="pz-clear2">Clear console</button></footer>
+      </div>
+
+      <div class="wx-toolbar">
+        <span class="chip" id="pz-chip">Factory Method · NYPizzaStore</span>
+        <span class="pz-dep" id="pz-dep">the store depends on: Pizza (1 abstraction)</span>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>What to try:</strong> order a Chicago cheese pizza in era 2 (<em>square</em> slices, Shredded Mozzarella, “Joel ordered a Chicago Style Deep Dish Cheese Pizza”), then switch to era 3 and order the same pizza. The name changes to “Chicago Style Cheese Pizza”, the console shows which factory produced each ingredient, and the pizza class is now literally the same <code>CheesePizza</code> the New York store uses.
+      </div>
+      <div class="note">
+        <strong>What to watch:</strong> the dependency readout under the console. Era 1 mentions eight concrete pizza classes (twelve if you order in California). Era 2 moves that knowledge into a store subclass. Era 3 keeps one <code>CheesePizza</code> for every region and moves the region into a factory object.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================== 11. CHEAT SHEET -->
+<section id="f-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 8</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 4 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4><code>new</code> is a dependency, not a sin</h4><p>Every instantiation names a concrete class. When that choice is sprinkled through the code, every new pizza type reopens every place that orders one.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Encapsulate what varies — the creation</h4><p>Move the <code>if/else</code> chain into one object. That is Simple Factory: an idiom, not a pattern, but it decouples every client from the concrete pizzas.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Factory Method defers to subclasses</h4><p>Make <code>createPizza()</code> abstract and let <code>NYPizzaStore</code> and <code>ChicagoPizzaStore</code> implement it. The ordering algorithm stays in the superclass, unchanged and shared.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Dependency Inversion explains why it works</h4><p>Depend upon abstractions, not concrete classes. High-level policy and low-level details both point at the abstraction; the details become plugins.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Abstract Factory makes families</h4><p>When the products come in related sets — dough, sauce, cheese, clams — put a factory interface in front of the set and inject one factory per region.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Composition vs inheritance, again</h4><p>Factory Method uses inheritance to decide <em>which</em> class; Abstract Factory uses object composition to decide <em>which family</em>. Both keep clients away from concrete types.</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The book’s bullet points</h3>
+        <ul class="bullets">
+          <li>All factories encapsulate object creation.</li>
+          <li>Simple Factory, while not a bona fide design pattern, is a simple way to decouple your clients from concrete classes.</li>
+          <li>Factory Method relies on inheritance: object creation is delegated to subclasses, which implement the factory method to create objects.</li>
+          <li>Abstract Factory relies on object composition: object creation is implemented in methods exposed in the factory interface.</li>
+          <li>All factory patterns promote loose coupling by reducing the dependency of your application on concrete classes.</li>
+          <li>The intent of Factory Method is to allow a class to defer instantiation to its subclasses.</li>
+          <li>The intent of Abstract Factory is to create families of related objects without having to depend on their concrete classes.</li>
+          <li>The Dependency Inversion Principle guides us to avoid dependencies on concrete types and to strive for abstractions.</li>
+          <li>Factories are a powerful technique for coding to abstractions, not concrete classes.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Three definitions, side by side</h3>
+        <div class="principle" style="margin-top:0">
+          <span class="yy">☯</span>
+          <div><b>Factory Method</b><p>Defines an interface for creating an object, but lets subclasses decide which class to instantiate. Factory Method lets a class defer instantiation to subclasses.</p></div>
+        </div>
+        <div class="principle">
+          <span class="yy">☯</span>
+          <div><b>Abstract Factory</b><p>Provides an interface for creating families of related or dependent objects without specifying their concrete classes.</p></div>
+        </div>
+        <div class="principle">
+          <span class="yy">☯</span>
+          <div><b>Dependency Inversion Principle</b><p>Depend upon abstractions. Do not depend upon concrete classes.</p></div>
+        </div>
+        <div class="note" style="margin-top:16px">
+          <strong>And the one that isn’t a pattern:</strong> Simple Factory — “more of a programming idiom” — still earns a Head First Pattern Honorable Mention because it is the first, simplest way to take creation out of the code that uses the thing created.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:34px">
+      <img src="{{IMG4:toolbox4}}" alt="The design toolbox after chapter 4: the OO Basics, Principles and Patterns cards, with Factory Method and Abstract Factory added and the bullet-point summary alongside.">
+      <figcaption>The toolbox after Chapter 4: six principles and five patterns. The new principle sits with the others — “keep things abstract whenever possible.”</figcaption>
+      {{SAYS:toolbox4}}
+    </figure>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG4:crossword}}" alt="The chapter 4 design patterns crossword grid, blank, with the across and down clues printed underneath.">
+        <figcaption>The chapter 4 crossword, all answers taken from this chapter. Try it before scrolling.</figcaption>
+        {{SAYS:crossword}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG4:crossword-solution}}" alt="The solved crossword with answers such as CONCRETE CREATOR, OBJECT COMPOSITION, SUBCLASS, CREATOR, REGGIANO, IMPLEMENTATION and ENCAPSULATE filled in.">
+        <figcaption>The solution: eleven across answers, four down — CONCRETE CREATOR, OBJECT COMPOSITION, SUBCLASS, CREATOR, REGGIANO, CONCRETE FACTORY, IMPLEMENTATION, FACTORY METHOD, CHICAGO STYLE, PIZZA, DEPENDENT, ENCAPSULATE, FAMILY, SIMPLE FACTORY, NY STYLE.</figcaption>
+        {{SAYS:crossword-solution}}
+      </figure>
+    </div>
+
+    <div class="quiz" style="margin-top:34px" id="f-quiz">
+      <h3 style="margin-top:0">Check yourself: what is true of the factory patterns?</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="f-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. Factory Method lets a class defer instantiation to its subclasses.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="B"><span class="txt">B. Abstract Factory relies on inheritance, while Factory Method relies on composition.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="C"><span class="txt">C. Simple Factory is an idiom that Head First gives an Honorable Mention, not a full pattern.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="D"><span class="txt">D. The Dependency Inversion Principle says high-level components should depend on low-level components.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="E"><span class="txt">E. A static factory method can be overridden by a subclass.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="F"><span class="txt">F. Adding a new kind of product to an Abstract Factory usually means changing its interface.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="f-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="f-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="f-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>Chapter 4 in the book’s words:</strong> “All factories encapsulate object creation.” Simple Factory does it with one class; Factory Method does it by giving the job to subclasses; Abstract Factory does it by handing the client a factory for an entire family. The Dependency Inversion Principle is the reason all three work: the code that uses a product, and the code that makes it, both point at the abstraction instead of at each other.
+    </div>
+
+    <p style="margin-top:22px;font-size:.92rem;color:var(--ink-soft)">Next in the book: <strong>Chapter 5, the Singleton Pattern</strong> — one instance, a private constructor, and a global point of access. (The chocolate boiler that keeps running out of chocolate.)</p>
+  </div>
+</section>
+
+<script>
+/* ============================================================ chapter 4 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#pz-log');
+  if (!logBox) return;
+
+  /* --------------------------------------------------------------- data */
+  const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+
+  const FAMILIES = {
+    NY: {
+      label: 'New York',
+      store: 'NYPizzaStore',
+      factory: 'NYPizzaIngredientFactory',
+      dough: 'ThinCrustDough',
+      sauce: 'MarinaraSauce',
+      cheese: 'ReggianoCheese',
+      clam: 'FreshClams',
+      veggies: ['Garlic', 'Onion', 'Mushroom', 'RedPepper'],
+      pepperoni: 'SlicedPepperoni',
+      cut: 'Cutting the pizza into diagonal slices',
+      topping: 'Grated Reggiano cheese',
+      fmName: t => (t === 'cheese' ? 'NY Style Sauce and Cheese Pizza' : 'NY Style ' + cap(t) + ' Pizza'),
+      afName: t => 'New York Style ' + cap(t) + ' Pizza',
+      who: 'Ethan'
+    },
+    Chicago: {
+      label: 'Chicago',
+      store: 'ChicagoPizzaStore',
+      factory: 'ChicagoPizzaIngredientFactory',
+      dough: 'ThickCrustDough',
+      sauce: 'PlumTomatoSauce',
+      cheese: 'MozzarellaCheese',
+      clam: 'FrozenClams',
+      veggies: ['EggPlant', 'Spinach', 'BlackOlives'],
+      pepperoni: 'SlicedPepperoni',
+      cut: 'Cutting the pizza into square slices',
+      topping: 'Shredded Mozzarella Cheese',
+      fmName: t => (t === 'cheese' ? 'Chicago Style Deep Dish Cheese Pizza' : 'Chicago Style Deep Dish ' + cap(t) + ' Pizza'),
+      afName: t => 'Chicago Style ' + cap(t) + ' Pizza',
+      who: 'Joel'
+    },
+    California: {
+      label: 'California',
+      store: 'CaliforniaPizzaStore',
+      factory: 'CaliforniaPizzaIngredientFactory',
+      dough: 'VeryThinCrustDough',
+      sauce: 'BruschettaSauce',
+      cheese: 'GoatCheese',
+      clam: 'FrozenClams',
+      veggies: ['Mushroom', 'RedPepper', 'Garlic'],
+      pepperoni: 'SlicedPepperoni',
+      cut: 'Cutting the pizza into diagonal slices',
+      topping: 'Goat cheese',
+      fmName: t => (t === 'cheese' ? 'California Style Cheese Pizza' : 'California Style ' + cap(t) + ' Pizza'),
+      afName: t => 'California Style ' + cap(t) + ' Pizza',
+      who: 'the customer'
+    }
+  };
+
+  const DEPENDENT_CLASSES = ['NYStyleCheesePizza', 'NYStyleVeggiePizza', 'NYStylePepperoniPizza',
+    'NYStyleClamPizza', 'ChicagoStyleCheesePizza', 'ChicagoStyleVeggiePizza',
+    'ChicagoStylePepperoniPizza', 'ChicagoStyleClamPizza',
+    'CaliforniaStyleCheesePizza', 'CaliforniaStyleVeggiePizza',
+    'CaliforniaStylePepperoniPizza', 'CaliforniaStyleClamPizza'];
+
+  /* ------------------------------------------------------------ console */
+  const log = (html, cls = '') => {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.innerHTML = html;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+    return line;
+  };
+  const sep  = () => log('<span class="dim">──────────────────────────────</span>');
+  const call = t => `<span class="call">${t}</span>`;
+  const dim  = t => `<span class="dim">${t}</span>`;
+  const res  = t => `<span class="res">${t}</span>`;
+  const out  = t => `<span class="out">${t}</span>`;
+
+  /* -------------------------------------------------------------- state */
+  let mode = 'factory';
+  const MODES = {
+    dependent: 'DependentPizzaStore: no factory at all — one method that names every concrete pizza class.',
+    factory: 'Factory Method: the store subclass decides which pizza to instantiate.',
+    abstract: 'Abstract Factory: the store hands each pizza a regional ingredient factory.'
+  };
+
+  const storeSel = $('#pz-store');
+  const typeSel  = $('#pz-type');
+  const card     = $('#pz-card');
+  const chip     = $('#pz-chip');
+  const depEl    = $('#pz-dep');
+
+  /* --------------------------------------------------------- the orders */
+  function orderDependent(style, type) {
+    const fam = FAMILIES[style];
+    log(call(`DependentPizzaStore.createPizza("${style}", "${type}")`));
+    log(dim('    // both the style and the type are decided here, by name'));
+    log(dim(`    if (style.equals("${style}")) {`));
+    log(dim(`        if (type.equals("${type}")) {`));
+    log(dim(`    pizza = new ${style}Style${cap(type)}Pizza();`));
+    log(dim('        } …'));
+    log(dim('    }'));
+    log(dim(`    // this one method names ${style === 'California' ? 12 : 8} concrete pizza classes`));
+    return { pizzaClass: `${style}Style${cap(type)}Pizza`, name: fam.fmName(type), fam };
+  }
+
+  function orderFactoryMethod(style, type) {
+    const fam = FAMILIES[style];
+    log(call(`${fam.store}.orderPizza("${type}")`));
+    log(dim('    // orderPizza() is inherited, unchanged, from the abstract PizzaStore'));
+    log(dim(`    pizza = createPizza("${type}")        // ${fam.store} overrides this`));
+    const pizzaClass = `${style === 'NY' ? 'NY' : style}Style${cap(type)}Pizza`;
+    log(dim(`    → ${pizzaClass}`));
+    return { pizzaClass, name: fam.fmName(type), fam };
+  }
+
+  function orderAbstractFactory(style, type) {
+    const fam = FAMILIES[style];
+    log(call(`${fam.store}.createPizza("${type}")`));
+    log(dim(`    ingredientFactory = new ${fam.factory}()`));
+    log(dim(`    pizza = new ${cap(type)}Pizza(ingredientFactory)`));
+    log(dim(`    pizza.setName("${fam.afName(type)}")`));
+    return { pizzaClass: `${cap(type)}Pizza`, name: fam.afName(type), fam };
+  }
+
+  function prepareLines(style, type, name, fam, withFactory) {
+    log(out(`Preparing ${name}`));
+    if (withFactory) {
+      log(out(`Tossing dough...`));
+      log(dim(`    dough  = ingredientFactory.createDough()   → ${fam.dough}`));
+      log(out(`Adding sauce...`));
+      log(dim(`    sauce  = ingredientFactory.createSauce()   → ${fam.sauce}`));
+      log(out(`Adding toppings:`));
+      log(dim(`    cheese = ingredientFactory.createCheese()  → ${fam.cheese}`));
+      if (type === 'clam')        log(dim(`    clam   = ingredientFactory.createClam()    → ${fam.clam}`));
+      if (type === 'veggie')      log(dim(`    veggies[] = ingredientFactory.createVeggies() → { ${fam.veggies.join(', ')} }`));
+      if (type === 'pepperoni')   log(dim(`    pepperoni = ingredientFactory.createPepperoni() → ${fam.pepperoni}`));
+    } else {
+      log(out('Tossing dough...'));
+      log(out('Adding sauce...'));
+      log(out('Adding toppings:'));
+      log(out(`   ${fam.topping}`));
+    }
+  }
+
+  function finish(fam) {
+    log(out('Bake for 25 minutes at 350'));
+    log(out(fam.cut));
+    log(out('Place pizza in official PizzaStore box'));
+  }
+
+  /* ---------------------------------------------------------- the cards */
+  function renderCard(style, type, info, modeName) {
+    const fam = FAMILIES[style];
+    const rows = [
+      ['dough', fam.dough],
+      ['sauce', fam.sauce],
+      ['cheese', fam.cheese],
+      ['clam', fam.clam],
+      ['veggies', fam.veggies.join(', ')],
+      ['pepperoni', fam.pepperoni]
+    ];
+
+    if (modeName === 'abstract') {
+      card.innerHTML = `<div class="pz-name">${info.name}</div>
+        <div class="pz-sub"><code>${info.pizzaClass}</code> + <code>${fam.factory}</code></div>
+        <table class="pz-ing">${rows.map(([k, v]) => `<tr><th>create${cap(k)}()</th><td>${v}</td></tr>`).join('')}</table>
+        <p class="wx-hint">One <code>${cap(type)}Pizza</code> class serves every region. Only the factory changed.</p>`;
+      chip.textContent = `Abstract Factory · ${fam.factory}`;
+      depEl.textContent = 'the store depends on: Pizza, PizzaIngredientFactory (2 abstractions)';
+      return;
+    }
+
+    if (modeName === 'factory') {
+      card.innerHTML = `<div class="pz-name">${info.name}</div>
+        <div class="pz-sub"><code>${info.pizzaClass}</code> created by <code>${fam.store}.createPizza()</code></div>
+        <p style="font-size:.9rem;margin:10px 0 0">The creator subclass supplied the product; <code>orderPizza()</code> in <code>PizzaStore</code> supplied the four fixed steps. Neither class knows the other’s concrete type.</p>
+        <p class="wx-hint">Parallel hierarchies: <code>${fam.store}</code> ↔ <code>${info.pizzaClass}</code>.</p>`;
+      chip.textContent = `Factory Method · ${fam.store}`;
+      depEl.textContent = 'the store depends on: Pizza (1 abstraction)';
+      return;
+    }
+
+    card.innerHTML = `<div class="pz-name">${info.name}</div>
+      <div class="pz-sub"><code>${info.pizzaClass}</code> instantiated in the middle of a ${style === 'California' ? 12 : 8}-way <code>if/else</code></div>
+      <ul class="bullets" style="margin:12px 0 0;font-size:.86rem">
+        ${DEPENDENT_CLASSES.slice(0, style === 'California' ? 12 : 8).map(c => `<li><code>${c}</code></li>`).join('')}
+      </ul>`;
+    chip.textContent = `DependentPizzaStore · ${style}`;
+    depEl.textContent = `the store depends on: ${style === 'California' ? 12 : 8} concrete pizza classes`;
+  }
+
+  /* ------------------------------------------------------------- actions */
+  function runOne(style, type) {
+    const fam = FAMILIES[style];
+    sep();
+    let info;
+    if (mode === 'dependent') info = orderDependent(style, type);
+    else if (mode === 'factory') info = orderFactoryMethod(style, type);
+    else info = orderAbstractFactory(style, type);
+
+    prepareLines(style, type, info.name, fam, mode === 'abstract');
+    finish(fam);
+    log(`→ ${fam.who === 'the customer' ? 'the customer' : fam.who} ordered a ${res(info.name)}`);
+    renderCard(style, type, info, mode);
+  }
+
+  function runBookMain() {
+    sep();
+    log(dim('PizzaTestDrive.main() — exactly the chapter’s run'));
+    runOne('NY', 'cheese');
+    runOne('Chicago', 'cheese');
+  }
+
+  /* -------------------------------------------------------------- wiring */
+  $$('.pz-modes .tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      mode = tab.dataset.mode;
+      $$('.pz-modes .tab').forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+      $('#pz-modesays').textContent = MODES[mode];
+      log(dim(`— switched to ${tab.textContent.trim()} —`));
+      runOne(storeSel.value, typeSel.value);
+    });
+  });
+
+  $('#pz-order')?.addEventListener('click', () => runOne(storeSel.value, typeSel.value));
+  $('#pz-book')?.addEventListener('click', runBookMain);
+  const clear = () => { logBox.innerHTML = ''; };
+  $('#pz-clear')?.addEventListener('click', clear);
+  $('#pz-clear2')?.addEventListener('click', clear);
+
+  /* first paint: show what the default state means */
+  runOne('NY', 'cheese');
+})();
+
+/* --------------------------------------------------------------- quiz */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const box = $('#f-quiz');
+  if (!box) return;
+
+  const opts   = $$('#f-quiz-opts .opt', box);
+  const answer = $('#f-quiz-answer', box);
+
+  opts.forEach(opt => {
+    opt.addEventListener('change', () => {
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+  });
+
+  $('#f-quiz-check', box)?.addEventListener('click', () => {
+    let right = 0;
+    const wrong = [];
+    opts.forEach(opt => {
+      const ticked  = opt.querySelector('input').checked;
+      const correct = opt.dataset.correct === '1';
+      const mark    = opt.querySelector('.mark');
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
+      else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
+      else { mark.textContent = ''; }
+    });
+    const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    const allFound = right === correctSet.length;
+    answer.classList.remove('hidden');
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, C and F: Factory Method defers instantiation to subclasses, Simple Factory is only an Honorable Mention, and a new product in an Abstract Factory means changing the factory interface — the book’s own criticism of it.`
+      : `<strong>All ${correctSet.length} correct.</strong> Factory Method defers through inheritance, Abstract Factory composes a factory object, DIP pushes both sides towards the abstraction, and a static factory method cannot be overridden.`;
+  });
+
+  $('#f-quiz-reset', box)?.addEventListener('click', () => {
+    opts.forEach(opt => {
+      opt.querySelector('input').checked = false;
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+    answer.classList.add('hidden');
+    answer.innerHTML = '';
+  });
+})();
+</script>

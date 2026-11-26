@@ -1,0 +1,183 @@
+{
+ "appendix-opener": [
+  "14 Appendix Not everyone can be the most popular. A lot has changed in the last 25+ years. Since Design Patterns: Elements of Reusable Object-",
+  "Oriented Software first came out, developers have applied these patterns thousands of times. The patterns we summarize in this appendix are full- fledged, card-carrying, official GoF patterns, but aren’t used as often as the",
+  "patterns we’ve explored so far. But these patterns are awesome in their own right, and if your situation calls for them, you should apply them with your head held high. Our goal in this appendix is to give you a high-level idea of",
+  "what these patterns are all about."
+ ],
+ "bridge": [
+  "Bridge Use the Bridge Pattern to vary not only your implementations, but also your abstractions.",
+  "This is an abstraction. It could be an interface or an abstract class.",
+  "A scenario Imagine you’re writing the code for a new ergonomic and user-friendly remote control for TVs. You already know that you’ve got to use good object-oriented techniques because while the remote is based on the same abstraction, there will be lots of implementations—one for each model of TV.",
+  "Every remote has the",
+  "RemoteControl same abstraction.",
+  "on()",
+  "off()",
+  "setChannel()",
+  "// more methods"
+ ],
+ "bridge-benefits": [
+  "Why use the Bridge Pattern?",
+  "The Bridge Pattern allows you to vary the implementation and the abstraction by placing the two in separate class hierarchies.",
+  "Implementation class hierarchy.",
+  "Abstraction",
+  "The relationship between class hierarchy.",
+  "the two is referred to as the “bridge.”",
+  "RemoteControl",
+  "Has-A implementor on()",
+  "off()"
+ ],
+ "builder": [
+  "Builder Use the Builder Pattern to encapsulate the construction of a product and allow it to be constructed in steps.",
+  "A scenario You’ve just been asked to build a vacation planner for Patternsland, a new theme park just outside of Objectville. Park guests can choose a hotel and various types of admission tickets, make restaurant reservations, and even book special events. To create a vacation planner, you need to be able to create structures like this:",
+  "Each vacation is planned over some number of days.",
+  "l E",
+  "Each day can have any combination of hotel reservations, tickets, meals, and special events.",
+  "You need a flexible design Each guest’s planner can vary in the number of days and types of activities it includes. For instance, a local resident might not need a hotel, but wants to make dinner and special event reservations. Another guest might be flying into Objectville and needs a hotel, dinner reservations, and admission tickets.",
+  "So, you need a flexible data structure that can represent guest planners and all their variations; you also need to follow a sequence of potentially complex steps to create the planner. How can you provide a way to create the complex structure without mixing it with the steps for creating it?"
+ ],
+ "builder-benefits": [
+  "Why use the Builder Pattern?",
+  "Remember Iterator? We encapsulated the iteration into a separate object and hid the internal representation of the collection from the client. It’s the same idea here: we encapsulate the creation of the trip planner in an object (let’s call it a builder), and have our client ask the builder to construct the trip planner structure for it.",
+  "The client uses an abstract interface to build the planner.",
+  "The Client directs builder",
+  "Client",
+  "AbstractBuilder the builder to constructPlanner()",
+  "buildDay() addHotel() addReservation() addSpecialEvent() addTickets() getVacationPlanner()",
+  "construct the planner.",
+  "The concrete builder"
+ ],
+ "chain": [
+  "Chain of Responsibility Use the Chain of Responsibility Pattern when you want to give more than one object a chance to handle a request.",
+  "A scenario Mighty Gumball has been getting more email than they can handle since the release of the Java-powered Gumball Machine. From their own analysis they get four kinds of email: fan mail from customers that love the new 1-in-10 game, complaints from parents whose kids are addicted to the game, requests to put machines in new locations, and a fair amount of spam.",
+  "All fan mail should go straight to the CEO, all complaints should go to the legal department, and all requests for new machines should go to business development. Spam should be deleted.",
+  "Your task You’ve got to help us deal with the flood of email we’re getting since the release of the Mighty Gumball has already written some AI detectors that can tell if an email is spam, fan mail, a complaint, or a request, but they need you to create a design that can use the detectors to handle incoming email.",
+  "Java Gumball Machine."
+ ],
+ "chain-benefits": [
+  "How to use the Chain of Responsibility Pattern With the Chain of Responsibility Pattern, you create a chain of objects to examine requests. Each object in turn examines a request and either handles it or passes it on to the next object in the chain.",
+  "Handler successor",
+  "Each object in the chain acts as a handler and has handleRequest()",
+  "a successor object. If it can handle the request, it does; otherwise, it forwards the request to its successor.",
+  "SpamHandler FanHandler ComplaintHandler NewLocHandler handleRequest() handleRequest() handleRequest() handleRequest()"
+ ],
+ "flyweight": [
+  "Flyweight Use the Flyweight Pattern when one instance of a class can be used to provide many virtual instances.",
+  "A scenario You want to add trees as objects in your new landscape design application. In your application, trees don’t really do very much; they have an X-Y location, and they can draw themselves dynamically, depending on how old they are. The thing is, a user might want to have lots and lots of trees in one of their home landscape designs. It might look something like this:",
+  "Tree",
+  "Tree Tree",
+  "Tree Each Tree instance maintains its own state.",
+  "Tree",
+  "House",
+  "Tree xCoord",
+  "Tree"
+ ],
+ "flyweight-benefits": [
+  "Why use the Flyweight Pattern?",
+  "What if, instead of having thousands of Tree objects, you could redesign your system so that you’ve got only one instance of Tree, and a client object that maintains the state of ALL your trees? That’s the Flyweight!",
+  "All the state, for ALL",
+  "One, single, state-free Tree object.",
+  "of your virtual Tree objects, is stored in this 2D array.",
+  "TreeManager",
+  "Tree treeArray display(x, y, age) { // use X-Y coords // & complex age displayTrees() {"
+ ],
+ "interpreter": [
+  "Interpreter",
+  "The Interpreter Use the Interpreter Pattern to build an interpreter for a language.",
+  "Pattern requires some knowledge of formal grammars.",
+  "A scenario",
+  "If you’ve never studied formal grammars, Remember the Duck Simulator? You have a hunch it would also make a great educational tool for children to learn programming. Using the simulator, each child gets to control one duck with a",
+  "go ahead and read through the pattern; you’ll still get the gist of it.",
+  "simple language. Here’s an example of the language:",
+  "Turn the duck right.",
+  "Fly all day..."
+ ],
+ "interpreter-benefits": [
+  "How to implement an interpreter When you need to implement a simple language, the Interpreter Pattern defines a class-based representation for its grammar along with an interpreter to interpret its sentences. To represent the language, you use a class to represent each",
+  "rule in the language. Here’s the duck language translated into classes. Notice the direct mapping to the grammar.",
+  "Expression interpret(context)",
+  "Sequence Repetition expression1 expression2 variable expression interpret(context)",
+  "interpret(context)",
+  "Variable RightCommand QuackCommand",
+  "FlyCommand interpret(context) interpret(context) interpret(context)",
+  "interpret(context)",
+  "To interpret the language, call the interpret() method on each expression type. This method is passed a context—which contains the input stream of the program we’re parsing—and matches the input and evaluates it."
+ ],
+ "mediator": [
+  "Mediator Use the Mediator Pattern to centralize complex communications and control between related objects.",
+  "A scenario Bob has an automated home, thanks to the good folks at HouseOfTheFuture. All of his appliances are designed to make his life easier. When Bob stops hitting the snooze button, his alarm clock tells the coffee maker to start brewing.",
+  "Even though life is good for Bob, he and other customers are always asking for lots of new features: No coffee on the weekends... Turn off the sprinkler 15 minutes before a shower is scheduled... Set the alarm early on trash days...",
+  "Alarm",
+  "CoffeePot onEvent() {",
+  "Alarm onEvent() { checkCalendar()",
+  "CoffeePot checkSprinkler()",
+  "checkAlarm()"
+ ],
+ "mediator-benefits": [
+  "Mediator in action...",
+  "It’s such a relief, not having to figure out that Alarm clock’s picky rules!",
+  "With a Mediator added to the system, all of the appliance objects can be greatly simplified:",
+  " They tell the Mediator when their state changes.",
+  "CoffeePot Alarm  They respond to requests from the",
+  "Mediator.",
+  "Before we added the Mediator, all of the appliance objects needed to know about each other; that is, they were all tightly coupled. With the Mediator in place, the appliance",
+  "Mediator if(alarmEvent){ checkCalendar()",
+  "Mediator"
+ ],
+ "memento": [
+  "Memento Use the Memento Pattern when you need to be able to return an object to one of its previous states; for instance, if your user requests an “undo.”",
+  "A scenario Your interactive role-playing game is hugely successful, and has created a legion of addicts, all trying to get to the fabled “level 13.” As users progress to more challenging game levels, the odds of encountering a game-ending situation increase.",
+  "Fans who have spent days progressing to an advanced level are understandably miffed when their character gets snuffed, and they have to start all over. The cry goes out for a “save progress” command, so that players can store their",
+  "game progress and at least recover most of their efforts when their character is unfairly extinguished. The “save progress” function needs to be designed to return",
+  "Just be careful how you go about saving the game state. It’s pretty complicated, and I don’t want anyone a resurrected player to the last level she completed successfully.",
+  "else with access to it mucking it up and breaking my code."
+ ],
+ "memento-at-work": [
+  "The Memento at work",
+  "The Memento has two goals:",
+  " Saving the important state of a system’s key object  Maintaining the key object’s encapsulation Keeping the Single Responsibility Principle in mind, it’s also a good idea to keep the state that you’re saving separate from the key object. This separate object that holds the state is known as the Memento object.",
+  "GameMemento savedGameState",
+  "Client",
+  "MasterGameObject // when new level is reached gameState",
+  "Object saved =",
+  "Object getCurrentState() {",
+  "(Object) mgo.getCurrentState();"
+ ],
+ "prototype": [
+  "Prototype Use the Prototype Pattern when creating an instance of a given class is either expensive or complicated.",
+  "A scenario Your interactive role-playing game has an insatiable appetite for monsters. As your heroes make their journey through a dynamically created landscape, they encounter an endless chain of foes that must be subdued. You’d like the monster’s characteristics to evolve with the changing landscape. It doesn’t make a lot of sense for bird-like monsters to follow your characters into underseas realms. Finally, you’d like to allow advanced players to create their own custom monsters.",
+  "Yikes! Just the act of creating all of these different kinds of monster instances is getting tricky... Putting all sorts of state detail in the constructors doesn’t seem to be very cohesive. It would be great if there was a single place where all of the instantiation details could be",
+  "It would be a lot cleaner if we could decouple the code that handles the details of creating the monsters from the code that actually encapsulated...",
+  "needs to create the instances on the fly."
+ ],
+ "prototype-rescue": [
+  "Prototype to the rescue The Prototype Pattern allows you to make new instances by copying existing instances. (In Java this typically means using the clone() method, or deserialization when you need deep copies.) A key aspect of this pattern is that the client code can make new instances without knowing which specific class is being instantiated.",
+  "<<interface>>",
+  "Monster WellKnownMonster DynamicPlayerGeneratedMonster",
+  "MonsterMaker",
+  "The client needs a new monster appropriate to the current makeRandomMonster() { situation. (The client won’t know what kind of monster he gets.)",
+  "Monster m =",
+  "MonsterRegistry.getMonster();",
+  "MonsterRegistry"
+ ],
+ "visitor": [
+  "Visitor Use the Visitor Pattern when you want to add capabilities to a composite of objects and encapsulation is not important.",
+  "A scenario Customers who frequent the Objectville Diner and Objectville Pancake House have recently become more health conscious. They are asking for nutritional information before ordering their meals. Because both establishments are so willing to create special orders,",
+  "some customers are even asking for nutritional information on a per-ingredient basis.",
+  "Lou’s proposed solution:",
+  "Menu // new methods getHealthRating()",
+  "getCalories()",
+  "getProtein()",
+  "getCarbs()",
+  "MenuItem // new methods"
+ ],
+ "visitor-at-work": [
+  "The Visitor drops by The Visitor works hand in hand with a Traverser. The Traverser knows how to navigate to all of the objects in a Composite. The Traverser guides the Visitor through the Composite so that the Visitor",
+  "can collect state as it goes. Once state has been gathered, the Client can have the Visitor perform various operations on the state. When new functionality is required, only the Visitor must be enhanced.",
+  "All these composite classes have to do is add a getState() method (and not worry about",
+  "The Visitor needs to be able to call exposing themselves). The Client asks getState() across classes, and this is where you can add new methods for the Visitor to get the client to use.",
+  "getHealthRating()",
+  "information from the Composite structure... New methods can be added to the Visitor without affecting the Composite.",
+  "getCalories()"
+ ]
+}

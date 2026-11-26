@@ -1,0 +1,635 @@
+<!-- ================================================== APPENDIX DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Appendix</b> leftover patterns</div>
+  <h2>Not Everyone Can Be the <span style="color:var(--purple)">Most Popular</span></h2>
+  <p>Nine full-fledged, card-carrying Gang of Four patterns that never got a chapter of their own. Each one gets a scenario, a diagram and its uses and drawbacks — the same treatment as the rest of the book, in a fraction of the space.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Appendix</span>
+    <span class="chip">9 patterns</span>
+    <span class="chip">19 book figures</span>
+    <span class="chip">Bridge · Builder · Flyweight · Prototype…</span>
+    <span class="chip">1 live leftovers</span>
+  </div>
+</div>
+
+<!-- ========================================================= 1. INTRO -->
+<section id="ap-intro">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>the appendix</span></div>
+    <h2>What is in the appendix</h2>
+    <p class="sub">The book covers thirteen patterns in depth. The Gang of Four catalog has 23. These are the remaining nine — less common, not less useful, and documented here with just enough detail to recognise when one applies.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG14:appendix-opener}}" alt="Appendix opener: Leftover Patterns, with a photograph of someone polishing a car and a note that these are full-fledged, card-carrying GoF patterns that are simply less frequently used.">
+      <figcaption>The appendix’s premise: “not everyone can be the most popular.” These nine are official GoF patterns — they just don’t come up as often as Strategy or Observer.</figcaption>
+      {{SAYS:appendix-opener}}
+    </figure>
+
+    <div class="grid2" style="margin-top:30px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The nine, at a glance</h3>
+        <table class="compare">
+          <thead><tr><th>Pattern</th><th>Purpose</th><th>One line from the book</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#ap-bridge"><strong>Bridge</strong></a></td><td>structural</td><td>vary implementations <em>and</em> abstractions</td></tr>
+            <tr><td><a href="#ap-builder"><strong>Builder</strong></a></td><td>creational</td><td>construct a product in steps</td></tr>
+            <tr><td><a href="#ap-chain"><strong>Chain of Responsibility</strong></a></td><td>behavioral</td><td>give more than one object a chance to handle a request</td></tr>
+            <tr><td><a href="#ap-flyweight"><strong>Flyweight</strong></a></td><td>structural</td><td>one instance, many virtual instances</td></tr>
+            <tr><td><a href="#ap-interpreter"><strong>Interpreter</strong></a></td><td>behavioral</td><td>build an interpreter for a language</td></tr>
+            <tr><td><a href="#ap-mediator"><strong>Mediator</strong></a></td><td>behavioral</td><td>centralize complex communications</td></tr>
+            <tr><td><a href="#ap-memento"><strong>Memento</strong></a></td><td>behavioral</td><td>return an object to a previous state</td></tr>
+            <tr><td><a href="#ap-prototype"><strong>Prototype</strong></a></td><td>creational</td><td>create by copying existing instances</td></tr>
+            <tr><td><a href="#ap-visitor"><strong>Visitor</strong></a></td><td>behavioral</td><td>add capabilities to a composite of objects</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h3 style="margin-top:0">How to read an appendix entry</h3>
+        <ul class="bullets">
+          <li><strong>A scenario.</strong> Every pattern here starts with a concrete problem — a TV remote, a theme-park planner, a tree-filled landscape, a monster game.</li>
+          <li><strong>The intent, in one line.</strong> “Use the <em>X</em> Pattern when…” — the sentence you should be able to recall before reaching for it.</li>
+          <li><strong>Uses and drawbacks.</strong> Every one of these nine ships with a real cost, and the book names it: Bridge increases complexity, Flyweight removes independence, Visitor breaks encapsulation, Memento can be slow.</li>
+          <li><strong>No demo code.</strong> Unlike the main chapters, the appendix deliberately stays at the level of “here is the shape of the solution”.</li>
+        </ul>
+        <div class="note">
+          <strong>Why they are here and not in a chapter:</strong> they are rarer, narrower, or only worth their complexity in specific situations. That is a judgement about frequency, not quality — a Bridge in a graphics library is not a compromise.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ 2. CREATION & STRUCTURE -->
+<section id="ap-structural">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>bridge, builder, flyweight, prototype</span></div>
+    <h2>Patterns about building things</h2>
+    <p class="sub">Two ways to vary a hierarchy (Bridge), a way to assemble a complicated product (Builder), a way to stop making so many objects (Flyweight), and a way to make new ones without knowing their class (Prototype).</p>
+
+    <div class="figure-grid" id="ap-bridge" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:bridge}}" alt="Bridge: a universal TV remote whose abstraction and implementations both need to vary, and a diagram separating the remote hierarchy from the TV hierarchy.">
+        <figcaption><strong>Bridge.</strong> The remote changes, and the TVs change. Put the two hierarchies side by side and let a reference connect them, instead of a class per remote-per-TV.</figcaption>
+        {{SAYS:bridge}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:bridge-benefits}}" alt="Why use the Bridge Pattern: it decouples an implementation from an interface, lets both be extended independently, and increases complexity.">
+        <figcaption>Bridge’s deal: abstractions and implementations vary independently — at the cost of another layer of indirection.</figcaption>
+        {{SAYS:bridge-benefits}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" id="ap-builder" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:builder}}" alt="Builder: a vacation planner for Patternsland with days, hotels, tickets and reservations, and an abstract builder with buildDay, addHotel and addReservation.">
+        <figcaption><strong>Builder.</strong> A vacation planner with variable days, hotels, tickets and reservations. Each <code>buildDay()</code> adds one day; the client never touches the product’s internals.</figcaption>
+        {{SAYS:builder}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:builder-benefits}}" alt="Builder benefits: encapsulates how a complex object is constructed, allows multistep construction, hides the internal representation and swaps products behind an interface.">
+        <figcaption>Builder is Iterator’s cousin: encapsulate the <em>construction</em> the way Iterator encapsulates the <em>traversal</em>.</figcaption>
+        {{SAYS:builder-benefits}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" id="ap-flyweight" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:flyweight}}" alt="Flyweight: a landscape application with thousands of trees, and the realisation that one state-free Tree plus a client holding all the positions can replace them.">
+        <figcaption><strong>Flyweight.</strong> Thousands of trees with an x-y position and a draw method — most of what each object holds is identical. Keep one and move the varying state into the client.</figcaption>
+        {{SAYS:flyweight}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:flyweight-benefits}}" alt="Flyweight benefits: reduces object instances and centralizes state, but logical instances can no longer behave independently.">
+        <figcaption>The trade: memory for independence. Once instances are shared, no single tree can behave differently from the others.</figcaption>
+        {{SAYS:flyweight-benefits}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" id="ap-prototype" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:prototype}}" alt="Prototype: a role-playing game that needs endless monsters with evolving characteristics, and the coupling problem of creating them by name.">
+        <figcaption><strong>Prototype.</strong> A game that needs an endless supply of monsters, whose types evolve — and a client that should not know every monster class.</figcaption>
+        {{SAYS:prototype}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:prototype-rescue}}" alt="Prototype to the rescue: new instances are made by copying existing ones with clone(), so the client never knows which class it is instantiating.">
+        <figcaption>Prototype to the rescue: copy an existing instance instead of naming a class. In Java that means <code>clone()</code>, or deserialisation when you need a deep copy.</figcaption>
+        {{SAYS:prototype-rescue}}
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================= 3. BEHAVIOURAL -->
+<section id="ap-behavioral">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>chain, interpreter, mediator, memento, visitor</span></div>
+    <h2>Patterns about who does the work</h2>
+    <p class="sub">Five patterns about the shape of control: passing a request along a chain, interpreting a tiny language, centralising a mesh of conversations, saving state you are not supposed to touch, and adding operations to a structure you cannot change.</p>
+
+    <div class="figure-grid" id="ap-chain" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:chain}}" alt="Chain of Responsibility: Mighty Gumball’s email — fan mail to the CEO, complaints to legal, new machine requests to business development, spam deleted — arranged as a chain of handlers.">
+        <figcaption><strong>Chain of Responsibility.</strong> Four kinds of email, four handlers, and a client that just sends the message. Each handler passes on what it cannot deal with.</figcaption>
+        {{SAYS:chain}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:chain-benefits}}" alt="Chain of Responsibility benefits: decouples sender from receivers, simplifies the objects and allows responsibilities to change dynamically — but handling is not guaranteed and debugging is harder.">
+        <figcaption>The honest caveat: a request can fall off the end of the chain, and a chain is harder to observe at runtime than one big <code>if</code>.</figcaption>
+        {{SAYS:chain-benefits}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" id="ap-interpreter" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:interpreter}}" alt="Interpreter: a tiny duck-control language with a grammar for expression, sequence, command, repetition and variable, plus the class diagram that represents each rule.">
+        <figcaption><strong>Interpreter.</strong> A children’s duck-programming language: one class per grammar rule, and a sentence is a tree of those objects.</figcaption>
+        {{SAYS:interpreter}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:interpreter-benefits}}" alt="Interpreter benefits: each grammar rule becomes a class, the language is easy to extend, and it suits simple grammars where simplicity beats efficiency.">
+        <figcaption>When it fits: a small grammar, and simplicity matters more than speed. When it does not: many rules — use a parser generator instead.</figcaption>
+        {{SAYS:interpreter-benefits}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" id="ap-mediator" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:mediator}}" alt="Mediator: Bob’s automated home with an alarm, coffee pot, calendar and sprinkler all talking to each other, and the tangle of rules that results.">
+        <figcaption><strong>Mediator.</strong> Every appliance talking to every other appliance is a mesh. Put a mediator in the middle and the mesh becomes a star.</figcaption>
+        {{SAYS:mediator}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:mediator-benefits}}" alt="Mediator benefits: reusability of the mediated objects, centralized control logic and fewer messages — but the mediator itself can grow overly complex.">
+        <figcaption>The trade: the appliances get simple, the mediator gets complicated. That is a good deal while the rules are centralised and one place can be read.</figcaption>
+        {{SAYS:mediator-benefits}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" id="ap-memento" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:memento}}" alt="Memento: a role-playing game where players want a save-progress command, and the game object whose state must be stored and restored.">
+        <figcaption><strong>Memento.</strong> “Save progress.” The game has to hand its state out and take it back — without opening its internals to every other object.</figcaption>
+        {{SAYS:memento}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:memento-at-work}}" alt="The Memento at work: a separate Memento object holds the saved state, the caretaker keeps it, and the originator restores from it — keeping encapsulation.">
+        <figcaption>The mechanism: an opaque memento object, a caretaker that stores it, and an originator that can restore from it. Nobody else can read the state.</figcaption>
+        {{SAYS:memento-at-work}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" id="ap-visitor" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:visitor}}" alt="Visitor: the Objectville Diner and Pancake House need nutritional information, and Lou proposes adding getCalories and getProtein to every menu class while Mel worries about Pandora’s box.">
+        <figcaption><strong>Visitor.</strong> The diner needs calories, protein and carbs. Lou wants to add methods to every menu class; Mel points out that the next request will too.</figcaption>
+        {{SAYS:visitor}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG14:visitor-at-work}}" alt="The Visitor drops by: a visitor walks a composite with the help of a traverser, collecting state, so new operations do not change the structure.">
+        <figcaption>The Visitor walks the composite with a traverser, collects state as it goes, and the client asks it for the operation. New operation = new visitor class.</figcaption>
+        {{SAYS:visitor-at-work}}
+      </figure>
+    </div>
+
+    <div class="note warn" style="margin-top:26px">
+      <strong>Read the drawbacks column.</strong> Every appendix pattern ships with one, and they are the reason these nine are not in chapters: Bridge adds indirection, Flyweight removes per-instance behaviour, Visitor breaks encapsulation, Mediator can become a god object, and a chain can silently drop a request.
+    </div>
+  </div>
+</section>
+<!-- ============================================================ 4. DEMO -->
+<section id="ap-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>live demo</span></div>
+    <h2>Three leftovers, running</h2>
+    <p class="sub">The appendix has no demo code, so here are three of its patterns working. Add operations to a menu composite with a <strong>Visitor</strong>; route Mighty Gumball’s inbox down a <strong>Chain of Responsibility</strong>; and save and restore a game with a <strong>Memento</strong>.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>Leftover Patterns Lab</h3>
+        <div class="actions">
+          <button class="btn ghost" id="ap-clear">Clear console</button>
+        </div>
+      </div>
+
+      <div class="cg-modes" id="ap-tabs" role="tablist">
+        <button class="tab" role="tab" data-panel="visitor" aria-selected="true">visitor</button>
+        <button class="tab" role="tab" data-panel="chain" aria-selected="false">chain of responsibility</button>
+        <button class="tab" role="tab" data-panel="memento" aria-selected="false">memento</button>
+      </div>
+
+      <!-- ---------------------------------------------------- visitor -->
+      <div class="ap-panel" id="ap-panel-visitor">
+        <div class="grid2" style="align-items:start;margin-top:0">
+          <div class="ad-card" style="margin-top:0">
+            <h4>Objectville menus · the composite</h4>
+            <div id="ap-menu-tree" class="ap-tree"></div>
+            <p class="wx-hint" style="margin:10px 0 0">The structure does not change. Every new question about the menu becomes a new visitor class.</p>
+          </div>
+          <div class="ad-card" style="margin-top:0">
+            <h4>Visitors</h4>
+            <div class="ad-choices">
+              <button class="btn primary small" id="ap-visit-calories">CalorieVisitor</button>
+              <button class="btn small" id="ap-visit-veg">VegetarianVisitor</button>
+              <button class="btn small" id="ap-visit-price">PriceVisitor</button>
+            </div>
+            <h4 class="rc-h4" style="margin-top:14px">accept(visitor) output</h4>
+            <pre class="rc-tostring" id="ap-visit-out" style="max-height:260px">— no visitor yet —</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ------------------------------------------------------ chain -->
+      <div class="ap-panel" id="ap-panel-chain" hidden>
+        <div class="grid2" style="align-items:start;margin-top:0">
+          <div class="ad-card" style="margin-top:0">
+            <h4>Mighty Gumball · the chain</h4>
+            <div class="ap-chain" id="ap-chain-view"></div>
+            <h4 class="rc-h4" style="margin-top:14px">Send an email</h4>
+            <div class="ad-choices" id="ap-emails"></div>
+            <div class="ad-choices" style="margin-top:10px">
+              <button class="btn primary small" id="ap-chain-all">process the inbox</button>
+            </div>
+          </div>
+          <div class="ad-card" style="margin-top:0">
+            <h4>Handler trace</h4>
+            <pre class="rc-tostring" id="ap-chain-out" style="max-height:300px">— nothing sent yet —</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------------------------------------------------- memento -->
+      <div class="ap-panel" id="ap-panel-memento" hidden>
+        <div class="grid2" style="align-items:start;margin-top:0">
+          <div class="ad-card" style="margin-top:0">
+            <h4>The game · originator</h4>
+            <div class="rc-devices" id="ap-game"></div>
+            <div class="ad-choices" style="margin-top:12px">
+              <button class="btn small" id="ap-damage">take 30 damage</button>
+              <button class="btn small" id="ap-levelup">level up</button>
+              <button class="btn primary small" id="ap-save">save()</button>
+              <button class="btn small" id="ap-undo">undo()</button>
+            </div>
+          </div>
+          <div class="ad-card" style="margin-top:0">
+            <h4>Caretaker · the saved states</h4>
+            <div id="ap-mementos" class="ap-mementos"></div>
+            <p class="wx-hint" style="margin:10px 0 0">The game hands out an opaque memento; only the game can read it back. That is the encapsulation the pattern is protecting.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">console</span>
+        </header>
+        <div class="body" id="ap-log"></div>
+        <footer><button class="btn small" id="ap-clear2">Clear console</button></footer>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>Try this:</strong> run all three visitors on the same menu. Nothing about <code>MenuItem</code> or <code>Menu</code> changed between runs — the operations were added as classes, which is exactly what Lou could not do without editing every item.
+      </div>
+      <div class="note warn">
+        <strong>And this:</strong> send “a partnership offer”. It walks the whole chain and falls off the end — the documented risk of Chain of Responsibility.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 5. CHEAT SHEET -->
+<section id="ap-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>one-page recap</span></div>
+    <h2>Appendix cheat sheet</h2>
+
+    <div class="grid2" style="align-items:start">
+      <table class="compare">
+        <thead><tr><th>Pattern</th><th>Use it when…</th><th>Watch out for…</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Bridge</strong></td><td>abstractions <em>and</em> implementations both vary</td><td>another layer of indirection</td></tr>
+          <tr><td><strong>Builder</strong></td><td>a product is assembled in steps</td><td>one more class per product</td></tr>
+          <tr><td><strong>Chain of Responsibility</strong></td><td>more than one object could handle a request</td><td>it may fall off the end</td></tr>
+          <tr><td><strong>Flyweight</strong></td><td>thousands of near-identical instances</td><td>instances lose independence</td></tr>
+          <tr><td><strong>Interpreter</strong></td><td>a small language, simplicity over speed</td><td>many rules make it unmanageable</td></tr>
+          <tr><td><strong>Mediator</strong></td><td>objects communicate in a mesh</td><td>the mediator becomes a god object</td></tr>
+          <tr><td><strong>Memento</strong></td><td>you need undo or “save progress”</td><td>saving and restoring can be slow</td></tr>
+          <tr><td><strong>Prototype</strong></td><td>creation is expensive or type unknown</td><td>deep vs. shallow copies</td></tr>
+          <tr><td><strong>Visitor</strong></td><td>new operations on a fixed composite</td><td>encapsulation is broken</td></tr>
+        </tbody>
+      </table>
+      <div>
+        <h3 style="margin-top:0">What the appendix teaches about patterns</h3>
+        <ul class="bullets">
+          <li><strong>Frequency is not quality.</strong> These nine are official GoF patterns; they are simply less often the right answer.</li>
+          <li><strong>Every pattern has a cost.</strong> The appendix prints uses and drawbacks side by side, on every page.</li>
+          <li><strong>Patterns compose with what you know.</strong> Visitor traverses a Composite; Memento often pairs with Command for undo; Bridge is what Factory Method grows into.</li>
+          <li><strong>Recognition beats recall.</strong> You are not expected to memorise nine diagrams — only to recognise the scenario when it appears.</li>
+          <li><strong>Twenty-two patterns and one compound pattern later,</strong> the vocabulary is the deliverable.</li>
+        </ul>
+        <div class="note" style="margin-top:14px">
+          <strong>The book is done.</strong> After the appendix come the index pages — 22 GoF patterns, MVC, and the thirteen chapters that built them one duck, coffee and gumball at a time.
+        </div>
+      </div>
+    </div>
+
+    <div class="quiz" style="margin-top:34px" id="ap-quiz">
+      <h3 style="margin-top:0">Check yourself: the leftover patterns</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="ap-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. Bridge separates an abstraction from its implementation so that both can vary independently.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="B"><span class="txt">B. Builder constructs a product in steps and hides its internal representation from the client.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="C"><span class="txt">C. Chain of Responsibility guarantees that every request is handled by someone.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="D"><span class="txt">D. Flyweight saves memory at the price of individual instances no longer behaving independently.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="E"><span class="txt">E. Memento keeps the saved state outside the key object, preserving its encapsulation.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="F"><span class="txt">F. Visitor adds operations to a composite while leaving the composite’s encapsulation intact.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="ap-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="ap-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="ap-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>The appendix in one sentence:</strong> nine patterns you will meet less often, each worth recognising, and each honest about what it costs.
+    </div>
+
+    <p style="margin-top:22px;font-size:.92rem;color:var(--ink-soft)">That is the whole book: thirteen chapters, nine leftover patterns, and the index.</p>
+  </div>
+</section>
+<script>
+/* =========================================================== appendix */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#ap-log');
+  if (!logBox) return;
+
+  const log = (text, cls = 'out') => {
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = text;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  const say = t => log(t, 'out');
+  const dim = t => log(t, 'dim');
+  const call = t => log(t, 'call');
+  const err = t => log(t, 'err');
+
+  /* ---------------------------------------------------------------- tabs */
+  const tabs = $$('#ap-tabs .tab');
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+    $$('#ap-demo .ap-panel').forEach(p => { p.hidden = p.id !== `ap-panel-${tab.dataset.panel}`; });
+  }));
+  $('#ap-clear').addEventListener('click', () => { logBox.innerHTML = ''; });
+  $('#ap-clear2').addEventListener('click', () => { logBox.innerHTML = ''; });
+
+  /* ======================================================== VISITOR */
+  const MENUS = [
+    { name: 'Diner Menu', items: [
+      { name: 'Vegetarian BLT', calories: 600, veg: true,  price: 3.99 },
+      { name: 'BLT', calories: 650, veg: false, price: 3.49 },
+      { name: 'Soup of the day', calories: 550, veg: false, price: 3.69 },
+      { name: 'Hotdog', calories: 700, veg: false, price: 2.99 },
+      { name: 'Steamed Veggies and Brown Rice', calories: 400, veg: true, price: 3.99 },
+      { name: 'Pasta', calories: 600, veg: true, price: 3.89 }
+    ] },
+    { name: 'Pancake House Menu', items: [
+      { name: 'K&B’s Pancake Breakfast', calories: 700, veg: true,  price: 2.99 },
+      { name: 'Regular Pancake Breakfast', calories: 800, veg: false, price: 2.99 },
+      { name: 'Blueberry Pancakes', calories: 650, veg: true,  price: 3.49 },
+      { name: 'Waffles', calories: 550, veg: true,  price: 3.59 }
+    ] },
+    { name: 'Café Menu', items: [
+      { name: 'Veggie Burger and Air Fries', calories: 1000, veg: true,  price: 3.99 },
+      { name: 'Soup of the day', calories: 550, veg: false, price: 3.69 },
+      { name: 'Burrito', calories: 800, veg: true,  price: 4.29 }
+    ] }
+  ];
+
+  const renderTree = () => {
+    $('#ap-menu-tree').innerHTML = '<div class="ap-root">All Menus</div>' + MENUS.map(m => `
+      <div class="ap-menu">
+        <div class="ap-menu-name">${m.name} <span>${m.items.length} items</span></div>
+        ${m.items.map(i => `<div class="ap-item"><span>${i.name}</span><span class="ap-badges">${i.calories} cal · ${i.veg ? 'veg' : 'not veg'}</span></div>`).join('')}
+      </div>`).join('');
+  };
+  renderTree();
+
+  const out = $('#ap-visit-out');
+
+  const visitCalories = () => {
+    call('allMenus.accept(new CalorieVisitor())');
+    dim('the traverser walks the composite; each item calls visitor.visit(this)');
+    let total = 0;
+    const lines = [];
+    MENUS.forEach(m => {
+      let sub = 0;
+      m.items.forEach(i => { sub += i.calories; total += i.calories; lines.push(`  ${i.name}: ${i.calories} calories`); });
+      lines.push(`${m.name} — ${sub} calories`);
+    });
+    lines.push(`Total calories: ${total}`);
+    out.textContent = lines.join('\n');
+    say(`CalorieVisitor: ${total} calories across ${MENUS.length} menus`);
+  };
+
+  const visitVeg = () => {
+    call('allMenus.accept(new VegetarianVisitor())');
+    let veg = 0, all = 0;
+    const lines = [];
+    MENUS.forEach(m => {
+      lines.push(m.name);
+      m.items.forEach(i => { all++; if (i.veg) veg++; lines.push(`  ${i.veg ? 'veg' : 'not veg'} — ${i.name}`); });
+    });
+    lines.push(`Vegetarian items: ${veg} of ${all}`);
+    out.textContent = lines.join('\n');
+    say(`VegetarianVisitor: ${veg} of ${all} items are vegetarian`);
+  };
+
+  const visitPrice = () => {
+    call('allMenus.accept(new PriceVisitor())');
+    let total = 0;
+    const lines = [];
+    MENUS.forEach(m => {
+      let sub = 0;
+      m.items.forEach(i => { sub += i.price; total += i.price; lines.push(`  ${i.name}: $${i.price.toFixed(2)}`); });
+      lines.push(`${m.name} — $${sub.toFixed(2)}`);
+    });
+    lines.push(`Total: $${total.toFixed(2)}`);
+    out.textContent = lines.join('\n');
+    say(`PriceVisitor: $${total.toFixed(2)}`);
+  };
+
+  $('#ap-visit-calories').addEventListener('click', visitCalories);
+  $('#ap-visit-veg').addEventListener('click', visitVeg);
+  $('#ap-visit-price').addEventListener('click', visitPrice);
+
+  /* ========================================================== CHAIN */
+  const CHAIN = [
+    { handler: 'FanMailHandler', type: 'FAN', who: 'the CEO' },
+    { handler: 'ComplaintHandler', type: 'COMPLAINT', who: 'Legal' },
+    { handler: 'NewMachineHandler', type: 'MACHINE', who: 'Business Development' },
+    { handler: 'SpamHandler', type: 'SPAM', who: 'the bin' }
+  ];
+  const EMAILS = [
+    { id: 'fan', label: '“I love the 1-in-10 game!”', type: 'FAN' },
+    { id: 'complaint', label: '“My kid is addicted to your machine.”', type: 'COMPLAINT' },
+    { id: 'machine', label: '“Please put a machine in our mall.”', type: 'MACHINE' },
+    { id: 'spam', label: '“Congratulations, you have won a prize!”', type: 'SPAM' },
+    { id: 'other', label: '“We would like to discuss a partnership.”', type: 'OTHER' }
+  ];
+
+  $('#ap-chain-view').innerHTML = CHAIN.map((h, i) => `
+    <div class="ap-handler"><b>${i + 1}. ${h.handler}</b><span>${h.type} → ${h.who}</span></div>`).join('');
+  $('#ap-emails').innerHTML = EMAILS.map(e =>
+    `<button class="bl-chip" data-email="${e.id}">${e.label}</button>`).join('');
+
+  const outChain = $('#ap-chain-out');
+  const lines = [];
+
+  const send = email => {
+    lines.length = 0;
+    lines.push(`inbox.send(${JSON.stringify(email.label)})`);
+    call(`inbox.send(${JSON.stringify(email.label)})`);
+    let handled = false;
+    for (const h of CHAIN) {
+      if (h.type === email.type) {
+        lines.push(`  ${h.handler}.handle() → handled, routed to ${h.who}`);
+        say(`${email.label} → ${h.who} (${h.handler})`);
+        handled = true;
+        break;
+      }
+      lines.push(`  ${h.handler}.handle() → not mine, pass to the next handler`);
+      dim(`  ${h.handler}: not mine, pass on`);
+    }
+    if (!handled) {
+      lines.push('  ... the request fell off the end of the chain');
+      err(`${email.label} → nobody handled it (fell off the end of the chain)`);
+    }
+    outChain.textContent = lines.join('\n');
+  };
+
+  $('#ap-emails').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-email]');
+    if (!btn) return;
+    const email = EMAILS.find(x => x.id === btn.dataset.email);
+    if (email) send(email);
+  });
+
+  $('#ap-chain-all').addEventListener('click', () => {
+    call('// process the whole inbox through the chain');
+    const all = [];
+    EMAILS.forEach(email => {
+      send(email);
+      all.push(outChain.textContent);
+    });
+    outChain.textContent = all.join('\n\n');
+  });
+
+  /* ======================================================== MEMENTO */
+  let game = { level: 3, health: 80, gold: 120 };
+  const saves = [];
+
+  const renderGame = () => {
+    $('#ap-game').innerHTML = `
+      <div class="rc-dev"><span>level</span><b>${game.level}</b></div>
+      <div class="rc-dev"><span>health</span><b>${game.health}</b></div>
+      <div class="rc-dev"><span>gold</span><b>${game.gold}</b></div>`;
+    $('#ap-mementos').innerHTML = saves.length
+      ? saves.map((s, i) => `<div class="ap-memento"><b>Memento ${i + 1}</b><span>level ${s.level} · ${s.health} hp · ${s.gold} gold</span></div>`).join('')
+      : '<p class="wx-hint" style="margin:0">No saved states yet.</p>';
+  };
+  renderGame();
+
+  $('#ap-damage').addEventListener('click', () => {
+    call('game.takeDamage(30)');
+    game.health = Math.max(0, game.health - 30);
+    say(`Health is now ${game.health}`);
+    if (game.health === 0) err('Your character has been snuffed! Restore a memento.');
+    renderGame();
+  });
+
+  $('#ap-levelup').addEventListener('click', () => {
+    call('game.levelUp()');
+    game.level += 1;
+    game.gold += 50;
+    game.health = 100;
+    say(`Level ${game.level} · ${game.gold} gold · health restored to 100`);
+    renderGame();
+  });
+
+  $('#ap-save').addEventListener('click', () => {
+    call('caretaker.save(game.createMemento())');
+    saves.push({ ...game });
+    say(`Saved: level ${game.level}, ${game.health} hp, ${game.gold} gold`);
+    renderGame();
+  });
+
+  $('#ap-undo').addEventListener('click', () => {
+    if (!saves.length) { err('No memento to restore — press save() first.'); return; }
+    call('game.setMemento(caretaker.undo())');
+    game = { ...saves.pop() };
+    say(`Restored: level ${game.level}, ${game.health} hp, ${game.gold} gold`);
+    renderGame();
+  });
+
+  dim('Leftover lab ready: three visitors over the menu composite, four handlers in the inbox chain, and a game with no saved state.');
+})();
+
+/* --------------------------------------------------------------- quiz */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const box = $('#ap-quiz');
+  if (!box) return;
+
+  const opts   = $$('#ap-quiz-opts .opt', box);
+  const answer = $('#ap-quiz-answer', box);
+
+  opts.forEach(opt => {
+    opt.addEventListener('change', () => {
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+  });
+
+  $('#ap-quiz-check', box).addEventListener('click', () => {
+    const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    let right = 0;
+    const wrong = [];
+    opts.forEach(opt => {
+      const ticked  = opt.querySelector('input').checked;
+      const correct = opt.dataset.correct === '1';
+      const mark    = opt.querySelector('.mark');
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
+      else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
+      else { mark.textContent = ''; }
+    });
+    const allFound = right === correctSet.length;
+    answer.classList.remove('hidden');
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, B, D and E. C is backwards — the appendix lists “execution isn’t guaranteed” as a drawback. F is the one thing Visitor does <em>not</em> do: it breaks encapsulation.`
+      : `<strong>All ${correctSet.length} correct.</strong> Bridge’s two hierarchies (A), Builder’s step-by-step product (B), Flyweight’s memory-for-independence trade (D) and Memento’s external state (E).`;
+  });
+
+  $('#ap-quiz-reset', box).addEventListener('click', () => {
+    opts.forEach(opt => {
+      opt.querySelector('input').checked = false;
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+    answer.classList.add('hidden');
+    answer.innerHTML = '';
+  });
+})();
+</script>

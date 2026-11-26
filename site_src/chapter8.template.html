@@ -1,0 +1,766 @@
+<!-- ==================================================== CHAPTER 8 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 8</b> the Template Method Pattern</div>
+  <h2>Encapsulating <span style="color:var(--purple)">Algorithms</span></h2>
+  <p>We have encapsulated object creation, method invocation and whole interfaces. Now we encapsulate the <em>shape of an algorithm</em>: a method in a superclass that fixes the order of the steps and lets subclasses fill in a few of them — and a design principle borrowed from Hollywood that explains why that is a good idea.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Coffee &amp; tea</span>
+    <span class="chip">1 pattern</span>
+    <span class="chip">35 book figures</span>
+    <span class="chip">+ the Hollywood Principle</span>
+    <span class="chip">1 live demo</span>
+  </div>
+</div>
+
+<!-- =========================================================== 1. STORY -->
+<section id="t-story">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>two recipes, one algorithm</span></div>
+    <h2>It’s time for some more caffeine</h2>
+    <p class="sub">Starbuzz is back, this time with a training manual. The coffee recipe and the tea recipe are almost the same four steps — and that is all the invitation the book needs to start pulling an algorithm out of two classes.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG8:opener}}" alt="Chapter 8 opener: a worker in a hole under a MEN WORKING sign complaining that his boss is nowhere in sight, headed Encapsulating Algorithms.">
+      <figcaption>“He’s a great boss until it comes to getting down in this hole, then it ALL becomes MY job.” The chapter’s joke is also its thesis: someone has to own the shape of the work.</figcaption>
+      {{SAYS:opener}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:recipes}}" alt="The Starbuzz barista training manual showing the coffee recipe and the tea recipe side by side — the same four steps with two substitutions.">
+        <figcaption>Two recipes, four steps, two differences. Hold that thought — the book is about to make it a base class.</figcaption>
+        {{SAYS:recipes}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:coffee-class}}" alt="The Coffee class with prepareRecipe() calling boilWater(), brewCoffeeGrinds(), pourInCup() and addSugarAndMilk(), with annotations explaining each method.">
+        <figcaption>Step one of the crime: each step becomes a method, and <code>prepareRecipe()</code> hard-codes the order.</figcaption>
+        {{SAYS:coffee-class}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:tea-class}}" alt="The Tea class, nearly identical to Coffee, with annotations pointing out the two identical methods and the two specialised ones.">
+        <figcaption>And here is the duplication: <code>boilWater()</code> and <code>pourInCup()</code> are byte-for-byte the same in both classes.</figcaption>
+        {{SAYS:tea-class}}
+      </figure>
+      <div>
+        <div class="note warn" style="margin-top:0">
+          <strong>The smell:</strong> two classes, one algorithm, four methods each, two of them identical. Every future beverage would copy all four.
+        </div>
+        <div class="note" style="margin-top:14px">
+          <strong>The first instinct</strong> — and the book’s first cut — is to pull the two shared methods up into an abstract <code>CaffeineBeverage</code> and leave <code>prepareRecipe()</code> abstract in each subclass. It removes the duplication and solves nothing: each subclass still owns the recipe, so the <em>algorithm</em> is still duplicated.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:first-cut}}" alt="The first-cut class diagram: an abstract CaffeineBeverage with boilWater() and pourInCup(), and abstract prepareRecipe() overridden in Tea and Coffee.">
+        <figcaption>The first cut: shared methods in the superclass, recipe still in every subclass. “Did we do a good job? Hmmmm, take another look.”</figcaption>
+        {{SAYS:first-cut}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:same-algorithm}}" alt="Both recipe cards compared step by step, showing that both follow the same four-step algorithm with steps 2 and 4 substituted.">
+        <figcaption>The insight: it is not the <em>steps</em> that differ, it is only two <em>implementations</em> of two steps. The algorithm itself is identical.</figcaption>
+        {{SAYS:same-algorithm}}
+      </figure>
+    </div>
+
+    <h3 style="margin-top:34px">Abstracting <code>prepareRecipe()</code></h3>
+    <div class="figure-grid" style="margin-top:16px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:abstract-recipe}}" alt="The three panel page showing the Coffee and Tea prepareRecipe() bodies being rewritten to call brew() and addCondiments() instead of the four specialised names.">
+        <figcaption>rename to generalise: <code>brewCoffeeGrinds()</code>/<code>steepTeaBag()</code> become <code>brew()</code>, and <code>addSugarAndMilk()</code>/<code>addLemon()</code> become <code>addCondiments()</code>.</figcaption>
+        {{SAYS:abstract-recipe}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:caffeine-classes}}" alt="The three final classes: abstract CaffeineBeverage with a final prepareRecipe() and abstract brew()/addCondiments(), plus Coffee and Tea implementing just those two methods.">
+        <figcaption>The finished shape. <code>prepareRecipe()</code> is <code>final</code>; <code>brew()</code> and <code>addCondiments()</code> are abstract; the two boiling/pouring methods are concrete in the base class.</figcaption>
+        {{SAYS:caffeine-classes}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:what-we-done}}" alt="Before and after: the Tea and Coffee recipes generalised into a Caffeine Beverage recipe that keeps steps 1 and 3 and relies on subclasses for steps 2 and 4.">
+        <figcaption>“CaffeineBeverage knows and controls the steps of the recipe, and performs steps 1 and 3 itself, but relies on Tea or Coffee to do steps 2 and 4.”</figcaption>
+        {{SAYS:what-we-done}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:meet-template}}" alt="The annotated CaffeineBeverage class naming prepareRecipe() as the template method, with notes that each step is a method and that abstract steps are supplied by subclasses.">
+        <figcaption>Meet the template method: a method that is a template for an algorithm. Some steps are handled here; the abstract ones are handled by the subclass.</figcaption>
+        {{SAYS:meet-template}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:tea-trace}}" alt="A six-step trace of myTea.prepareRecipe(): boilWater, brew, pourInCup, addCondiments, marking which steps run in CaffeineBeverage and which in Tea.">
+        <figcaption>The call trace, step by step: two steps in the superclass, two delegated to <code>Tea</code>, and the order fixed by the base class the whole way through.</figcaption>
+        {{SAYS:tea-trace}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:what-it-got-us}}" alt="A before-and-after comparison of the underpowered Tea and Coffee implementation against the new CaffeineBeverage powered by Template Method.">
+        <figcaption>The payoff table: reuse, one place for the algorithm, protected sequence, and a framework new beverages can plug into with two methods.</figcaption>
+        {{SAYS:what-it-got-us}}
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= 2. PATTERN -->
+<section id="t-pattern">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>the pattern, and hooks</span></div>
+    <h2>Template Method defined</h2>
+    <p class="sub">The definition is short, and the class diagram is short — the interesting part is the vocabulary the book adds next: primitive operations, concrete operations, and <em>hooks</em>, the do-nothing methods that a subclass may override if it feels like it.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:tm-defined}}" alt="The Template Method definition box and the AbstractClass/ConcreteClass class diagram with templateMethod(), primitiveOperation1() and primitiveOperation2().">
+        <figcaption>The definition and the canonical diagram: the abstract class owns the skeleton, and the concrete class supplies the primitive operations it calls.</figcaption>
+        {{SAYS:tm-defined}}
+      </figure>
+      <div>
+        <div class="principle" style="margin-top:0">
+          <span class="yy">☯</span>
+          <div><b>The Template Method Pattern</b><p>defines the skeleton of an algorithm in a method, deferring some steps to subclasses. Template Method lets subclasses redefine certain steps of an algorithm without changing the algorithm’s structure.</p></div>
+        </div>
+        <div class="note" style="margin-top:14px">
+          <strong>Three kinds of method, one abstract class:</strong> the <b>template method</b> (usually <code>final</code>) fixes the sequence; <b>primitive operations</b> are abstract and must be implemented; <b>concrete operations</b> are implemented here, sometimes <code>final</code> so nobody can replace them.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:code-up-close}}" alt="Code Up Close: the AbstractClass with a final templateMethod() calling two primitive operations and a concrete operation, with annotations for each.">
+        <figcaption>Code Up Close. Note <code>final</code> on the template method: subclasses may change steps, never the order.</figcaption>
+        {{SAYS:code-up-close}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:hooks}}" alt="Code Way Up Close: the same abstract class with a final concrete operation and an empty hook() method that subclasses may override.">
+        <figcaption>The fourth ingredient: <code>void hook() {}</code>. “A concrete method, but it does nothing!”</figcaption>
+        {{SAYS:hooks}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:hook-code}}" alt="CaffeineBeverageWithHook: the template method wraps addCondiments() in an if that asks customerWantsCondiments(), a hook returning true by default.">
+        <figcaption>The hook in action: <code>if (customerWantsCondiments()) addCondiments();</code> — the subclass gets a vote without owning the algorithm.</figcaption>
+        {{SAYS:hook-code}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:coffee-hook}}" alt="CoffeeWithHook overriding the hook to read a line from the console and return true or false based on whether the answer starts with y.">
+        <figcaption><code>CoffeeWithHook</code> overrides the hook and asks the human. A bit contrived, the book admits — and a perfect demonstration of conditional flow.</figcaption>
+        {{SAYS:coffee-hook}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:test-drive}}" alt="BeverageTestDrive creating a TeaWithHook and a CoffeeWithHook and calling prepareRecipe() on both, with the full console transcript including the two y/n questions.">
+        <figcaption>The test drive — and the reason the hook matters: the same template method, two different runs, and a beverage that skips a step.</figcaption>
+        {{SAYS:test-drive}}
+      </figure>
+      <div>
+        <div class="console" style="margin-top:0">
+          <header><span class="lights"><i></i><i></i><i></i></span><span class="title">% java BeverageTestDrive</span></header>
+          <div class="body">
+            <div class="out">Making tea...</div>
+            <div class="out">Boiling water</div>
+            <div class="out">Steeping the tea</div>
+            <div class="out">Pouring into cup</div>
+            <div class="out">Would you like lemon with your tea (y/n)? y</div>
+            <div class="out">Adding Lemon</div>
+            <div class="out">Making coffee...</div>
+            <div class="out">Boiling water</div>
+            <div class="out">Dripping Coffee through filter</div>
+            <div class="out">Pouring into cup</div>
+            <div class="out">Would you like milk and sugar with your coffee (y/n)? n</div>
+          </div>
+        </div>
+        <p style="font-size:.9rem;color:var(--ink-soft);margin-top:10px">No “Adding Sugar and Milk” line: the hook said no. The algorithm never changed — that is the whole trick.</p>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>Abstract method or hook?</strong> “Use abstract methods when your subclass MUST provide an implementation of the method or step in the algorithm. Use hooks when that part of the algorithm is optional.”
+      </div>
+      <div class="note">
+        <strong>Hooks have three jobs</strong> in the book’s account: implement an optional part of the algorithm, react to a step that is about to happen or just happened (e.g. <code>justReorderedList()</code>), and make a decision on behalf of the abstract class — which is exactly what <code>customerWantsCondiments()</code> does.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 3. HOLLYWOOD -->
+<section id="t-hollywood">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>don’t call us, we’ll call you</span></div>
+    <h2>The Hollywood Principle</h2>
+    <p class="sub">Template Method has a principle attached to it, and the principle explains why the base class gets to call the shots: high-level components decide when low-level components are needed — never the reverse.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:hollywood}}" alt="The Hollywood Principle box — don’t call us, we’ll call you — with the diagram of high-level and low-level components and the explanation of dependency rot.">
+        <figcaption>“Dependency rot” is the failure mode this prevents: high depends on sideways depends on low, and nobody can see the design any more.</figcaption>
+        {{SAYS:hollywood}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:hollywood-diagram}}" alt="The Hollywood Principle applied to CaffeineBeverage: the high-level class controls the recipe and calls Tea or Coffee only when it needs an implementation.">
+        <figcaption>Applied: <code>CaffeineBeverage</code> is the high-level component, and <code>Tea</code>/<code>Coffee</code> never call it unless they were called first.</figcaption>
+        {{SAYS:hollywood-diagram}}
+      </figure>
+    </div>
+
+    <div class="principle" style="margin-top:26px">
+      <span class="yy">☯</span>
+      <div><b>The Hollywood Principle</b><p>don’t call us, we’ll call you.</p></div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:who-does-what}}" alt="Doubtful Questions about the Hollywood Principle versus the Dependency Inversion Principle, and the who-does-what matching exercise for Template Method, Strategy and Factory Method.">
+        <figcaption>The book’s own Q&amp;A on how this differs from Dependency Inversion (it is a technique; DIP is a broader statement), plus the pattern-matching exercise.</figcaption>
+        {{SAYS:who-does-what}}
+      </figure>
+      <div>
+        <table class="compare" style="margin-top:0">
+          <thead><tr><th>Pattern</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Template Method</strong></td><td>Subclasses decide how to implement steps in an algorithm.</td></tr>
+            <tr><td><strong>Strategy</strong></td><td>Encapsulate interchangeable behaviors and use delegation to decide which behavior to use.</td></tr>
+            <tr><td><strong>Factory Method</strong></td><td>Subclasses decide which concrete classes to create.</td></tr>
+          </tbody>
+        </table>
+        <div class="note ok" style="margin-top:14px">
+          <strong>Two patterns in one sentence:</strong> Factory Method is a <em>specialization</em> of Template Method — the primitive operation is “create an object”. Which is why the book says the Hollywood Principle shows up in Factory Method and Observer too.
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">Template Methods in the wild</h3>
+    <div class="figure-grid" style="margin-top:16px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:wild}}" alt="Template Methods in the Wild: the safari introduction explaining that real-world template methods rarely look like the textbook version.">
+        <figcaption>The safari warning: real template methods rarely look like the textbook one. “In the real world a square hole is not always truly square.”</figcaption>
+        {{SAYS:wild}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:sorting}}" alt="Arrays.sort() and mergeSort() in the Java API, with annotations that mergeSort is the template method and compareTo() is the step you must implement.">
+        <figcaption><code>Arrays.sort()</code>: no inheritance at all. A static helper defers one step — the comparison — to whatever you pass in.</figcaption>
+        {{SAYS:sorting}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:compare-to}}" alt="We’ve got some ducks to sort — explaining that Arrays.sort() needs a compareTo() through the Comparable interface, with duck cartoons.">
+        <figcaption>The constraint that shaped the design: you cannot subclass a Java array, so the missing step is supplied through <code>Comparable</code> instead.</figcaption>
+        {{SAYS:compare-to}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:duck-compare}}" alt="Duck implementing Comparable<Duck> with name, weight, toString() and a compareTo() that returns -1, 0 or 1 by weight.">
+        <figcaption><code>compareTo()</code> in full: −1, 0 or 1 by weight. That is the entire contribution the duck makes to the sort algorithm.</figcaption>
+        {{SAYS:duck-compare}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:duck-sort}}" alt="DuckSortTestDrive sorting six ducks and the console output before and after, with equal-weight ducks keeping their original order.">
+        <figcaption>Six ducks, two weights tied at 2, and the book’s exact console transcript — Dewey, Louie, Huey keep their original order.</figcaption>
+        {{SAYS:duck-sort}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:sort-trace}}" alt="Behind the scenes of the sorting duck machine: sort() calls mergeSort(), which calls compareTo() on the ducks and swap() in Arrays.">
+        <figcaption>Who calls whom: <code>sort()</code> controls the loop, <code>compareTo()</code> answers the question, <code>swap()</code> does the moving. “No inheritance, unlike a typical template method.”</figcaption>
+        {{SAYS:sort-trace}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:swing}}" alt="The MyFrame class extending JFrame and overriding the paint() hook to draw the words I rule!!, with a screenshot of the resulting window.">
+        <figcaption><code>JFrame.paint()</code> is a hook: it draws nothing by default, and the subclass can decide to draw “I rule!!”.</figcaption>
+        {{SAYS:swing}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:abstract-list}}" alt="MyStringList extending AbstractList, implementing get() and size() so that the subList() template method works, plus the test code.">
+        <figcaption><code>AbstractList.subList()</code> is the template method; <code>get()</code> and <code>size()</code> are the two steps you must supply.</figcaption>
+        {{SAYS:abstract-list}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG8:fireside}}" alt="Fireside chats, part one: Template Method and Strategy argue about inheritance versus composition and about who gives up control of the algorithm.">
+      <figcaption>Strategy turns up in Template Method’s chapter. The argument that follows is the cleanest summary of the two patterns in the book.</figcaption>
+      {{SAYS:fireside}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:fireside2}}" alt="Fireside chats, part two: the two patterns trade points about efficiency, flexibility, dependency and reuse.">
+        <figcaption>The rest of the argument: Template Method wins on reuse and control, Strategy wins on flexibility and runtime swapping.</figcaption>
+        {{SAYS:fireside2}}
+      </figure>
+      <div>
+        <table class="compare" style="margin-top:0">
+          <thead><tr><th></th><th>Template Method</th><th>Strategy</th></tr></thead>
+          <tbody>
+            <tr><td>mechanism</td><td>inheritance</td><td>composition</td></tr>
+            <tr><td>algorithm lives in</td><td>the superclass</td><td>each strategy object</td></tr>
+            <tr><td>chosen</td><td>at compile time</td><td>at runtime</td></tr>
+            <tr><td>reuse</td><td><strong>high</strong> (shared steps)</td><td>medium (each strategy re-implements)</td></tr>
+            <tr><td>flexibility</td><td>fixed skeleton</td><td><strong>swap the whole algorithm</strong></td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:14px">
+          <strong>The book’s one-liner:</strong> “The Strategy and Template Method Patterns both encapsulate algorithms, the first by composition and the other by inheritance.”
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ============================================================ 4. DEMO -->
+<section id="t-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>live demo</span></div>
+    <h2>One template, two beverages — and six ducks</h2>
+    <p class="sub">Run the chapter’s two algorithms for real. First the caffeine template: watch <code>prepareRecipe()</code> call its four steps in a fixed order and see which class answers each one, with a switch for the hook. Then the ducks: <code>Arrays.sort()</code> with the book’s six birds and the book’s exact output.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>BeverageTestDrive · DuckSortTestDrive</h3>
+        <div class="actions">
+          <button class="btn ghost" id="t-clear">Clear console</button>
+        </div>
+      </div>
+
+      <div class="cg-modes" role="tablist" aria-label="Which demo to run">
+        <button class="tab" role="tab" data-tmmode="beverage" aria-selected="true">CaffeineBeverage</button>
+        <button class="tab" role="tab" data-tmmode="ducks" aria-selected="false">DuckSort</button>
+      </div>
+
+      <div id="t-panel-beverage">
+        <div class="grid2" style="align-items:start">
+          <div class="ad-card">
+            <h4>prepareRecipe()</h4>
+            <p class="wx-hint" style="margin-top:0">One template method, two subclasses. Pick the beverage, decide what the hook says, then run it.</p>
+            <div class="ad-choices">
+              <button class="btn small primary" data-bev="coffee">Coffee</button>
+              <button class="btn small ghost" data-bev="tea">Tea</button>
+            </div>
+            <label class="chip" style="display:flex;gap:8px;align-items:center;cursor:pointer;margin-top:12px">
+              <input type="checkbox" id="t-hook" checked> customerWantsCondiments() → true
+            </label>
+            <div class="ad-choices" style="margin-top:12px">
+              <button class="btn small" id="t-brew">myBeverage.prepareRecipe()</button>
+              <button class="btn ghost small" id="t-override">try to override prepareRecipe()</button>
+            </div>
+            <div id="t-verdict"></div>
+          </div>
+          <div class="ad-card">
+            <h4>Who answers each step</h4>
+            <div class="rc-devices" id="t-steps"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="t-panel-ducks" class="hidden">
+        <div class="grid2" style="align-items:start">
+          <div>
+            <h4 class="rc-h4">The array</h4>
+            <div class="rc-devices" id="t-ducks"></div>
+            <div class="ad-choices" style="margin-top:12px">
+              <button class="btn primary small" id="t-sort">Arrays.sort(ducks)</button>
+              <button class="btn ghost small" id="t-reset">reset order</button>
+            </div>
+          </div>
+          <div class="ad-card">
+            <h4>compareTo() inspector</h4>
+            <div class="ad-choices" style="align-items:center">
+              <select class="rc-select" id="t-cmp-a" style="max-width:150px"></select>
+              <span style="font-size:.8rem;color:var(--ink-soft)">vs</span>
+              <select class="rc-select" id="t-cmp-b" style="max-width:150px"></select>
+            </div>
+            <div id="t-cmp-out" class="cg-verdict" style="margin-top:12px">Pick two ducks to see what <code>compareTo()</code> returns.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">console</span>
+        </header>
+        <div class="body" id="t-log"></div>
+        <footer><button class="btn small" id="t-clear2">Clear console</button></footer>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>What to watch in the beverage demo:</strong> the order never changes — <code>boilWater()</code>, <code>brew()</code>, <code>pourInCup()</code>, <code>addCondiments()</code> — but the class that answers steps 2 and 4 does. Untick the hook and the fourth step is skipped entirely, without a line of the template method changing.
+      </div>
+      <div class="note warn">
+        <strong>What to watch in the duck demo:</strong> the ducks never sort themselves. <code>Arrays.sort()</code> owns the algorithm; <code>compareTo()</code> only answers “−1, 0 or 1?”. The two ducks that weigh 2 keep their original relative order, because the merge is stable.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 5. CHEAT SHEET -->
+<section id="t-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 8 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Duplication is the smell</h4><p>Coffee and Tea share two identical methods and two analogous ones. Shared code goes up; the algorithm should go up too.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Generalise the step names</h4><p><code>brewCoffeeGrinds()</code>/<code>steepTeaBag()</code> → <code>brew()</code>; <code>addSugarAndMilk()</code>/<code>addLemon()</code> → <code>addCondiments()</code>. Same shape, different implementations.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The template method owns the order</h4><p><code>final void prepareRecipe()</code> calls the four steps. Subclasses cannot reorder or skip them — only supply the abstract ones.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Three method flavours</h4><p>Primitive operations (abstract, mandatory), concrete operations (implemented, optionally <code>final</code>), and hooks (empty default, optional).</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Hooks buy conditional flow</h4><p><code>if (customerWantsCondiments()) addCondiments();</code> — the subclass influences the algorithm without controlling it.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The Hollywood Principle</h4><p>“Don’t call us, we’ll call you.” The high-level component decides when low-level components are needed, which is what prevents dependency rot.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>In the wild, it rarely looks textbook</h4><p><code>Arrays.sort()</code> is static and uses <code>Comparable</code> instead of inheritance; <code>JFrame.paint()</code> is a hook; <code>AbstractList.subList()</code> leans on <code>get()</code> and <code>size()</code>.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Template Method vs. Strategy</h4><p>Both encapsulate an algorithm. Template Method does it with inheritance and a fixed skeleton; Strategy does it with composition and lets you swap at runtime.</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The book’s bullet points</h3>
+        <ul class="bullets">
+          <li>A template method defines the steps of an algorithm, deferring to subclasses for the implementation of those steps.</li>
+          <li>The Template Method Pattern gives us an important technique for code reuse.</li>
+          <li>The template method’s abstract class may define concrete methods, abstract methods, and hooks.</li>
+          <li>Abstract methods are implemented by subclasses.</li>
+          <li>Hooks are methods that do nothing or default behavior in the abstract class, but may be overridden in the subclass.</li>
+          <li>To prevent subclasses from changing the algorithm in the template method, declare the template method as <code>final</code>.</li>
+          <li>The Hollywood Principle guides us to put decision making in high-level modules that can decide how and when to call low-level modules.</li>
+          <li>You’ll see lots of uses of the Template Method Pattern in real-world code, but don’t expect it all to be designed “by the book”.</li>
+          <li>The Strategy and Template Method Patterns both encapsulate algorithms, the first by composition and the other by inheritance.</li>
+          <li>Factory Method is a specialization of Template Method.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">The chapter’s numbers</h3>
+        <table class="compare">
+          <thead><tr><th>Duck</th><th>Weight</th><th>After sort</th></tr></thead>
+          <tbody>
+            <tr><td>Daffy</td><td>8</td><td>5th</td></tr>
+            <tr><td>Dewey</td><td>2</td><td>1st</td></tr>
+            <tr><td>Howard</td><td>7</td><td>4th</td></tr>
+            <tr><td>Louie</td><td>2</td><td>2nd</td></tr>
+            <tr><td>Donald</td><td>10</td><td>6th</td></tr>
+            <tr><td>Huey</td><td>2</td><td>3rd</td></tr>
+          </tbody>
+        </table>
+        <div class="note warn" style="margin-top:14px">
+          <strong>Careful with that table:</strong> the book’s output is Dewey 2, Louie 2, Huey 2, Howard 7, Daffy 8, Donald 10 — the three twos first, in their original order, because merge sort is stable. The demo prints exactly that.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:34px">
+      <img src="{{IMG8:toolbox8}}" alt="The design toolbox after chapter 8: OO basics, eight principles including don’t call us we’ll call you, ten patterns including Template Method, and the chapter’s bullet points.">
+      <figcaption>The toolbox after Chapter 8: ten patterns, eight principles. “Our newest pattern lets classes implementing an algorithm defer some steps to subclasses.”</figcaption>
+      {{SAYS:toolbox8}}
+    </figure>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG8:crossword8}}" alt="The chapter 8 crossword grid with its across and down clues about caffeine, abstract classes, mergesort, Hollywood, the Hollywood Principle and hooks.">
+        <figcaption>The chapter 8 crossword. (The printed grid has a 16 across but the book ships no 16 clue — the solution still fills it in as COMPOSITION.)</figcaption>
+        {{SAYS:crossword8}}
+      </figure>
+      <div>
+        <figure class="pic" style="margin:0 0 18px">
+          <img src="{{IMG8:crossword-solution8}}" alt="The solved chapter 8 crossword: TWO, ABSTRACT, CAFFEINE, ABSTRACT, PAINT, ABSTRACTLIST, MERGESORT, INHERITANCE, HOLLYWOOD, COMPOSITION, TEA, SPECIALIZATION, ALGORITHM, STRATEGY, OPTIONAL, STARBUZZ, STATIC, HOOK.">
+          <figcaption>The verified solution (page 315), read off the vector grid.</figcaption>
+          {{SAYS:crossword-solution8}}
+        </figure>
+        <div class="note ok" style="margin-top:0">
+          <strong>Answers:</strong> ACROSS 1 TWO · 2 ABSTRACT · 4 CAFFEINE · 7 ABSTRACT · 11 PAINT · 12 ABSTRACTLIST · 13 MERGESORT · 14 INHERITANCE · 15 HOLLYWOOD · 16 COMPOSITION. DOWN 1 TEA · 3 SPECIALIZATION · 5 ALGORITHM · 6 STRATEGY · 8 OPTIONAL · 9 STARBUZZ · 10 STATIC · 15 HOOK.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:34px">
+      <img src="{{IMG8:solutions8}}" alt="The exercise solutions: the corrected class diagram with prepareRecipe() in CaffeineBeverage, and the who-does-what matching answer.">
+      <figcaption>Both exercise answers on one page: the class diagram with <code>prepareRecipe()</code> moved up, and the pattern/intent matching.</figcaption>
+      {{SAYS:solutions8}}
+    </figure>
+
+    <div class="quiz" style="margin-top:34px" id="t-quiz">
+      <h3 style="margin-top:0">Check yourself: Template Method</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="t-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. A template method defines the skeleton of an algorithm and defers some steps to subclasses.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="B"><span class="txt">B. A hook is an abstract method that every subclass must implement.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="C"><span class="txt">C. Declaring the template method <code>final</code> stops subclasses from changing the order of the steps.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="D"><span class="txt">D. Strategy encapsulates an algorithm with composition; Template Method does it with inheritance.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="E"><span class="txt">E. <code>Arrays.sort()</code> is a textbook template method because every array subclasses an abstract array class.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="F"><span class="txt">F. The Hollywood Principle puts the decision about when low-level components are called in the high-level component.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="t-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="t-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="t-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>The chapter in one sentence:</strong> put the parts of an algorithm that stay the same in a superclass, mark the ones that vary as abstract, and let the superclass call the shots — “don’t call us, we’ll call you”.
+    </div>
+
+    <p style="margin-top:22px;font-size:.92rem;color:var(--ink-soft)">Next in the book: <strong>Chapter 9, Well-Managed Collections</strong> — the Iterator and Composite patterns, and Objectville’s restaurant-and-diner merger.</p>
+  </div>
+</section>
+
+<script>
+/* ============================================================ chapter 8 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#t-log');
+  if (!logBox) return;
+
+  const log = (html, cls = '') => {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.innerHTML = html;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  const out  = t => `<span class="out">${t}</span>`;
+  const dim  = t => `<span class="dim">${t}</span>`;
+  const call = t => `<span class="call">${t}</span>`;
+  const err  = t => `<span class="err">${t}</span>`;
+
+  /* ======================================================= 1. beverages */
+  const BEVERAGES = {
+    coffee: {
+      klass: 'Coffee',
+      steps: [
+        ['boilWater()',      'Boiling water',                 'CaffeineBeverage'],
+        ['brew()',           'Dripping Coffee through filter', 'Coffee'],
+        ['pourInCup()',      'Pouring into cup',               'CaffeineBeverage'],
+        ['addCondiments()',  'Adding Sugar and Milk',          'Coffee']
+      ],
+      question: 'Would you like milk and sugar with your coffee (y/n)? '
+    },
+    tea: {
+      klass: 'Tea',
+      steps: [
+        ['boilWater()',      'Boiling water',      'CaffeineBeverage'],
+        ['brew()',           'Steeping the tea',   'Tea'],
+        ['pourInCup()',      'Pouring into cup',   'CaffeineBeverage'],
+        ['addCondiments()',  'Adding Lemon',       'Tea']
+      ],
+      question: 'Would you like lemon with your tea (y/n)? '
+    }
+  };
+
+  let bev = 'coffee';
+
+  const setBev = which => {
+    bev = which;
+    $$('[data-bev]').forEach(b => {
+      const on = b.dataset.bev === which;
+      b.classList.toggle('primary', on);
+      b.classList.toggle('ghost', !on);
+    });
+    renderSteps();
+  };
+
+  function renderSteps() {
+    const b = BEVERAGES[bev];
+    const rows = b.steps.map(([m, line, owner], i) => {
+      const optional = m === 'addCondiments()';
+      const skipped = optional && !$('#t-hook').checked;
+      return `<div class="rc-dev"><span>${i + 1}. ${m}</span><b data-on="${!skipped}">${skipped ? 'skipped (hook)' : owner}</b></div>`;
+    }).join('');
+    $('#t-steps').innerHTML =
+      `<div class="rc-dev"><span>prepareRecipe()</span><b data-on="true">CaffeineBeverage · final</b></div>` + rows;
+  }
+
+  $$('[data-bev]').forEach(b => b.addEventListener('click', () => setBev(b.dataset.bev)));
+  $('#t-hook')?.addEventListener('change', renderSteps);
+
+  $('#t-brew')?.addEventListener('click', () => {
+    const b = BEVERAGES[bev];
+    const wants = $('#t-hook').checked;
+    log(call(`${b.klass} myBeverage = new ${b.klass}(); myBeverage.prepareRecipe();`));
+    log(dim('prepareRecipe() — CaffeineBeverage (final, controls the order)'));
+    b.steps.forEach(([method, line, owner], i) => {
+      if (method === 'addCondiments()') {
+        log(dim(`  if (customerWantsCondiments())   // hook → ${wants}`));
+        if (!wants) {
+          log(dim(`  addCondiments() skipped — the hook said no`));
+          return;
+        }
+      }
+      log(out(`  ${line}`), '');
+      log(dim(`      ${method} answered by ${owner}`));
+    });
+    log(dim('prepareRecipe() returned'));
+  });
+
+  $('#t-override')?.addEventListener('click', () => {
+    log(call('class RogueCoffee extends CaffeineBeverage { void prepareRecipe() { … } }'));
+    log(err('compile error: prepareRecipe() in CaffeineBeverage cannot override — overridden method is final'));
+    log(dim('// the sequence of steps is fixed; subclasses can only supply brew() and addCondiments()'));
+  });
+
+  /* ========================================================== 2. ducks */
+  const START = [
+    { name: 'Daffy',  weight: 8 },
+    { name: 'Dewey',  weight: 2 },
+    { name: 'Howard', weight: 7 },
+    { name: 'Louie',  weight: 2 },
+    { name: 'Donald', weight: 10 },
+    { name: 'Huey',   weight: 2 }
+  ];
+  let ducks = START.map(d => ({ ...d }));
+
+  const compareTo = (a, b) => a.weight < b.weight ? -1 : (a.weight === b.weight ? 0 : 1);
+
+  function renderDucks() {
+    $('#t-ducks').innerHTML = ducks.map(d =>
+      `<div class="rc-dev"><span>${d.name}</span><b data-on="true">weighs ${d.weight}</b></div>`).join('');
+    const opts = ducks.map((d, i) => `<option value="${i}">${d.name} (${d.weight})</option>`).join('');
+    const a = $('#t-cmp-a'), b = $('#t-cmp-b');
+    if (a && b) {
+      const keepA = a.value, keepB = b.value;
+      a.innerHTML = opts; b.innerHTML = opts;
+      a.value = keepA || '0';
+      b.value = keepB || '1';
+    }
+  }
+
+  /* a stable merge sort, the way Arrays.sort() merges Comparable objects */
+  function mergeSort(arr, stats) {
+    if (arr.length < 2) return arr;
+    const mid = Math.floor(arr.length / 2);
+    const left = mergeSort(arr.slice(0, mid), stats);
+    const right = mergeSort(arr.slice(mid), stats);
+    const merged = [];
+    let i = 0, j = 0;
+    while (i < left.length && j < right.length) {
+      stats.comparisons++;
+      const c = compareTo(left[i], right[j]);
+      if (c <= 0) merged.push(left[i++]);
+      else merged.push(right[j++]);
+    }
+    while (i < left.length) merged.push(left[i++]);
+    while (j < right.length) merged.push(right[j++]);
+    return merged;
+  }
+
+  const show = list => list.forEach(d => log(out(`${d.name} weighs ${d.weight}`)));
+
+  $('#t-sort')?.addEventListener('click', () => {
+    log(call('Arrays.sort(ducks);'));
+    log(out('Before sorting:'));
+    show(ducks);
+    const stats = { comparisons: 0 };
+    ducks = mergeSort(ducks, stats);
+    log(out('After sorting:'));
+    show(ducks);
+    log(dim(`compareTo() calls: ${stats.comparisons} — the algorithm belongs to sort(); compareTo() only answered −1, 0 or 1`));
+    renderDucks();
+  });
+
+  $('#t-reset')?.addEventListener('click', () => {
+    ducks = START.map(d => ({ ...d }));
+    renderDucks();
+    log(dim('ducks reset to the order in DuckSortTestDrive'));
+  });
+
+  function inspect() {
+    const a = ducks[+$('#t-cmp-a').value], b = ducks[+$('#t-cmp-b').value];
+    if (!a || !b) return;
+    const c = compareTo(a, b);
+    const why = c === -1 ? `${a.name} weighs less than ${b.name}`
+              : c === 0  ? `${a.name} and ${b.name} weigh the same`
+                         : `${a.name} weighs more than ${b.name}`;
+    $('#t-cmp-out').innerHTML = `<strong>${a.name}.compareTo(${b.name}) → ${c}</strong><br>${why} (${a.weight} vs ${b.weight}).`;
+  }
+  $('#t-cmp-a')?.addEventListener('change', inspect);
+  $('#t-cmp-b')?.addEventListener('change', inspect);
+
+  /* ============================================================== tabs */
+  $$('.cg-modes .tab').forEach(tab => tab.addEventListener('click', () => {
+    $$('.cg-modes .tab').forEach(t => t.setAttribute('aria-selected', String(t === tab)));
+    const mode = tab.dataset.tmmode;
+    $('#t-panel-beverage').classList.toggle('hidden', mode !== 'beverage');
+    $('#t-panel-ducks').classList.toggle('hidden', mode !== 'ducks');
+    log(dim(`— ${tab.textContent.trim()} —`));
+  }));
+
+  const clear = () => { logBox.innerHTML = ''; };
+  $('#t-clear')?.addEventListener('click', clear);
+  $('#t-clear2')?.addEventListener('click', clear);
+
+  setBev('coffee');
+  renderDucks();
+  inspect();
+  log(dim('BeverageTestDrive ready. Pick a beverage and call prepareRecipe().'));
+})();
+
+/* --------------------------------------------------------------- quiz */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const box = $('#t-quiz');
+  if (!box) return;
+
+  const opts   = $$('#t-quiz-opts .opt', box);
+  const answer = $('#t-quiz-answer', box);
+
+  opts.forEach(opt => {
+    opt.addEventListener('change', () => {
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+  });
+
+  $('#t-quiz-check', box)?.addEventListener('click', () => {
+    let right = 0;
+    const wrong = [];
+    opts.forEach(opt => {
+      const ticked  = opt.querySelector('input').checked;
+      const correct = opt.dataset.correct === '1';
+      const mark    = opt.querySelector('.mark');
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
+      else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
+      else { mark.textContent = ''; }
+    });
+    const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    const allFound = right === correctSet.length;
+    answer.classList.remove('hidden');
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, C, D and F. B fails because a hook has a default implementation and a subclass may ignore it — that is the whole point of a hook. E fails because Java arrays cannot be subclassed at all: <code>Arrays.sort()</code> is static and defers only the comparison, which is why the book calls it a template method “in the spirit of” the pattern rather than a textbook one.`
+      : `<strong>All ${correctSet.length} correct.</strong> Skeleton (A), immutable order (C), composition vs inheritance (D), and the Hollywood Principle (F).`;
+  });
+
+  $('#t-quiz-reset', box)?.addEventListener('click', () => {
+    opts.forEach(opt => {
+      opt.querySelector('input').checked = false;
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+    answer.classList.add('hidden');
+    answer.innerHTML = '';
+  });
+})();
+</script>

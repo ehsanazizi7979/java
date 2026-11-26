@@ -1,0 +1,968 @@
+<!-- ==================================================== CHAPTER 6 DIVIDER -->
+<div class="chapter-divider">
+  <div class="big"><b>Chapter 6</b> the Command Pattern</div>
+  <h2>Encapsulating <span style="color:var(--purple)">Invocation</span></h2>
+  <p>Every pattern so far has encapsulated <em>an object</em>. This one encapsulates <em>a method call</em> — packaging a receiver, an action (or a set of actions) and the argument list into a single object you can pass around, put in a queue, log to disk, and undo. The chapter’s vehicle is a seven-slot Home Automation remote control; its mental model is the Objectville Diner.</p>
+  <div class="hero-meta" style="justify-content:center;margin-top:18px">
+    <span class="chip hl">Home Automation or Bust</span>
+    <span class="chip">1 pattern + null object</span>
+    <span class="chip">30 book figures</span>
+    <span class="chip">7 slots · undo · macro</span>
+    <span class="chip">1 live remote</span>
+  </div>
+</div>
+
+<!-- =========================================================== 1. STORY -->
+<section id="c-story">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 1</span><i></i><span>home automation or bust</span></div>
+    <h2>Seven slots, seven vendors, no common interface</h2>
+    <p class="sub">The brief is deliberately impossible-looking: build one remote that can drive lights, fans, stereos, hot tubs and garage doors — whose vendor classes share nothing but the fact that they are Java objects — and keep working when next year’s vendor classes arrive.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG6:opener}}" alt="Chapter 6 opener: a spy dropping a request into a top-secret drop box, captioned Encapsulating Invocation.">
+      <figcaption>The chapter’s opening metaphor: a drop box you put a request into, so that you never have to know how, when or by whom it gets carried out. That is a command object.</figcaption>
+      {{SAYS:opener}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:letter}}" alt="The letter from Home Automation or Bust, Inc. commissioning the seven-slot remote control with on/off buttons per slot and a global undo button.">
+        <figcaption>The commission (page 192): seven programmable slots, on/off per slot, one global undo — and “any future devices that the vendors may supply”.</figcaption>
+        {{SAYS:letter}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">What the brief actually asks for</h3>
+        <ul class="bullets">
+          <li><strong>Seven slots</strong>, each with an on and an off button — and the device in a slot must be replaceable without touching the remote code.</li>
+          <li><strong>One global undo</strong> that reverses the last button press.</li>
+          <li><strong>Every vendor class</strong>, present and future, without a giant <code>if/else</code> chain over device types.</li>
+        </ul>
+        <div class="note" style="margin-top:14px">
+          <strong>The trap:</strong> the vendor classes have nothing in common — <code>on()</code>/<code>off()</code> for a light, <code>high()</code>/<code>medium()</code>/<code>low()</code> for a fan, <code>up()</code>/<code>down()</code>/<code>stop()</code> for a garage door, <code>jetsOn()</code> and <code>setTemperature()</code> for a hot tub. A remote that knows those method names is a remote you rewrite every time a vendor ships a class.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:remote}}" alt="The prototype remote control drawn at an angle, with seven on/off button pairs, labels pointing at slot one and slot two, and the global undo button at the bottom.">
+        <figcaption>The prototype: seven on/off pairs plus a global undo. The Sharpie line is the point of the whole chapter — the remote is generic until you program it.</figcaption>
+        {{SAYS:remote}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:vendors}}" alt="A wall of vendor classes — CeilingLight, OutdoorLight, CeilingFan, Hottub, TV, GarageDoor, Stereo, FaucetControl, Thermostat, GardenLight, ApplianceControl, SecurityControl, Sprinkler, Light — with their very different method names.">
+        <figcaption>Fourteen vendors, four different vocabularies. “Not a lot of industry effort to come up with a set of common interfaces” — that is the constraint, not a bug to fix.</figcaption>
+        {{SAYS:vendors}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:32px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:cubicle}}" alt="Cubicle conversation between Mary and Sue about separation of concerns for the remote control, and the if-statement design they want to avoid.">
+        <figcaption>Mary names the design constraint in two words: <em>separation of concerns</em>. The remote interprets button presses; it must not know home automation.</figcaption>
+        {{SAYS:cubicle}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:joe}}" alt="Joe from chapter 1 explaining the Command Pattern: a command object encapsulates a request to do something on a specific object, decoupling requester from performer.">
+        <figcaption>Joe’s definition is the chapter in miniature: “a command object encapsulates a request to do something on a specific object.” Everything else is mechanics.</figcaption>
+        {{SAYS:joe}}
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================== 2. DINER -->
+<section id="c-diner">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 2</span><i></i><span>meanwhile, back at the diner</span></div>
+    <h2>The Objectville Diner, as a design pattern</h2>
+    <p class="sub">The chapter’s teaching device is the diner from Chapter 1 — because a waitress, an order slip and a short-order cook are already a decoupled request pipeline, and everybody already knows how a restaurant works.</p>
+
+    <figure class="pic" style="margin-top:26px">
+      <img src="{{IMG6:diner}}" alt="The Objectville Diner: a customer gives the waitress an order, she puts it on the counter and calls order up, and the short-order cook prepares the meal.">
+      <figcaption>Three steps everybody knows: the customer orders, the waitress passes the slip along, the cook cooks. The waitress never cooks; the cook never talks to the customer.</figcaption>
+      {{SAYS:diner}}
+    </figure>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:diner-diagram}}" alt="The same diner drawn as objects and method calls: Customer createOrder(), Waitress takeOrder(), Order orderUp(), Cook makeBurger() and makeShake(), producing output.">
+        <figcaption>The same story, annotated with the method calls: <code>createOrder()</code> → <code>takeOrder()</code> → <code>orderUp()</code> → <code>makeBurger()</code>, <code>makeShake()</code>.</figcaption>
+        {{SAYS:diner-diagram}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">Who is who, and who is decoupled</h3>
+        <ul class="bullets">
+          <li><strong>The Order Slip</strong> is the command: one method, <code>orderUp()</code>, and a reference to the object that will do the work.</li>
+          <li><strong>The Waitress</strong> is the invoker: she holds slips and calls <code>orderUp()</code> whenever she gets to the counter. She is parameterised with a different slip every time.</li>
+          <li><strong>The Short-Order Cook</strong> is the receiver: the only object that knows how to cook.</li>
+          <li><strong>The Customer</strong> is the client: creates the slip and hands it over.</li>
+        </ul>
+        <div class="note ok" style="margin-top:14px">
+          <strong>Why the metaphor earns its pages:</strong> nothing in the waitress changes when a customer orders something new, and nothing in the cook changes when a new waitress is hired. Swap the slip for a command object and you have the pattern.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:diner-roles}}" alt="The diner roles and responsibilities: an order slip encapsulates the request, the waitress invokes orderUp(), the cook has the knowledge, with the two speech bubbles about being decoupled.">
+        <figcaption>Roles and responsibilities, spelled out. Note the code on the slip: <code>cook.makeBurger(); cook.makeShake();</code> — the slip binds <em>actions</em> to <em>a receiver</em>.</figcaption>
+        {{SAYS:diner-roles}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:diner-to-command}}" alt="The diner redrawn as the Command Pattern: Client creates the command, calls setCommand() on the Invoker, which later calls execute() on the Command, which calls action1() and action2() on the Receiver.">
+        <figcaption>Same players, new names: Customer → Client, Waitress → Invoker, Order → Command, Cook → Receiver, <code>orderUp()</code> → <code>execute()</code>.</figcaption>
+        {{SAYS:diner-to-command}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:match-exercise}}" alt="The who-does-what exercise: match waitress, short-order cook, orderUp(), order, customer and takeOrder() to the Command Pattern roles.">
+        <figcaption>The matching exercise from page 202. Answers: Waitress → Invoker, Cook → Receiver, <code>orderUp()</code> → <code>execute()</code>, Order → Command, Customer → Client, <code>takeOrder()</code> → <code>setCommand()</code>.</figcaption>
+        {{SAYS:match-exercise}}
+      </figure>
+      <div>
+        <table class="compare" style="margin-top:0">
+          <thead><tr><th>Diner</th><th>Command Pattern</th></tr></thead>
+          <tbody>
+            <tr><td>Customer</td><td>Client</td></tr>
+            <tr><td>Waitress</td><td>Invoker</td></tr>
+            <tr><td>Order / Order Slip</td><td>Command</td></tr>
+            <tr><td><code>orderUp()</code></td><td><code>execute()</code></td></tr>
+            <tr><td>Short-Order Cook</td><td>Receiver</td></tr>
+            <tr><td><code>takeOrder()</code></td><td><code>setCommand()</code></td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:14px">
+          <strong>The one sentence to keep:</strong> the invoker holds a command and calls one method on it; the command knows the receiver and the actions. Neither end knows the other end’s class.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= 3. PATTERN -->
+<section id="c-pattern">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 3</span><i></i><span>the first command object</span></div>
+    <h2>Build it bottom-up</h2>
+    <p class="sub">The chapter writes the smallest possible pieces first — one interface, one command, a one-slot remote — and only then scales up to seven slots and a null object.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:first-command}}" alt="The Command interface with a single execute() method, and LightOnCommand implementing it with a Light field and an execute() that calls light.on().">
+        <figcaption>Everything in this chapter implements one method. <code>Command</code> is the entire contract: <code>execute()</code>.</figcaption>
+        {{SAYS:first-command}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">Command.java · LightOnCommand.java</span><span class="tagline">the whole contract</span></header>
+<pre><span class="kw">public interface</span> <span class="type">Command</span> {
+    <span class="kw">public void</span> <span class="fn">execute</span>();
+}
+
+<span class="kw">public class</span> <span class="type">LightOnCommand</span> <span class="kw">implements</span> <span class="type">Command</span> {
+    <span class="type">Light</span> light;
+
+    <span class="kw">public</span> <span class="fn">LightOnCommand</span>(<span class="type">Light</span> light) {
+        <span class="kw">this</span>.light = light;      <span class="cm">// the receiver is bound at construction</span>
+    }
+
+    <span class="kw">public void</span> <span class="fn">execute</span>() {
+        light.on();              <span class="cm">// ...and invoked here, later</span>
+    }
+}</pre>
+        </div>
+        <div class="note" style="margin-top:14px">
+          <strong>Two lines do all the work:</strong> the constructor captures <em>which</em> light, and <code>execute()</code> captures <em>what to do</em> to it. Change either and you have a different command — that is what “parameterising an object with a request” means.
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:simple-remote}}" alt="SimpleRemoteControl with a single slot and setCommand() and buttonWasPressed(), the RemoteControlTest main() that wires a light to it step by step, and the console output Light is On.">
+        <figcaption>The one-button remote, annotated end to end: Client → Invoker → Command → Receiver. Output: <code>Light is On</code>.</figcaption>
+        {{SAYS:simple-remote}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">SimpleRemoteControl.java</span><span class="tagline">the invoker, in 9 lines</span></header>
+<pre><span class="kw">public class</span> <span class="type">SimpleRemoteControl</span> {
+    <span class="type">Command</span> slot;
+
+    <span class="kw">public void</span> <span class="fn">setCommand</span>(<span class="type">Command</span> command) {
+        slot = command;
+    }
+
+    <span class="kw">public void</span> <span class="fn">buttonWasPressed</span>() {
+        slot.execute();
+    }
+}</pre>
+        </div>
+        <p style="font-size:.92rem;margin-top:12px">The invoker has no idea what is in <code>slot</code>. It does not know it is a light, a fan or a hot tub — it knows that whatever is there answers to <code>execute()</code>. That is the decoupling, in one line.</p>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:garage-exercise}}" alt="The sharpen your pencil exercise: write the GarageDoorOpenCommand class, with the GarageDoor class diagram and a blank test output to fill in.">
+        <figcaption>The exercise that checks whether the pattern landed: one blank class and one blank console.</figcaption>
+        {{SAYS:garage-exercise}}
+      </figure>
+      <div>
+        <h3 style="margin-top:0">The exercise, solved</h3>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">GarageDoorOpenCommand.java</span><span class="tagline">the book’s answer, page 235</span></header>
+<pre><span class="kw">public class</span> <span class="type">GarageDoorOpenCommand</span> <span class="kw">implements</span> <span class="type">Command</span> {
+    <span class="type">GarageDoor</span> garageDoor;
+
+    <span class="kw">public</span> <span class="fn">GarageDoorOpenCommand</span>(<span class="type">GarageDoor</span> garageDoor) {
+        <span class="kw">this</span>.garageDoor = garageDoor;
+    }
+
+    <span class="kw">public void</span> <span class="fn">execute</span>() {
+        garageDoor.up();
+    }
+}</pre>
+        </div>
+        <div class="console" style="margin-top:12px">
+          <header><span class="lights"><i></i><i></i><i></i></span><span class="title">% java RemoteControlTest</span></header>
+          <div class="body"><div class="out">Light is on</div><div class="out">Garage Door is Open</div></div>
+        </div>
+        <p style="font-size:.9rem;color:var(--ink-soft);margin-top:10px">The remote is unchanged; only the command in <code>slot</code> was swapped. That is the whole point of the pattern.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">Command Pattern defined</h3>
+    <div class="principle" style="margin-top:14px">
+      <span class="yy">☯</span>
+      <div><b>The Command Pattern</b><p>encapsulates a request as an object, thereby letting you parameterize other objects with different requests, queue or log requests, and support undoable operations.</p></div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:pattern-defined}}" alt="The Command Pattern definition box with an encapsulated request diagram: a slot parameterised with LightOnCommand, GarageDoorOpenCommand, CeilingFanHighCommand and StereoOffCommand.">
+        <figcaption>The definition and the picture behind it: a slot is parameterised with <em>requests</em>, not with devices.</figcaption>
+        {{SAYS:pattern-defined}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:class-diagram}}" alt="The Command Pattern class diagram: Client creates a ConcreteCommand and sets its Receiver; Invoker holds a Command; ConcreteCommand binds Receiver.action(); Command declares execute() and undo().">
+        <figcaption>The class diagram — five participants, one arrow each. <code>undo()</code> is already in the interface; the chapter adds its implementation later.</figcaption>
+        {{SAYS:class-diagram}}
+      </figure>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:slots}}" alt="Assigning commands to slots: the remote drawn with a command object behind each button, and the three-step annotation about the invoker calling execute() and the receiver being acted on.">
+        <figcaption>Seven slots, seven command pairs. The remote is the invoker; calling <code>execute()</code> is the only thing it knows how to do.</figcaption>
+        {{SAYS:slots}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">RemoteControl.java</span><span class="tagline">the seven-slot invoker</span></header>
+<pre><span class="kw">public class</span> <span class="type">RemoteControl</span> {
+    <span class="type">Command</span>[] onCommands;
+    <span class="type">Command</span>[] offCommands;
+
+    <span class="kw">public</span> <span class="fn">RemoteControl</span>() {
+        onCommands = <span class="kw">new</span> <span class="type">Command</span>[7];
+        offCommands = <span class="kw">new</span> <span class="type">Command</span>[7];
+
+        <span class="type">Command</span> noCommand = <span class="kw">new</span> <span class="type">NoCommand</span>();
+        <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; 7; i++) {
+            onCommands[i] = noCommand;
+            offCommands[i] = noCommand;
+        }
+    }
+
+    <span class="kw">public void</span> <span class="fn">setCommand</span>(<span class="kw">int</span> slot, <span class="type">Command</span> onCommand,
+                              <span class="type">Command</span> offCommand) {
+        onCommands[slot] = onCommand;
+        offCommands[slot] = offCommand;
+    }
+
+    <span class="kw">public void</span> <span class="fn">onButtonWasPushed</span>(<span class="kw">int</span> slot) {
+        onCommands[slot].execute();
+    }
+
+    <span class="kw">public void</span> <span class="fn">offButtonWasPushed</span>(<span class="kw">int</span> slot) {
+        offCommands[slot].execute();
+    }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG6:null-object}}" alt="The NoCommand null object: the empty execute() class, the null check it replaces in onButtonWasPushed(), the constructor loop that loads every slot with a NoCommand, and the Honorable Mention box explaining null objects.">
+      <figcaption>The null object: instead of checking every slot for <code>null</code>, every slot starts out holding a command that does nothing. The check disappears from the invoker entirely.</figcaption>
+      {{SAYS:null-object}}
+    </figure>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG6:lambda}}" alt="Serious Coding box: the updated RemoteLoader using lambda expressions instead of concrete command objects, cutting 22 classes down to 9.">
+      <figcaption>The modern-Java footnote: if <code>Command</code> has one abstract method, the concrete command classes <em>are</em> lambdas. 22 classes become 9 — and note the warning about adding a second abstract method.</figcaption>
+      {{SAYS:lambda}}
+    </figure>
+  </div>
+</section>
+<!-- ============================================================ 4. UNDO -->
+<section id="c-undo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 4</span><i></i><span>the undo button</span></div>
+    <h2>Undo, and the state it needs</h2>
+    <p class="sub">“Aren’t you forgetting one little thing the customer asked for? LIKE THE UNDO BUTTON?!” Undo is the first place where the pattern pays for itself — because the invoker only has to remember <em>one command</em>, and each command knows how to reverse itself.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:undo-intro}}" alt="The undo page: the designer being scolded about the missing undo button, the three numbered steps for adding undo, and the Command interface gaining an undo() method.">
+        <figcaption>Step 1 is the whole design: <code>undo()</code> joins <code>execute()</code> in the interface. Whatever <code>execute()</code> last did, <code>undo()</code> reverses.</figcaption>
+        {{SAYS:undo-intro}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">LightOnCommand.java · the undo half</span><span class="tagline">execute() and its mirror</span></header>
+<pre><span class="kw">public class</span> <span class="type">LightOnCommand</span> <span class="kw">implements</span> <span class="type">Command</span> {
+    <span class="type">Light</span> light;
+
+    <span class="kw">public</span> <span class="fn">LightOnCommand</span>(<span class="type">Light</span> light) { <span class="kw">this</span>.light = light; }
+
+    <span class="kw">public void</span> <span class="fn">execute</span>() { light.on(); }   <span class="cm">// turn it on</span>
+    <span class="kw">public void</span> <span class="fn">undo</span>()    { light.off(); }  <span class="cm">// ...so undo turns it off</span>
+}</pre>
+        </div>
+        <p style="font-size:.92rem;margin-top:12px;color:var(--ink-soft)">For a two-state device, undo is just the other method. That is why the Light is the warm-up: it needs <em>no</em> remembered state.</p>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:remote-undo}}" alt="RemoteControlWithUndo: an extra undoCommand field, initialised to NoCommand, assigned after every on or off button press, and invoked by undoButtonWasPushed().">
+        <figcaption>The invoker’s entire undo machinery: one field, assigned after each button press, invoked by the undo button.</figcaption>
+        {{SAYS:remote-undo}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">RemoteControlWithUndo.java · the parts that matter</span><span class="tagline">one field, two assignments</span></header>
+<pre><span class="type">Command</span> undoCommand;
+
+<span class="kw">public</span> <span class="fn">RemoteControlWithUndo</span>() {
+    <span class="cm">// ... slots as before</span>
+    undoCommand = noCommand;          <span class="cm">// safe before any press</span>
+}
+
+<span class="kw">public void</span> <span class="fn">onButtonWasPushed</span>(<span class="kw">int</span> slot) {
+    onCommands[slot].execute();
+    undoCommand = onCommands[slot];   <span class="cm">// remember it</span>
+}
+
+<span class="kw">public void</span> <span class="fn">offButtonWasPushed</span>(<span class="kw">int</span> slot) {
+    offCommands[slot].execute();
+    undoCommand = offCommands[slot];
+}
+
+<span class="kw">public void</span> <span class="fn">undoButtonWasPushed</span>() {
+    undoCommand.undo();               <span class="cm">// one command, one call</span>
+}</pre>
+        </div>
+        <div class="console" style="margin-top:14px">
+          <header><span class="lights"><i></i><i></i><i></i></span><span class="title">% java RemoteLoader · page 220</span></header>
+          <div class="body">
+            <div class="out">Light is on</div>
+            <div class="out">Light is off</div>
+            <div class="dim">------ Remote Control -------</div>
+            <div class="dim">[slot 0] LightOnCommand        LightOffCommand</div>
+            <div class="dim">[undo] LightOffCommand</div>
+            <div class="out">Light is on        ← undo() of LightOffCommand</div>
+            <div class="out">Light is off</div>
+            <div class="out">Light is on</div>
+            <div class="dim">[undo] LightOnCommand</div>
+            <div class="out">Light is off       ← undo() of LightOnCommand</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">When undo needs memory</h3>
+    <div class="figure-grid" style="margin-top:16px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:ceiling-fan}}" alt="Using state to implement undo: the CeilingFan class with HIGH, MEDIUM, LOW and OFF constants, its speed field and getSpeed(), and the note that undo must take the previous speed into account.">
+        <figcaption>The fan has four speeds, so “undo” cannot be a single opposite method — the command has to remember where the fan was.</figcaption>
+        {{SAYS:ceiling-fan}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">CeilingFanHighCommand.java</span><span class="tagline">undo with local state</span></header>
+<pre><span class="kw">public class</span> <span class="type">CeilingFanHighCommand</span> <span class="kw">implements</span> <span class="type">Command</span> {
+    <span class="type">CeilingFan</span> ceilingFan;
+    <span class="kw">int</span> prevSpeed;                       <span class="cm">// ← the memory</span>
+
+    <span class="kw">public void</span> <span class="fn">execute</span>() {
+        prevSpeed = ceilingFan.getSpeed();  <span class="cm">// record before acting</span>
+        ceilingFan.high();
+    }
+
+    <span class="kw">public void</span> <span class="fn">undo</span>() {
+        <span class="kw">if</span> (prevSpeed == <span class="type">CeilingFan</span>.HIGH)        ceilingFan.high();
+        <span class="kw">else if</span> (prevSpeed == <span class="type">CeilingFan</span>.MEDIUM)  ceilingFan.medium();
+        <span class="kw">else if</span> (prevSpeed == <span class="type">CeilingFan</span>.LOW)     ceilingFan.low();
+        <span class="kw">else if</span> (prevSpeed == <span class="type">CeilingFan</span>.OFF)     ceilingFan.off();
+    }
+}</pre>
+        </div>
+        <p style="font-size:.92rem;margin-top:12px">The book’s console run (page 224): medium → off → undo returns to <em>medium</em>; high → undo returns to medium again. The command remembered <code>prevSpeed</code> each time, so each undo restores exactly one step.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:34px">Party mode: commands of commands</h3>
+    <div class="figure-grid" style="margin-top:16px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:macro}}" alt="Every remote needs a Party Mode: MacroCommand holding an array of commands and executing them one at a time, with the vendor classes it drives.">
+        <figcaption>Mary’s idea: a command whose receiver is a list of other commands. The remote does not change at all — slot 0 just holds a different command.</figcaption>
+        {{SAYS:macro}}
+      </figure>
+      <div>
+        <div class="code" style="margin-top:0">
+          <header><span class="fname">MacroCommand.java</span><span class="tagline">one button, four devices</span></header>
+<pre><span class="kw">public class</span> <span class="type">MacroCommand</span> <span class="kw">implements</span> <span class="type">Command</span> {
+    <span class="type">Command</span>[] commands;
+
+    <span class="kw">public</span> <span class="fn">MacroCommand</span>(<span class="type">Command</span>[] commands) {
+        <span class="kw">this</span>.commands = commands;
+    }
+
+    <span class="kw">public void</span> <span class="fn">execute</span>() {
+        <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; commands.length; i++) {
+            commands[i].execute();
+        }
+    }
+
+    <span class="kw">public void</span> <span class="fn">undo</span>() {
+        <span class="kw">for</span> (<span class="kw">int</span> i = commands.length - 1; i &gt;= 0; i--) {
+            commands[i].undo();          <span class="cm">// reverse order!</span>
+        }
+    }
+}</pre>
+        </div>
+        <div class="console" style="margin-top:14px">
+          <header><span class="lights"><i></i><i></i><i></i></span><span class="title">% java RemoteLoader · page 227</span></header>
+          <div class="body">
+            <div class="call">--- Pushing Macro On---</div>
+            <div class="out">Light is on</div>
+            <div class="out">Living Room stereo is on</div>
+            <div class="out">Living Room TV is on</div>
+            <div class="out">Living Room TV channel is set for DVD</div>
+            <div class="out">Hottub is heating to a steaming 104 degrees</div>
+            <div class="out">Hottub is bubbling!</div>
+            <div class="call">--- Pushing Macro Off---</div>
+            <div class="out">Light is off</div>
+            <div class="out">Living Room stereo is off</div>
+            <div class="out">Living Room TV is off</div>
+            <div class="out">Hottub is cooling to 98 degrees</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="figure-grid" style="margin-top:30px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:solutions6}}" alt="Exercise solutions: the four off commands for the party macro, and the MacroCommand undo() method that walks the array backwards.">
+        <figcaption>The macro’s undo, solved (page 236): walk the array <em>backwards</em> so the last thing switched on is the first thing switched off.</figcaption>
+        {{SAYS:solutions6}}
+      </figure>
+      <div>
+        <div class="note warn" style="margin-top:0">
+          <strong>The trap in macro undo:</strong> order matters. <code>execute()</code> runs 0 → n, so <code>undo()</code> must run n → 0. If the macro’s body does something order-dependent (dim the lights <em>after</em> turning them on), a forward-order undo leaves the room in a state that never existed.
+        </div>
+        <div class="note ok" style="margin-top:14px">
+          <strong>Why not a PartyCommand?</strong> The book’s own answer: you could hard-code the four calls inside one command, “however, you’d essentially be hardcoding the party mode into PartyCommand. With MacroCommand you can decide dynamically which Commands you want to go into PartyCommand.”
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 5. USES -->
+<section id="c-uses">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 5</span><i></i><span>beyond the remote</span></div>
+    <h2>Queues, logs, and the two-pattern example</h2>
+    <p class="sub">Once a request is an object, it can be <em>stored</em>. That single fact gives you thread pools, schedulers, transactional logs and crash recovery — and it turns out you have already used the Command Pattern in this book, in Chapter 2.</p>
+
+    <div class="figure-grid" style="margin-top:26px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:queuing}}" alt="Queuing requests: command objects added to a job queue, a fixed set of threads removing them one by one and calling execute().">
+        <figcaption>Queuing: the client drops commands into a queue; a fixed pool of threads pulls them out and calls <code>execute()</code>. Same pattern, new invoker.</figcaption>
+        {{SAYS:queuing}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:logging}}" alt="Logging requests: the Command interface gaining store() and load(), commands written to disk as they execute, and the reload-and-replay after a crash.">
+        <figcaption>Logging: <code>store()</code> and <code>load()</code> give you crash recovery by replaying commands since the last checkpoint — the spreadsheet example, not the remote.</figcaption>
+        {{SAYS:logging}}
+      </figure>
+    </div>
+
+    <figure class="pic" style="margin-top:30px">
+      <img src="{{IMG6:swing}}" alt="Command Pattern in the Real World: the Swing Should I do it button with AngelListener and DevilListener, and the solution labelling Client, Invoker, Command interface and Commands.">
+      <figcaption>The pay-off from Chapter 2: <code>ActionListener</code> is an Observer interface <em>and</em> a Command interface. One Swing button, two patterns, five roles labelled.</figcaption>
+      {{SAYS:swing}}
+    </figure>
+
+    <div class="grid2" style="margin-top:26px;align-items:start">
+      <div class="note" style="margin-top:0">
+        <strong>Smart commands vs. dumb commands.</strong> The book’s Q&amp;A: “In general, we strive for ‘dumb’ command objects that just invoke an action on a receiver; however, there are many examples of ‘smart’ command objects that implement most, if not all, of the logic needed to carry out a request.” The cost of “smart” is the decoupling you were buying.
+      </div>
+      <div class="note" style="margin-top:0">
+        <strong>An undo <em>history</em>.</strong> For multi-step undo, keep a stack instead of a single reference: pop on undo. The pattern does not change; the invoker’s memory does.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 6. DEMO -->
+<section id="c-demo">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 6</span><i></i><span>live demo</span></div>
+    <h2>The Objectville Remote Control</h2>
+    <p class="sub">Seven slots, a printer’s worth of vendor classes, one undo button and a party mode. Assign a device to a slot, press its on/off buttons, then press <b>undo()</b> and watch the <em>last command object</em> reverse itself. Everything printed here is what the vendor class would print in the book.</p>
+
+    <div class="demo-wrap">
+      <div class="demo-top">
+        <h3>RemoteControl · the invoker</h3>
+        <div class="actions">
+          <button class="btn primary" id="rc-book">Run the book’s RemoteLoader</button>
+          <button class="btn ghost" id="rc-party">Party mode on</button>
+          <button class="btn ghost" id="rc-partyoff">Party mode off</button>
+          <button class="btn ghost" id="rc-reset">Reset remote</button>
+        </div>
+      </div>
+
+      <div class="rc-grid" id="rc-slots"></div>
+
+      <div class="rc-undorow">
+        <button class="btn primary" id="rc-undo">undo()</button>
+        <span class="chip" id="rc-undo-chip">undoCommand = NoCommand</span>
+        <span class="wx-hint" style="margin:0">The undo button calls <code>undo()</code> on whichever command object ran last.</span>
+      </div>
+
+      <div class="grid2" style="margin-top:16px;align-items:start">
+        <div>
+          <h4 class="rc-h4">RemoteControl.toString()</h4>
+          <pre class="rc-tostring" id="rc-tostring"></pre>
+        </div>
+        <div>
+          <h4 class="rc-h4">The receivers right now</h4>
+          <div class="rc-devices" id="rc-devices"></div>
+        </div>
+      </div>
+
+      <div class="console" style="margin-top:16px">
+        <header>
+          <span class="lights"><i></i><i></i><i></i></span>
+          <span class="title">RemoteLoader — console</span>
+        </header>
+        <div class="body" id="rc-log"></div>
+        <footer><button class="btn small" id="rc-clear">Clear console</button></footer>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:26px">
+      <div class="note ok">
+        <strong>What to try:</strong> put a Light in slot 0 and a Stereo in slot 3, press both ON buttons, then press <b>undo()</b> twice — each press reverses the command that ran last, so the stereo goes off first and the light second. Then load the ceiling fan and press high, off, undo: the fan returns to <em>high</em>, not to medium, because the <code>CeilingFanHighCommand</code> remembered its own <code>prevSpeed</code>.
+      </div>
+      <div class="note">
+        <strong>Why the console matters:</strong> every line comes from a receiver — <code>Light.on()</code>, <code>Stereo.setCD()</code>, <code>Hottub.jetsOn()</code> — never from the remote. The remote only ever said <code>execute()</code>.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================= 7. CHEAT SHEET -->
+<section id="c-cheatsheet">
+  <div class="wrap">
+    <div class="eyebrow"><span>Part 7</span><i></i><span>one-page recap</span></div>
+    <h2>Chapter 6 cheat sheet</h2>
+
+    <div class="timeline">
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The problem is a method call, not an object</h4><p>The remote has to press buttons that turn on lights, fans and hot tubs whose classes share no interface — and keep working for vendor classes that do not exist yet.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The diner is the model</h4><p>Customer → Client, Waitress → Invoker, Order Slip → Command, Cook → Receiver, <code>orderUp()</code> → <code>execute()</code>, <code>takeOrder()</code> → <code>setCommand()</code>.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>A command binds a receiver to actions</h4><p>The constructor captures the receiver; <code>execute()</code> captures the actions. One interface, one method — that is the entire contract.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>The invoker only knows execute()</h4><p>Seven slots of <code>Command</code> references. <code>onButtonWasPushed(slot)</code> calls <code>execute()</code>; it never mentions a device class.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>NoCommand removes the null check</h4><p>Every slot starts loaded with a null object, so the invoker never tests for <code>null</code> — and pressing an unprogrammed button does nothing at all.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Undo is a second method</h4><p><code>undo()</code> mirrors <code>execute()</code>. The invoker stores one command reference; commands with state (the fan) remember their previous state themselves.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Macros are commands of commands</h4><p>An array of commands, executed in order and undone in <em>reverse</em> order. The invoker does not change; slot 0 just holds a <code>MacroCommand</code>.</p></div></div>
+      <div class="tstep"><div class="num"></div><div class="box"><h4>Requests can be stored</h4><p>Because a request is an object, you can queue it (thread pools, schedulers) or log it (crash recovery, transactional replay).</p></div></div>
+    </div>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <div>
+        <h3 style="margin-top:0">The book’s bullet points</h3>
+        <ul class="bullets">
+          <li>The Command Pattern decouples an object making a request from the one that knows how to perform it.</li>
+          <li>A Command object is at the center of this decoupling and encapsulates a receiver with an action (or set of actions).</li>
+          <li>An invoker makes a request of a Command object by calling its <code>execute()</code> method, which invokes those actions on the receiver.</li>
+          <li>Invokers can be parameterized with Commands, even dynamically at runtime.</li>
+          <li>Commands may support undo by implementing an <code>undo()</code> method that restores the object to its previous state before the <code>execute()</code> method was last called.</li>
+          <li>MacroCommands are a simple extension of the Command Pattern that allow multiple commands to be invoked. Likewise, MacroCommands can easily support <code>undo()</code>.</li>
+          <li>In practice, it’s not uncommon for “smart” Command objects to implement the request themselves rather than delegating to a receiver.</li>
+          <li>Commands may also be used to implement logging and transactional systems.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Six patterns, one shape</h3>
+        <table class="compare">
+          <thead><tr><th>Pattern</th><th>What is encapsulated</th></tr></thead>
+          <tbody>
+            <tr><td>Strategy</td><td>an algorithm</td></tr>
+            <tr><td>Observer</td><td>the list of dependents</td></tr>
+            <tr><td>Decorator</td><td>added responsibility</td></tr>
+            <tr><td>Factory Method / Abstract Factory</td><td>object creation</td></tr>
+            <tr><td>Singleton</td><td>instantiation itself</td></tr>
+            <tr><td><strong>Command</strong></td><td><strong>a request (receiver + actions)</strong></td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:16px">
+          <strong>If you remember one line:</strong> turn the method call into an object, and everything a method call cannot do — be stored, queued, logged, undone, or handed to another thread — becomes possible.
+        </div>
+      </div>
+    </div>
+
+    <figure class="pic" style="margin-top:34px">
+      <img src="{{IMG6:toolbox6}}" alt="The design toolbox after chapter 6: OO basics, six principles, seven patterns including Command, and the chapter’s eight bullet points.">
+      <figcaption>The toolbox after Chapter 6: seven patterns. “When you need to decouple an object making requests from the objects that know how to perform the requests, use the Command Pattern.”</figcaption>
+      {{SAYS:toolbox6}}
+    </figure>
+
+    <div class="grid2" style="margin-top:34px;align-items:start">
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:crossword6}}" alt="The chapter 6 design patterns crossword grid with its across and down clues about the diner, the remote control and command objects.">
+        <figcaption>The chapter 6 crossword — every answer is from this chapter. Try it before scrolling.</figcaption>
+        {{SAYS:crossword6}}
+      </figure>
+      <figure class="pic" style="margin:0">
+        <img src="{{IMG6:crossword-solution6}}" alt="The solved chapter 6 crossword with answers including OBJECTVILLE, WEATHER-O-RAMA, CLIENT, COMMAND, DECOUPLED, INVOKER, GREENEGGSANDHAM, UNDO, WAITRESS, VENDORCLASSES and BINDS.">
+        <figcaption>The verified solution (page 236). Note the two RECEIVERs — the book uses the same answer for “knows how to get things done” and “carries out a request”.</figcaption>
+        {{SAYS:crossword-solution6}}
+      </figure>
+    </div>
+
+    <div class="quiz" style="margin-top:34px" id="c-quiz">
+      <h3 style="margin-top:0">Check yourself: what is true of Command?</h3>
+      <p style="font-size:.9rem;color:var(--ink-soft);margin-bottom:8px">Choose all that apply.</p>
+      <div id="c-quiz-opts">
+        <label class="opt" data-correct="1"><input type="checkbox" value="A"><span class="txt">A. A command object binds together a receiver and the action(s) to perform on it.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="B"><span class="txt">B. The invoker has to know the receiver’s class so it can call the right method.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="C"><span class="txt">C. <code>NoCommand</code> is a null object: it lets every slot hold a command so the invoker never checks for <code>null</code>.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="D"><span class="txt">D. <code>undo()</code> is in the <code>Command</code> interface from the chapter’s first listing.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="1"><input type="checkbox" value="E"><span class="txt">E. A <code>MacroCommand</code> undoes its commands in reverse order.</span><span class="mark"></span></label>
+        <label class="opt" data-correct="0"><input type="checkbox" value="F"><span class="txt">F. A lambda expression cannot be used as a command, because it has no class.</span><span class="mark"></span></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn primary small" id="c-quiz-check">Check my answer</button>
+        <button class="btn ghost small" id="c-quiz-reset">Reset</button>
+      </div>
+      <div class="note ok hidden" id="c-quiz-answer" style="margin-top:14px"></div>
+    </div>
+
+    <div class="note" style="margin-top:24px">
+      <strong>Chapter 6 in the book’s words:</strong> “The Command Pattern encapsulates a request as an object, thereby letting you parameterize other objects with different requests, queue or log requests, and support undoable operations.” The remote control is just the friendliest possible example of that sentence.
+    </div>
+
+    <p style="margin-top:22px;font-size:.92rem;color:var(--ink-soft)">Next in the book: <strong>Chapter 7, the Adapter and Facade Patterns</strong> — making one interface look like another, and wrapping a whole subsystem behind one button.</p>
+  </div>
+</section>
+
+<script>
+/* ============================================================ chapter 6 */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const logBox = $('#rc-log');
+  if (!logBox) return;
+
+  const log = (html, cls = '') => {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.innerHTML = html;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  const out  = t => `<span class="out">${t}</span>`;
+  const dim  = t => `<span class="dim">${t}</span>`;
+  const call = t => `<span class="call">${t}</span>`;
+  const res  = t => `<span class="res">${t}</span>`;
+  const err  = t => `<span class="err">${t}</span>`;
+
+  /* ------------------------------------------------------------ receivers */
+  const dev = {
+    light: { 'Living Room': false, Kitchen: false },
+    fan: 0,             // 0 off, 1 low, 2 medium, 3 high
+    stereo: false,
+    garageOpen: false,
+    hottub: false,
+    tv: false
+  };
+  const FAN = ['OFF', 'low', 'medium', 'high'];
+
+  const say = t => log(out(t));
+
+  /* ------------------------------------------------------------- commands */
+  const NO = { name: 'NoCommand', execute() {}, undo() { log(dim('NoCommand.undo() — nothing to reverse')); } };
+
+  const cmd = (name, execute, undo) => ({ name, execute, undo });
+
+  const lightCmds = loc => ({
+    on:  cmd('LightOnCommand',  () => { dev.light[loc] = true;  say(`${loc} light is on`);  },
+                                () => { dev.light[loc] = false; say(`${loc} light is off`); }),
+    off: cmd('LightOffCommand', () => { dev.light[loc] = false; say(`${loc} light is off`); },
+                                () => { dev.light[loc] = true;  say(`${loc} light is on`);  })
+  });
+
+  const fanCmd = (speed, name) => {
+    let prev = null;
+    const print = () => say(dev.fan === 0 ? 'Living Room ceiling fan is off'
+                                          : `Living Room ceiling fan is on ${FAN[dev.fan]}`);
+    return cmd(name,
+      () => { prev = dev.fan; dev.fan = speed; print(); },
+      () => { dev.fan = prev === null ? 0 : prev; print(); });
+  };
+
+  const stereoOn = cmd('StereoOnWithCDCommand',
+    () => { dev.stereo = true; say('Living Room stereo is on'); say('Living Room stereo is set for CD input'); say('Living Room stereo volume set to 11'); },
+    () => { dev.stereo = false; say('Living Room stereo is off'); });
+
+  const stereoOff = cmd('StereoOffCommand',
+    () => { dev.stereo = false; say('Living Room stereo is off'); },
+    () => { dev.stereo = true; say('Living Room stereo is on'); });
+
+  const garageUp = cmd('GarageDoorUpCommand',
+    () => { dev.garageOpen = true; say('Garage Door is Open'); },
+    () => { dev.garageOpen = false; say('Garage Door is Closed'); });
+
+  const garageDown = cmd('GarageDoorDownCommand',
+    () => { dev.garageOpen = false; say('Garage Door is Closed'); },
+    () => { dev.garageOpen = true; say('Garage Door is Open'); });
+
+  const hottubOn = cmd('HottubOnCommand',
+    () => { dev.hottub = true; say('Hottub is heating to a steaming 104 degrees'); say('Hottub is bubbling!'); },
+    () => { dev.hottub = false; say('Hottub is cooling to 98 degrees'); });
+
+  const hottubOff = cmd('HottubOffCommand',
+    () => { dev.hottub = false; say('Hottub is cooling to 98 degrees'); },
+    () => { dev.hottub = true; say('Hottub is heating to a steaming 104 degrees'); });
+
+  const tvOn = cmd('TVOnCommand',
+    () => { dev.tv = true; say('Living Room TV is on'); say('Living Room TV channel is set for DVD'); },
+    () => { dev.tv = false; say('Living Room TV is off'); });
+
+  const tvOff = cmd('TVOffCommand',
+    () => { dev.tv = false; say('Living Room TV is off'); },
+    () => { dev.tv = true; say('Living Room TV is on'); });
+
+  /* ------------------------------------------------------- slot programmes */
+  const PAIRS = {
+    none:         { label: '— empty (NoCommand) —', onName: 'NoCommand', offName: 'NoCommand', make: () => ({ on: NO, off: NO }) },
+    livingLight:  { label: 'Light · Living Room', onName: 'LightOnCommand', offName: 'LightOffCommand', make: () => lightCmds('Living Room') },
+    kitchenLight: { label: 'Light · Kitchen', onName: 'LightOnCommand', offName: 'LightOffCommand', make: () => lightCmds('Kitchen') },
+    fan:          { label: 'Ceiling Fan · high', onName: 'CeilingFanHighCommand', offName: 'CeilingFanOffCommand', make: () => ({ on: fanCmd(3, 'CeilingFanHighCommand'), off: fanCmd(0, 'CeilingFanOffCommand') }) },
+    stereo:       { label: 'Stereo · on with CD', onName: 'StereoOnWithCDCommand', offName: 'StereoOffCommand', make: () => ({ on: stereoOn, off: stereoOff }) },
+    garage:       { label: 'Garage Door', onName: 'GarageDoorUpCommand', offName: 'GarageDoorDownCommand', make: () => ({ on: garageUp, off: garageDown }) },
+    hottub:       { label: 'Hot Tub', onName: 'HottubOnCommand', offName: 'HottubOffCommand', make: () => ({ on: hottubOn, off: hottubOff }) },
+    tv:           { label: 'TV', onName: 'TVOnCommand', offName: 'TVOffCommand', make: () => ({ on: tvOn, off: tvOff }) }
+  };
+
+  let slots = Array.from({ length: 7 }, () => ({ key: 'none', on: NO, off: NO }));
+  let undoCommand = NO;
+
+  /* --------------------------------------------------------------- render */
+  const keyOf = c => (c === NO ? 'NoCommand' : c.name);
+
+  function renderSlots() {
+    $('#rc-slots').innerHTML = slots.map((s, i) => `
+      <div class="rc-slot${s.key === 'none' ? ' empty' : ''}">
+        <div class="rc-head"><span class="rc-num">slot ${i}</span><span class="rc-what">${PAIRS[s.key].label}</span></div>
+        <select class="rc-select" data-slot="${i}" aria-label="Command for slot ${i}">
+          ${Object.entries(PAIRS).map(([k, p]) => `<option value="${k}"${k === s.key ? ' selected' : ''}>${p.label}</option>`).join('')}
+        </select>
+        <div class="rc-btns">
+          <button class="rc-btn on" data-slot="${i}" data-kind="on">ON</button>
+          <button class="rc-btn off" data-slot="${i}" data-kind="off">OFF</button>
+        </div>
+      </div>`).join('');
+
+    $$('#rc-slots .rc-select').forEach(sel => sel.addEventListener('change', () => {
+      const i = +sel.dataset.slot;
+      setSlot(i, sel.value);
+    }));
+    $$('#rc-slots .rc-btn').forEach(b => b.addEventListener('click', () => {
+      press(+b.dataset.slot, b.dataset.kind);
+    }));
+  }
+
+  function renderToString() {
+    const lines = slots.map((s, i) =>
+      `[slot ${i}] ${PAIRS[s.key].onName.padEnd(23)} ${PAIRS[s.key].offName}`);
+    $('#rc-tostring').textContent =
+      '------ Remote Control -------\n' + lines.join('\n') + `\n[undo] ${keyOf(undoCommand)}`;
+    $('#rc-undo-chip').textContent = `undoCommand = ${keyOf(undoCommand)}`;
+  }
+
+  function renderDevices() {
+    const items = [
+      ['Living Room light', dev.light['Living Room'] ? 'on' : 'off'],
+      ['Kitchen light', dev.light.Kitchen ? 'on' : 'off'],
+      ['Ceiling fan', dev.fan === 0 ? 'off' : FAN[dev.fan]],
+      ['Stereo', dev.stereo ? 'on (CD, volume 11)' : 'off'],
+      ['Garage door', dev.garageOpen ? 'open' : 'closed'],
+      ['Hot tub', dev.hottub ? 'heating · bubbling' : 'cooling'],
+      ['TV', dev.tv ? 'on (DVD)' : 'off']
+    ];
+    $('#rc-devices').innerHTML = items.map(([k, v]) =>
+      `<div class="rc-dev"><span>${k}</span><b data-on="${/^on|open|hea|high|medium|low/.test(v)}">${v}</b></div>`).join('');
+  }
+
+  function renderAll() { renderSlots(); renderToString(); renderDevices(); }
+
+  /* -------------------------------------------------------------- actions */
+  function setSlot(i, key) {
+    const p = PAIRS[key];
+    const made = p.make();
+    slots[i] = { key, on: made.on, off: made.off };
+    log(call(`remoteControl.setCommand(${i}, ${p.onName}, ${p.offName})`));
+    renderAll();
+  }
+
+  function press(i, kind) {
+    const c = slots[i][kind];
+    log(dim(`remoteControl.${kind}ButtonWasPushed(${i})`));
+    c.execute();
+    undoCommand = c;
+    renderToString(); renderDevices();
+  }
+
+  function undo() {
+    if (undoCommand === NO) {
+      log(err('undoButtonWasPushed() → undoCommand is a NoCommand: nothing happens'));
+      return;
+    }
+    log(call('remoteControl.undoButtonWasPushed()'));
+    undoCommand.undo();
+    renderToString(); renderDevices();
+  }
+
+  function reset(quiet) {
+    slots = Array.from({ length: 7 }, () => ({ key: 'none', on: NO, off: NO }));
+    undoCommand = NO;
+    Object.assign(dev, { fan: 0, stereo: false, garageOpen: false, hottub: false, tv: false });
+    dev.light['Living Room'] = false; dev.light.Kitchen = false;
+    renderAll();
+    if (!quiet) log(dim('— remote reset: every slot holds a NoCommand —'));
+  }
+
+  /* ----------------------------------------------------- the book’s run */
+  function runBook() {
+    reset(true);
+    logBox.innerHTML = '';
+    log(dim('RemoteLoader.main() — the book’s page-212 test script'));
+    setSlot(0, 'livingLight');
+    setSlot(1, 'kitchenLight');
+    setSlot(2, 'fan');
+    setSlot(3, 'stereo');
+    log(dim('System.out.println(remoteControl);'));
+    $('#rc-tostring').textContent.split('\n').forEach(l => log(dim(l)));
+    log(dim('— pushing every slot’s on and off buttons —'));
+    [0, 1, 2, 3].forEach(i => { press(i, 'on'); press(i, 'off'); });
+    log(res('that is the book’s output, line for line (page 213)'));
+  }
+
+  /* ---------------------------------------------------------- party mode */
+  function party(on) {
+    const cmds = on
+      ? [
+          cmd('LightOnCommand', () => { dev.light['Living Room'] = true; say('Light is on'); }, () => { dev.light['Living Room'] = false; say('Light is off'); }),
+          stereoOn, tvOn, hottubOn
+        ]
+      : [
+          cmd('LightOffCommand', () => { dev.light['Living Room'] = false; say('Light is off'); }, () => { dev.light['Living Room'] = true; say('Light is on'); }),
+          stereoOff, tvOff, hottubOff
+        ];
+
+    const macro = cmd('MacroCommand',
+      () => cmds.forEach(c => c.execute()),
+      () => [...cmds].reverse().forEach(c => c.undo()));
+
+    log(call(`--- Pushing Macro ${on ? 'On' : 'Off'}---`));
+    log(dim(`remoteControl.${on ? 'on' : 'off'}ButtonWasPushed(0)  →  MacroCommand.execute()`));
+    macro.execute();
+    undoCommand = macro;
+    renderToString(); renderDevices();
+  }
+
+  /* --------------------------------------------------------------- wiring */
+  $('#rc-book')?.addEventListener('click', runBook);
+  $('#rc-party')?.addEventListener('click', () => party(true));
+  $('#rc-partyoff')?.addEventListener('click', () => party(false));
+  $('#rc-undo')?.addEventListener('click', undo);
+  $('#rc-reset')?.addEventListener('click', () => reset(false));
+  $('#rc-clear')?.addEventListener('click', () => { logBox.innerHTML = ''; });
+
+  reset(true);
+  log(dim('RemoteControl ready — seven slots, every one holding a NoCommand.'));
+})();
+
+/* --------------------------------------------------------------- quiz */
+(() => {
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  const box = $('#c-quiz');
+  if (!box) return;
+
+  const opts   = $$('#c-quiz-opts .opt', box);
+  const answer = $('#c-quiz-answer', box);
+
+  opts.forEach(opt => {
+    opt.addEventListener('change', () => {
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+  });
+
+  $('#c-quiz-check', box)?.addEventListener('click', () => {
+    let right = 0;
+    const wrong = [];
+    opts.forEach(opt => {
+      const ticked  = opt.querySelector('input').checked;
+      const correct = opt.dataset.correct === '1';
+      const mark    = opt.querySelector('.mark');
+      opt.classList.remove('correct', 'wrong');
+      if (ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓'; right++; }
+      else if (ticked && !correct) { opt.classList.add('wrong'); mark.textContent = '✗'; wrong.push(opt.querySelector('input').value); }
+      else if (!ticked && correct) { opt.classList.add('correct'); mark.textContent = '✓ (missed)'; }
+      else { mark.textContent = ''; }
+    });
+    const correctSet = opts.filter(o => o.dataset.correct === '1').map(o => o.querySelector('input').value);
+    const allFound = right === correctSet.length;
+    answer.classList.remove('hidden');
+    answer.innerHTML = (wrong.length || !allFound)
+      ? `<strong>Not quite.</strong> ${right} of ${correctSet.length} right${wrong.length ? `, and ${wrong.join(', ')} ${wrong.length > 1 ? 'are' : 'is'} wrong` : ''}. The true statements are A, C and E: a command binds a receiver to its actions, <code>NoCommand</code> is a null object, and macro undo runs backwards. B fails because the invoker only knows <code>execute()</code>; D fails because <code>undo()</code> joins the interface on page 217, after the remote already works; F fails because a one-method interface is exactly what a lambda can implement — the book cuts 22 classes down to 9 that way.`
+      : `<strong>All ${correctSet.length} correct.</strong> Receiver + actions in one object (A), a null object instead of a null check (C), and reverse-order undo for macros (E) are the three mechanical ideas worth memorising.`;
+  });
+
+  $('#c-quiz-reset', box)?.addEventListener('click', () => {
+    opts.forEach(opt => {
+      opt.querySelector('input').checked = false;
+      opt.classList.remove('correct', 'wrong');
+      opt.querySelector('.mark').textContent = '';
+    });
+    answer.classList.add('hidden');
+    answer.innerHTML = '';
+  });
+})();
+</script>
